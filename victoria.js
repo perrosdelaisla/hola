@@ -163,7 +163,16 @@ function prog(p) {
 }
 
 function scroll() {
-  setTimeout(() => { chat().scrollTop = chat().scrollHeight; }, 60);
+  setTimeout(() => {
+    const chatEl = chat();
+    const panelEl = panel();
+    const tw = document.getElementById('tw');
+    // Altura del panel fijo
+    const panelH = panelEl.classList.contains('off') ? 0 : panelEl.offsetHeight;
+    // Scrollear para que el typing indicator quede justo encima del panel
+    const targetScroll = tw.offsetTop - chatEl.offsetTop - (chatEl.offsetHeight - panelH) + tw.offsetHeight;
+    chatEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
+  }, 80);
 }
 
 function parseDogs(raw) {
@@ -276,6 +285,8 @@ function showOpts(hint, items, backFn = null) {
     };
     opts.appendChild(bb);
   }
+  // Reajustar scroll para que el último mensaje quede visible sobre el panel
+  setTimeout(() => scroll(), 100);
 }
 
 /* ── Input de texto ── */
@@ -314,6 +325,8 @@ function showText(ph, cb, backFn = null) {
     if (!locked) { locked = true; hidePanel(); setTimeout(() => { locked = false; }, 400); backFn(); }
   };
   setTimeout(() => ti.focus(), 150);
+  // Reajustar scroll
+  setTimeout(() => scroll(), 100);
 }
 
 /* ════════════════════════════════════════════
