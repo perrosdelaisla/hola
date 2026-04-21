@@ -319,6 +319,40 @@ function showText(ph, cb, backFn = null) {
 /* ════════════════════════════════════════════
    API VICTORIA (Claude)
    ════════════════════════════════════════════ */
+
+// askVic silencioso — para empatía durante diagnóstico
+// Si falla la IA, simplemente no muestra nada y sigue el flujo
+async function askVicSilent(userText, ctx = '') {
+  const lo = widget(`<div class="ail"><div class="ais"></div><span>Victoria está escribiendo...</span></div>`);
+  const msg = userText + (ctx ? `\n\n[Contexto: ${ctx}]` : '');
+  S.hist.push({ role: 'user', content: msg });
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 400,
+        system: KNOWLEDGE,
+        messages: S.hist,
+      }),
+    });
+    if (!res.ok) throw new Error('api');
+    const data = await res.json();
+    const reply = data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
+    if (!reply) throw new Error('empty');
+    S.hist.push({ role: 'assistant', content: reply });
+    lo.remove();
+    await bot(reply.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>'), 200);
+  } catch (e) {
+    S.hist.pop();
+    lo.remove();
+    // Silencioso — el flujo continúa sin mensaje de error
+  }
+}
+
+// askVic normal — para preguntas directas donde necesitamos respuesta
+// Si falla, muestra WhatsApp y detiene el flujo
 async function askVic(userText, ctx = '') {
   const lo = widget(`<div class="ail"><div class="ais"></div><span>Victoria está escribiendo...</span></div>`);
   const msg = userText + (ctx ? `\n\n[Contexto: ${ctx}]` : '');
@@ -345,6 +379,8 @@ async function askVic(userText, ctx = '') {
     S.hist.pop();
     lo.remove();
     await bot(`Un momento, déjame consultarlo con el equipo — es más rápido así 😊<br><a href="https://wa.me/34622922173">WhatsApp: 622 922 173</a>`, 400);
+    // Detener el flujo — no continuar
+    throw e;
   }
 }
 
@@ -528,8 +564,8 @@ async function s4_diagnose(idx, desc, perDog) {
   const result = diagnose(age, desc);
   const n = d.name;
 
-  // Empatía primero
-  await askVic(
+  // Empatía primero — silenciosa, si falla la IA el flujo continúa igual
+  await askVicSilent(
     `El tutor describe esta situación con su perro${perDog ? ' ' + n : ''}: "${desc}". Responde con empatía genuina — valida, normaliza, acompaña en 2-3 frases. No des protocolos todavía. Usa palabras literales de su descripción para reflejar que escuchaste de verdad.`,
     `Perro: ${n}, ${age}. Zona: ${S.zona}.`
   );
