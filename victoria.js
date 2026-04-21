@@ -435,8 +435,13 @@ function diagnose(age, desc) {
     return { svc: 'reactividad', needsClarify: false };
   }
 
-  // Llora solo — desambiguar ansiedad vs educación
-  if (/llor|solo en casa|cuando (nos |me )?v(amos|oy)|se queda solo|destruy|rompe/.test(d)) {
+  // Ansiedad por separación — detonante claro = ausencia de tutores
+  if (/nos vamos|me voy|cuando sal|cuando nos va|se queda sol|solo en casa|llora.{0,20}(solo|casa|vamos)|ladra.{0,20}(solo|vamos|sal)|destruy|rompe.{0,20}(solo|casa)/.test(d)) {
+    return { svc: 'ansiedad', needsClarify: false };
+  }
+
+  // Llora — desambiguar si no está claro el detonante
+  if (/llor|rompe/.test(d)) {
     return {
       svc: null, needsClarify: true,
       clarifyQ: 'Para entenderlo mejor — ¿llora y se descontrola <strong>solo cuando os vais</strong>, o también cuando estáis en casa pero no le hacéis caso?',
@@ -668,7 +673,7 @@ async function s4_multi_next() {
 /* ── S5: Más detalles ── */
 async function s5() {
   prog(45);
-  if (S.svc === 'derivacion') return; // No seguir si es derivación
+  if (S.svc === 'derivacion') return;
   const n = S.dogs[0]?.name;
   const plural = S.multiDog && !S.diffProb;
   await bot(plural
@@ -676,6 +681,12 @@ async function s5() {
     : `Para que el adiestrador llegue bien preparado — ¿puedes contarme algo más sobre <em>${n}</em>? Cuándo ocurre, cómo reacciona...`,
     1400);
   showText('Cualquier detalle ayuda...', async v => {
+    // Rediagnóstico si el usuario aporta info nueva más específica
+    const nuevo = diagnose(S.age, v);
+    if (nuevo.svc && nuevo.svc !== 'educacion' && nuevo.svc !== S.svc) {
+      S.svc = nuevo.svc;
+      S.dogs.forEach(d => d.svc = nuevo.svc);
+    }
     S.desc += ' ' + v;
     S.dogs.forEach(d => { d.desc += ' ' + v; });
     setTimeout(s6, 400);
