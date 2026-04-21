@@ -98,7 +98,7 @@ html, body {
 
 /* ── CHAT ── */
 .chat {
-  padding: 16px 14px 210px;
+  padding: 16px 14px 320px;
   max-width: 560px;
   margin: 0 auto;
   display: flex;
