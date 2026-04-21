@@ -23,7 +23,7 @@ REGLAS CRÍTICAS:
 - NUNCA menciones al adiestrador por nombre — di siempre "el adiestrador" o "el adiestrador que llevará su caso"
 - Si hay cualquier problema técnico, redirige cálidamente a WhatsApp SIN mencionar el error
 
-EN CASO DE ERROR: Di "Un momento, déjame consultarlo con el equipo — es más rápido así 😊 Escríbenos por WhatsApp al 653 591 301 y te atendemos enseguida."
+EN CASO DE ERROR: Di "Un momento, déjame consultarlo con el equipo — es más rápido así 😊 Escríbenos por WhatsApp al 622 922 173 y te atendemos enseguida."
 
 CONTENCIÓN EMOCIONAL — MUY IMPORTANTE:
 Cuando alguien describe un problema difícil, responde con empatía genuina ANTES de cualquier protocolo. Usa variantes distintas, nunca la misma frase dos veces. Recoge palabras literales del usuario para reflejarlas de vuelta — eso es escucha activa real. Ejemplos:
@@ -37,7 +37,7 @@ SOBRE PERROS DE LA ISLA:
 - Servicio exclusivamente a domicilio en Palma, Calviá, Llucmajor e Inca y alrededores
 - Método 100% positivo, respetuoso, sin coerción, sin collares de castigo, sin gritos
 - Lema: "Tu perro merece ser feliz hoy"
-- WhatsApp: 653 591 301 | Email: perrosdelaislapalma@gmail.com
+- WhatsApp: 622 922 173 | Email: perrosdelaislapalma@gmail.com
 - Instagram y Facebook: @perrosdelaisla | Web: perrosdelaisla.com
 
 SERVICIOS (usa solo estos, en este orden de prioridad al sugerir):
@@ -344,7 +344,7 @@ async function askVic(userText, ctx = '') {
   } catch (e) {
     S.hist.pop();
     lo.remove();
-    await bot(`Un momento, déjame consultarlo con el equipo — es más rápido así 😊<br><a href="https://wa.me/34653591301">WhatsApp: 653 591 301</a>`, 400);
+    await bot(`Un momento, déjame consultarlo con el equipo — es más rápido así 😊<br><a href="https://wa.me/34622922173">WhatsApp: 622 922 173</a>`, 400);
   }
 }
 
@@ -411,26 +411,14 @@ function diagnose(age, desc) {
     return { svc: 'ansiedad', needsClarify: false };
   }
 
-  // Educación básica
-  if (/no hace caso|orden|obedien|salta encima|tira.{0,15}correa|paseo.{0,20}(mal|imposible)|educac|básic|adoptado/.test(d)) {
+  // Educación básica — incluye casos ambiguos de falta de atención y vínculo
+  if (/no hace caso|no obedece|no me hace caso|sordo|como sordo|ignora|no atiende|falta.{0,20}vinculo|vinculo|sin vinculo|no conecta|no me escucha|orden|obedien|salta encima|tira.{0,15}correa|paseo.{0,20}(mal|imposible)|educac|básic|adoptado|tira cuando|no se queda quieto|no para/.test(d)) {
     return { svc: 'educacion', needsClarify: false };
   }
 
-  // Ladra en casa a visitas — desambiguar
-  if (/ladra.{0,20}(visita|persona|gente|extraño|desconoc|timbre|puerta)/.test(d)) {
-    return {
-      svc: null, needsClarify: true,
-      clarifyQ: '¿Solo ladra cuando llegan personas a casa, o también reacciona así en la calle o con otros perros?',
-      clarifyOpts: [
-        { icon: '🏠', label: 'Solo en casa con visitas o el timbre', fn: 'educacion' },
-        { icon: '🐕', label: 'También en la calle o con otros perros', fn: 'reactividad' },
-        { icon: '🔀', label: 'En los dos sitios', fn: 'reactividad' },
-      ],
-    };
-  }
-
-  // Ambiguo → orientación general
-  return { svc: 'orientacion', needsClarify: false };
+  // Ambiguo — en lugar de derivar al WhatsApp, orientamos hacia educación básica
+  // que es el punto de partida más neutral para una evaluación
+  return { svc: 'educacion', needsClarify: false };
 }
 
 /* ════════════════════════════════════════════
@@ -459,7 +447,7 @@ async function s1() {
 
 async function sFuera() {
   await bot(`Ay, de momento no llegamos hasta esa zona 😕 Cubrimos principalmente Palma, Calviá, Llucmajor e Inca y sus alrededores.<br><br>Si estás cerca de alguna de esas áreas, escríbenos y miramos si es posible.`, 1700);
-  widget(`<div class="warn">📱 <strong>653 591 301</strong> (WhatsApp)<br>📧 perrosdelaislapalma@gmail.com</div>`);
+  widget(`<div class="warn">📱 <strong>622 922 173</strong> (WhatsApp)<br>📧 perrosdelaislapalma@gmail.com</div>`);
 }
 
 /* ── S2: Nombre del perro ── */
@@ -603,7 +591,7 @@ async function s4_mostrar_derivacion(nombre) {
     </div>
     <div class="warn" style="margin-top:8px">
       📱 Si en algún momento necesitáis más orientación, estamos aquí.<br>
-      <a href="https://wa.me/34653591301">WhatsApp: 653 591 301</a>
+      <a href="https://wa.me/34622922173">WhatsApp: 622 922 173</a>
     </div>
   `);
 }
