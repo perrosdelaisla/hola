@@ -810,30 +810,73 @@ function _evaluarCompoundRules(textoNorm, compound_rules) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CASOS DE PRUEBA (solo para desarrollo — eliminar en producción)
-// ─────────────────────────────────────────────────────────────────────────────
-
 // Para correr en consola del navegador o Node:
 // import { detectarCuadros } from "./victoria-dictionaries.js";
-
-/*
+//
 // CASO 1: Separación clara
-console.log(detectarCuadros("mi perro llora cuando me voy, los vecinos se quejan"));
+// detectarCuadros("mi perro llora cuando me voy, los vecinos se quejan")
 // Esperado: separacion → confianza alta (n1: "cuando me voy", n2: "llora", n3: "vecinos")
-
-// CASO 2: Separación excluida por co-ocurrencia (se detecta pero matching la cederá a generalizada)
-console.log(detectarCuadros("está nervioso todo el día, incluso cuando estamos con él en casa, y también cuando nos vamos"));
-// Esperado: separacion → exclusion_textual=true (hit "cuando estamos con él"),
-//           generalizada → confianza media/alta (siempre tenso, todo el día)
-
+//
+// CASO 2: Separación excluida por co-ocurrencia
+// detectarCuadros("está nervioso todo el día, incluso cuando estamos con él en casa, y también cuando nos vamos")
+// Esperado: separacion → exclusion_textual=true; generalizada → confianza media/alta
+//
 // CASO 3: Reactividad clara
-console.log(detectarCuadros("se lanza a todos los perros que ve en el paseo, no puedo pasearlo"));
+// detectarCuadros("se lanza a todos los perros que ve en el paseo, no puedo pasearlo")
 // Esperado: reactividad → confianza alta (n1: "se lanza", "no puedo pasearlo")
-
+//
 // CASO 4: Miedos con detonante
-console.log(detectarCuadros("le tienen pánico las tormentas, se esconde debajo de la cama"));
+// detectarCuadros("le tienen pánico las tormentas, se esconde debajo de la cama")
 // Esperado: miedos → confianza alta, compound_hits: ["detonante_con_evitacion"]
-
+//
 // CASO 5: Ambiguo — pedir aclaración
-console.log(detectarCuadros("quiero mejorar la convivencia con mi perro"));
-// Esperado: basica → confianza baja, requiere_aclaracion: true (no hay confianza alta/media)
-*/
+// detectarCuadros("quiero mejorar la convivencia con mi perro")
+// Esperado: basica → confianza baja, requiere_aclaracion: true
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DETECCIÓN DE SERVICIOS LATERALES
+// Función pura — solo detecta la keyword.
+// La lógica de "ignorar si hay cuadro fuerte" vive en victoria.js (orquestador).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const DICT_LATERALES = {
+  paseos_grupales: [
+    "paseos grupales", "paseo grupal", "paseos en grupo", "paseo colectivo",
+    "manada", "salida con otros perros", "paseo con más perros",
+    "actividad en grupo", "quedada de perros",
+  ],
+  adopciones: [
+    "adopción", "adoptar", "cachorro en adopción", "perro gratis",
+    "regalar un perro", "dar en adopción", "protectora", "perrera",
+  ],
+  guarderia: [
+    "guardería", "guardería canina", "alojamiento", "dejar al perro",
+    "cuidador", "hotel canino", "dog hotel",
+  ],
+  peluqueria: [
+    "peluquería", "peluquero canino", "pelo", "corte de pelo", "bañar", "baño canino", "esquila",
+  ],
+  veterinaria: [
+    "veterinario", "veterinaria", "clínica veterinaria",
+    "vacunas", "chip", "desparasitación", "revisión veterinaria",
+  ],
+};
+
+/**
+ * Detecta si el texto del cliente corresponde principalmente a un servicio lateral.
+ * Devuelve el id del lateral o null.
+ * La decisión de usarlo o ignorarlo (si hay cuadros fuertes) la toma victoria.js.
+ *
+ * @param {string} texto
+ * @returns {string|null} id del lateral o null
+ */
+export function detectarLateral(texto) {
+  const norm = normalizar(texto);
+  for (const [id, keywords] of Object.entries(DICT_LATERALES)) {
+    if (keywords.some((kw) => norm.includes(normalizar(kw)))) {
+      return id;
+    }
+  }
+  return null;
+}
