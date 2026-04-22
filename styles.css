@@ -657,6 +657,49 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   max-width: 84%;
 }
 
-/* Animación de entrada para mensajes nuevos */
-.msg { opacity: 0; transform: translateY(6px); transition: opacity .28s ease, transform .28s ease; }
-.msg.in { opacity: 1; transform: translateY(0); }
+/* Los mensajes generados dinámicamente por victoria.js son visibles sin .in */
+.msg.bot, .msg.usr {
+  opacity: 1;
+  transform: none;
+}
+
+/* El contenedor debe ser flex para alinear input+botón */
+.input-wrap {
+  display: flex;
+  align-items: center;
+}
+
+/* Input de texto — estilo coherente con variables del proyecto */
+.input-wrap input {
+  flex: 1;
+  background: var(--s2);
+  border: 1px solid var(--s3);
+  border-radius: var(--r12);
+  padding: 11px 14px;
+  font-size: 13.5px;
+  color: var(--t1);
+  font-family: var(--fn);
+  outline: none;
+  transition: border-color .12s;
+}
+.input-wrap input:focus { border-color: var(--rojo); }
+.input-wrap input::placeholder { color: var(--t3); }
+
+/* Botón de enviar — círculo rojo con la flecha centrada */
+.input-wrap button {
+  width: 42px;
+  height: 42px;
+  background: var(--rojo);
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s, transform .1s;
+  margin-left: 8px;
+}
+.input-wrap button:hover { background: var(--rojo-dk); }
+.input-wrap button:active { transform: scale(.94); }
