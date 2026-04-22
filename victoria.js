@@ -44,7 +44,7 @@ const TYPING_POR_CHAR = 15;    // ms extra por cada carácter
 const TYPING_MAX      = 3500;  // tope — no hacer esperar más de 3.5s
 const TYPING_DELAY    = 1200;  // fallback para callbacks de botones
 
-const VICTORIA_AVATAR = "https://i.ibb.co/N2kzNQ2w/Picsart-22-03-31-16-58-56-090.jpg";
+const VICTORIA_AVATAR = "https://i.ibb.co/1GXMwqzQ/victoria-cuadrada.jpg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO CONVERSACIONAL — vive en memoria, se persiste en Supabase al cerrar
