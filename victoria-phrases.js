@@ -211,6 +211,48 @@ export const FRASES_DURACION = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FRASES DE PRECIO / VALOR
+// Se responden cuando el cliente pregunta por el valor ANTES de que Victoria
+// lo haya mencionado (en s4, s5 o s6 si aún no se presentó el protocolo).
+// Tono de marca: "valor" no "precio", "clase" no "sesión".
+// ─────────────────────────────────────────────────────────────────────────────
+export const FRASES_PRECIO = {
+  presencial:
+    "El valor de la clase presencial es de 90€. También tenemos un pack de 4 clases por 300€ (ahorras 60€). " +
+    "La seña para reservar es de 45€ y se descuenta del total.",
+  online:
+    "El valor de la clase online es de 75€. También tenemos un pack de 4 clases por 240€ (ahorras 60€). " +
+    "La seña para reservar es de 45€ y se descuenta del total.",
+  sin_modalidad:
+    "Las clases presenciales son a 90€ y las online a 75€. Tenemos pack de 4 clases con 60€ de ahorro " +
+    "(300€ presencial, 240€ online). La seña para reservar es de 45€ y se descuenta del total. " +
+    "Si seguimos, ahora mismo miramos cuál de las dos modalidades encaja mejor con el caso de tu perro.",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FRASES DE PACK / DESCUENTO
+// Se responden cuando el cliente pregunta específicamente por el pack o descuento.
+// ─────────────────────────────────────────────────────────────────────────────
+export const FRASES_PACK = {
+  presencial:
+    "El pack son 4 clases por 300€ en vez de 360€ (90€ × 4). Te ahorras 60€ y además aseguras la continuidad " +
+    "del trabajo, que es lo que marca la diferencia en los resultados. La decisión la tomas en la primera sesión " +
+    "sin compromiso — si después de conocer al adiestrador prefieres ir clase a clase, perfecto también.",
+  online:
+    "El pack online son 4 clases por 240€ en vez de 300€ (75€ × 4). Te ahorras 60€ y aseguras la continuidad. " +
+    "Decides pack o clase suelta en la primera sesión, sin compromiso.",
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FRASE PRECIO POR PERRO
+// Pregunta típica cuando el cliente tiene más de un perro.
+// ─────────────────────────────────────────────────────────────────────────────
+export const FRASE_PRECIO_POR_PERRO =
+  "El valor es por clase, no por perro. Si tienes más de un perro trabajamos con ellos en la misma clase — " +
+  "muchas veces los casos van ligados entre sí y da mejores resultados abordarlos juntos.";
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 9. UTILIDAD — obtenerFrase()
 // Función central que victoria.js usa para recuperar frases
 // ─────────────────────────────────────────────────────────────────────────────
