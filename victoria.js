@@ -289,25 +289,36 @@ function _procesarS3_DatosPerro(texto) {
   if (peso !== null) state.perro.peso_kg    = peso;
   if (raza !== null) state.perro.raza       = raza;
 
-  state.perro.es_ppp = esPPP(texto); // texto completo por si PPP está en forma larga
+  state.perro.es_ppp = esPPP(texto);
 
   const faltaEdad = state.perro.edad_meses === null;
   const faltaPeso = state.perro.peso_kg    === null;
 
-  if ((faltaEdad || faltaPeso) && state.s3_intentos < 2) {
+  // La edad es crítica para el matching (cachorros, filtros de edad)
+  // El peso es informativo — si falta tras 1 intento, usar default y avanzar
+  // La edad merece hasta 3 intentos con mensajes distintos antes del default
+
+  if (faltaEdad) {
     state.s3_intentos++;
-    if (faltaEdad && faltaPeso) {
-      return `Necesito saber la edad y el peso de ${state.perro.nombre}. ` +
-        "¿Cuánto tiempo tiene y cuánto pesa aproximadamente?";
-    }
-    if (faltaEdad) {
+    if (state.s3_intentos === 1) {
       return `¿Qué edad tiene ${state.perro.nombre}? Con meses si es cachorro, o años si es adulto.`;
     }
-    return `¿Cuánto pesa ${state.perro.nombre} aproximadamente?`;
+    if (state.s3_intentos === 2) {
+      return `Perdona, no he sabido leerlo bien. Dímelo con números si puedes — por ejemplo "3 años" o "8 meses".`;
+    }
+    // Tercer intento fallido → default y avanzar
+    state.perro.edad_meses = 24;
   }
 
-  if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
+  if (faltaPeso && state.s3_intentos <= 1) {
+    // Solo pedimos el peso si es el primer bloqueo (edad ya resuelta)
+    state.s3_intentos++;
+    return `¿Y cuánto pesa ${state.perro.nombre} aproximadamente? Un número aproximado me vale — por ejemplo "12 kilos".`;
+  }
+
+  // Si falta peso tras intento o no se pudo extraer → default y avanzar
   if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
+  if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
   if (state.perro.raza       === null) state.perro.raza       = "mestizo";
 
   state.current_step = "s4";
@@ -780,24 +791,49 @@ function _actualizarProgreso() {
 // EXTRACCIÓN DE DATOS ESTRUCTURADOS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Mapa de números en palabras → dígitos (español)
+const NUMEROS_PALABRA = {
+  "un": "1", "una": "1", "uno": "1",
+  "dos": "2", "tres": "3", "cuatro": "4", "cinco": "5",
+  "seis": "6", "siete": "7", "ocho": "8", "nueve": "9",
+  "diez": "10", "once": "11", "doce": "12", "trece": "13",
+  "catorce": "14", "quince": "15",
+};
+
+/**
+ * Normaliza números escritos en palabras a dígitos.
+ * "un año" → "1 año", "siete kilos" → "7 kilos"
+ */
+function _normalizarNumeros(texto) {
+  let t = texto.toLowerCase();
+  for (const [palabra, digito] of Object.entries(NUMEROS_PALABRA)) {
+    t = t.replace(new RegExp(`\\b${palabra}\\b`, "gi"), digito);
+  }
+  return t;
+}
+
 function _extraerEdad(texto) {
-  const compuesto = texto.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
+  const t = _normalizarNumeros(texto);
+
+  // "1 año y 5 meses" → 17
+  const compuesto = t.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
   if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
 
-  const semanas = texto.match(/(\d+)\s*semanas?/i);
+  const semanas = t.match(/(\d+)\s*semanas?/i);
   if (semanas) return Math.round(parseInt(semanas[1]) / 4.3);
 
-  const meses = texto.match(/(\d+)\s*(meses?|mes)/i);
+  const meses = t.match(/(\d+)\s*(meses?|mes)/i);
   if (meses) return parseInt(meses[1]);
 
-  const anos = texto.match(/(\d+)\s*(años?|ano)/i);
+  const anos = t.match(/(\d+)\s*(años?|ano)/i);
   if (anos) return parseInt(anos[1]) * 12;
 
   return null;
 }
 
 function _extraerPeso(texto) {
-  const kg = texto.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilo)/i);
+  const t = _normalizarNumeros(texto);
+  const kg = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilo)/i);
   if (kg) return parseFloat(kg[1].replace(",", "."));
   return null;
 }
