@@ -29,7 +29,7 @@ export const ZONA_PRESENCIAL = [
   "génova", "genova", "son vida", "son quint", "cas capiscol",
   "pere garau", "la soledat", "la soledad", "bons aires",
   "es camp d'en serralta", "es rafal", "camp redó", "camp redo",
-  "es vivero", "son gotleu", // Son Gotleu está en lista blanca geográfica pero tiene flag de excepción interna
+  "es vivero",
   "polígon de llevant", "poligon de llevant", "son fuster",
   "can capes", "es secar de la real",
 
@@ -130,8 +130,8 @@ export const ZONA_FUERA = [
  * @param {string} inputUsuario — texto del cliente (ej: "estoy en Palmanova")
  * @returns {{
  *   zonaDetectada: string|null,   — nombre normalizado de la zona encontrada
- *   modalidad: 'presencial'|'online'|'derivar'|'desconocida',
- *   esSonGotleu: boolean,         — activa frase de excepción política interna
+ *   modalidad: 'presencial'|'fuera'|'desconocida',
+ *   esSonGotleu: boolean,         — activa frase 4.5 en victoria-matching (excepción política interna)
  *   necesitaAclaracion: boolean   — true si no se puede determinar la zona
  * }}
  */
@@ -147,7 +147,7 @@ export function detectarZona(inputUsuario) {
     if (texto.includes(excepcion)) {
       return {
         zonaDetectada: "Son Gotleu",
-        modalidad: "presencial", // geográficamente dentro, pero excepción política
+        modalidad: "fuera",
         esSonGotleu: true,
         necesitaAclaracion: false,
       };
@@ -170,7 +170,7 @@ export function detectarZona(inputUsuario) {
   if (zonaFuera) {
     return {
       zonaDetectada: zonaFuera,
-      modalidad: "online", // online o derivar — lo decide victoria-matching según el cuadro
+      modalidad: "fuera",
       esSonGotleu: false,
       necesitaAclaracion: false,
     };
