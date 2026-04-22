@@ -164,8 +164,20 @@ export const FRASES_APOYO = {
   // Filtro de mordida (Principio 13) — antes de proponer protocolo en posesión/reactividad
   filtro_mordida: `Para orientarte bien necesito saber una cosa: cuando ha habido episodios así, ¿ha llegado a haber contacto real con los dientes sobre alguien, o se queda en el aviso (gruñido, mostrar dientes, cuerpo rígido)? Si ha habido contacto, ¿qué consecuencia tuvo (marca leve, hematoma, herida con sangre, puntos)? Muchos perros lo que hacen es avisar con el gesto, es información útil para ver cómo abordamos el caso.`,
 
+  // Si la respuesta al filtro de mordida no permite clasificar la gravedad
+  filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
+
   // Pregunta de zona cuando no se detecta
   pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.`,
+
+  // Pregunta de edad cuando no se ha recogido
+  pedir_edad: `¿Qué edad tiene tu perro? Con meses si aún es cachorro, o años si ya es adulto.`,
+
+  // Pregunta de peso aproximado
+  pedir_peso: `¿Qué peso aproximado tiene? No hace falta que sea exacto, un número aproximado me vale.`,
+
+  // Pregunta de raza
+  pedir_raza: `¿Qué raza es? Si es mestizo o no estás seguro, descríbeme cómo es de tamaño y complexión.`,
 
   // Pregunta de conducta cuando hay detonante pero falta descripción de respuesta
   pedir_conducta: `Cuando pasa eso, ¿cómo reacciona exactamente tu perro? ¿Se esconde, se queda paralizado, intenta salir corriendo? ¿O más bien ladra, se lanza, tira de la correa? La respuesta del perro es lo que me ayuda a orientarte bien.`,
