@@ -188,6 +188,29 @@ export const FRASES_APOYO = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 8.5 DURACIÓN DE PROTOCOLOS — respuesta cuando el cliente pregunta cuántas clases
+// Se usa solo si el cliente lo pregunta explícitamente, nunca proactivamente.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const FRASES_DURACION = {
+
+  separacion: `Para un caso de ansiedad por separación, el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+
+  generalizada: `Para un caso de ansiedad generalizada, el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+
+  miedos: `En miedos el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. Es un cuadro que a veces se combina con otros (reactividad, ansiedad), y eso también se valora en la primera sesión. El adiestrador ajusta el plan según lo que observe.`,
+
+  reactividad: `En reactividad el número de sesiones depende mucho del caso. En casos leves pueden bastar 4 sesiones, y en los más graves se llega a 12 — en casos muy complejos hasta 14. En la primera sesión el adiestrador valora el nivel de activación y ajusta el plan.`,
+
+  posesion: `En posesión de recursos el protocolo suele durar entre 4 y 8 sesiones. En casos más graves puede llegar a 12. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+
+  basica: `La educación básica es un protocolo corto: 4 sesiones. Si durante el trabajo el tutor quiere profundizar en algo concreto o necesita apoyo extra, se puede ampliar sin problema.`,
+
+  cachorros: `El protocolo de cachorros es corto: 4 sesiones. Si queréis trabajar algo más en concreto o necesitáis apoyo extra, se puede ampliar sin problema.`,
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 9. UTILIDAD — obtenerFrase()
 // Función central que victoria.js usa para recuperar frases
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,7 +220,7 @@ export const FRASES_APOYO = {
  * Sustituye variables ({nombre_perro}, {cuadro_1}, {cuadro_2}, {cuadro}) si se pasan.
  *
  * @param {Object} params
- * @param {string} params.tipo         — 'cuadro' | 'lateral' | 'etologo' | 'zona' | 'son_gotleu' | 'mixto' | 'apoyo'
+ * @param {string} params.tipo         — 'cuadro' | 'lateral' | 'etologo' | 'zona' | 'son_gotleu' | 'mixto' | 'apoyo' | 'duracion'
  * @param {string} [params.cuadro]     — id del cuadro (separacion, miedos, etc.)
  * @param {string} [params.modalidad]  — 'presencial' | 'online'
  * @param {string} [params.subtipo]    — para lateral, apoyo, etologo, son_gotleu, mixto
@@ -252,6 +275,10 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
           frase = frase.replace("{cuadro_2}", ETIQUETAS_MIXTO[vars.cuadro_2] ?? vars.cuadro_2);
         }
       }
+      break;
+
+    case "duracion":
+      frase = FRASES_DURACION[cuadro] ?? null;
       break;
 
     case "apoyo":
