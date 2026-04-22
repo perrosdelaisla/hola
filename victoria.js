@@ -228,7 +228,13 @@ function _mostrarTyping(visible) {
 }
 
 function _scrollAbajo() {
-  if (_chatEl) _chatEl.scrollTop = _chatEl.scrollHeight;
+  // El body es quien scrollea, no el .chat — usar window.scrollTo
+  setTimeout(() => {
+    window.scrollTo({
+      top: document.body.scrollHeight,
+      behavior: "smooth",
+    });
+  }, 50);
 }
 
 function _escaparHTML(str) {
