@@ -33,6 +33,7 @@ export const DICT_SEPARACION = {
     "ansiedad por separación",
     "ansiedad de separación",
     "aps",
+    // Singular
     "cuando me voy",
     "cuando salgo",
     "si salgo",
@@ -46,6 +47,18 @@ export const DICT_SEPARACION = {
     "no puedo dejarlo",
     "no se queda solo",
     "no lo puedo dejar",
+    // Plural — cuando el tutor vive con pareja/familia
+    "cuando nos vamos",
+    "cuando salimos",
+    "si salimos",
+    "al irnos",
+    "al marcharnos",
+    "si lo dejamos solo",
+    "no lo podemos dejar",
+    "no lo dejamos solo",
+    "cuando no estamos",
+    "cuando no estamos en casa",
+    "si nos vamos",
   ],
 
   n2: [
@@ -66,9 +79,14 @@ export const DICT_SEPARACION = {
     "rasca la puerta",
     "araña la puerta",
     "intenta salir",
+    // Singular
     "me sigue a todas partes",
     "no se separa de mí",
     "siempre pegado",
+    // Plural
+    "nos sigue a todas partes",
+    "no se separa de nosotros",
+    "siempre pegado a nosotros",
   ],
 
   n3: [
@@ -330,6 +348,8 @@ export const DICT_REACTIVIDAD = {
     "da tirones",
     "me arrastra",
     "me lleva",
+    "nos arrastra",
+    "nos lleva",
     "ladra como loco",
     "ladra sin parar",
     "persigue bicicletas",
@@ -341,6 +361,8 @@ export const DICT_REACTIVIDAD = {
     "se pone como loco",
     "no puedo sacarlo tranquilo",
     "no puedo pasearlo",
+    "no podemos pasearlo",
+    "no podemos sacarlo tranquilo",
     "el paseo es un infierno",
     "imposible pasear",
     "se tira a morder",
@@ -554,6 +576,11 @@ export const DICT_BASICA = {
     // Objetos (sin contexto de separación)
     "muerde zapatos",
     "destroza cosas",
+    // Variantes plurales frecuentes
+    "no nos hace caso",
+    "no me hace caso",
+    "no nos obedece",
+    "salta a nosotros",
   ],
 
   n3: [
