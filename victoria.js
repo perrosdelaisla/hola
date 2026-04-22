@@ -84,6 +84,7 @@ function _estadoInicial() {
     pago_pendiente_verificar: false,
     slot_confirmando: false,   // guard contra doble-tap en móvil
     cita_confirmada: false,
+    mostrar_precio_tras_protocolo: false,
 
     historial_turnos: [],
     log_matching_final: null,
@@ -166,6 +167,12 @@ async function _enviarMensaje() {
     _actualizarProgreso();
     _scrollAbajo();
     _inputEl?.focus();
+
+    // Si debe mostrar precio tras protocolo (flag activado por _evaluarYResponder)
+    if (state.mostrar_precio_tras_protocolo) {
+      state.mostrar_precio_tras_protocolo = false; // consumir flag
+      _mostrarPrecioYBotonesAgenda();
+    }
   }, delay);
 }
 
@@ -635,6 +642,54 @@ function _mensajePrecio() {
     "siempre que sea con 48h de antelación.";
 }
 
+/**
+ * Muestra precio y botones de acción DESPUÉS de que el protocolo esté en pantalla.
+ * Llamada desde _enviarMensaje cuando state.mostrar_precio_tras_protocolo === true.
+ */
+function _mostrarPrecioYBotonesAgenda() {
+  // Pausa para que el cliente lea el protocolo antes del siguiente mensaje
+  setTimeout(() => {
+    _mostrarTyping(true);
+
+    setTimeout(() => {
+      _mostrarTyping(false);
+      const msgPrecio = _mensajePrecio();
+      _mostrarVictoria(msgPrecio);
+      _registrarTurno("victoria", msgPrecio);
+
+      // Botones tras el mensaje de precio
+      setTimeout(() => {
+        _mostrarOpciones([
+          {
+            label: "Sí, ver horarios disponibles",
+            onClick: async () => {
+              _mostrarCliente("Sí, ver horarios");
+              _registrarTurno("cliente", "Sí, ver horarios");
+              state.current_step = "s7";
+              _mostrarTyping(true);
+              setTimeout(async () => {
+                _mostrarTyping(false);
+                await _iniciarAgenda();
+                _actualizarProgreso();
+              }, TYPING_DELAY);
+            },
+          },
+          {
+            label: "Prefiero preguntar algo más",
+            onClick: () => {
+              _mostrarCliente("Tengo una pregunta");
+              _registrarTurno("cliente", "Tengo una pregunta");
+              const msg = "Claro, cuéntame — estoy aquí.";
+              _mostrarVictoria(msg);
+              _registrarTurno("victoria", msg);
+            },
+          },
+        ]);
+      }, 200);
+    }, 1500);
+  }, 800);
+}
+
 function _explicarPago() {
   const precio    = 45;
   const modalidad = state.modalidad_final === "online"
@@ -674,57 +729,18 @@ function _evaluarYResponder(textoActual) {
       const frase = obtenerFrase(decision.frase_params);
       if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
 
-      // Protocolo presentado — avanzar a s6 y mostrar precio + botones
+      // Protocolo presentado — avanzar a s6 y marcar flag para precio+botones
       if (decision.accion === "responder" &&
           (state.current_step === "s4" || state.current_step === "s5")) {
         state.protocolo_ya_presentado = true;
         state.current_step = "s6";
         if (state.modalidad_final !== "derivar") {
-          // Tras el protocolo: mostrar precio con typing, luego los botones
-          setTimeout(() => {
-            const msgPrecio = _mensajePrecio();
-            _mostrarTyping(true);
-
-            setTimeout(() => {
-              _mostrarTyping(false);
-              _mostrarVictoria(msgPrecio);
-              _registrarTurno("victoria", msgPrecio);
-
-              // Después del mensaje de precio, mostrar botones
-              setTimeout(() => {
-                _mostrarOpciones([
-                  {
-                    label: "Sí, ver horarios disponibles",
-                    onClick: async () => {
-                      _mostrarCliente("Sí, ver horarios");
-                      _registrarTurno("cliente", "Sí, ver horarios");
-                      state.current_step = "s7";
-                      _mostrarTyping(true);
-                      setTimeout(async () => {
-                        _mostrarTyping(false);
-                        await _iniciarAgenda();
-                        _actualizarProgreso();
-                      }, TYPING_DELAY);
-                    },
-                  },
-                  {
-                    label: "Prefiero preguntar algo más",
-                    onClick: () => {
-                      _mostrarCliente("Tengo una pregunta");
-                      _registrarTurno("cliente", "Tengo una pregunta");
-                      const msg = "Claro, cuéntame — estoy aquí.";
-                      _mostrarVictoria(msg);
-                      _registrarTurno("victoria", msg);
-                    },
-                  },
-                ]);
-              }, 200);
-            }, 1500);
-          }, TYPING_DELAY + 100);
-
-          return frase; // el protocolo — precio y botones llegan después
+          // Flag: _enviarMensaje mostrará precio+botones DESPUÉS de pintar el protocolo
+          state.mostrar_precio_tras_protocolo = true;
+          return frase;
         }
       }
+      return frase;
       return frase;
     }
 
