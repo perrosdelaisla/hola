@@ -7,56 +7,26 @@
  * ARQUITECTURA:
  * - Una función por paso del árbol (pasos 0-10)
  * - Orquestador `decidirRespuesta` llama los pasos en orden
- * - Cada paso devuelve null (no aplica) o una Decision completa (para el flujo)
- * - El Paso 7 (exclusiones) se aplica entre el 6 y el 8, no es un paso del orquestador
+ * - Cada paso devuelve null (no aplica) o una Decision completa
+ * - _evaluarCuadros encapsula los pasos 6, 7 y 8 internamente
  *
  * DEPENDENCIAS:
- * - victoria-utils.js    → normalizar, filtrarHits
- * - victoria-zones.js    → esCompatibleOnline
+ * - victoria-utils.js        → normalizar, filtrarHits
+ * - victoria-zones.js        → esCompatibleOnline
  * - victoria-dictionaries.js → detectarCuadros
- * - victoria-breeds.js   → esPPP, clasificarTamano, requiereEtologo, KEYWORDS_AGRESION
- * - victoria-phrases.js  → (consumida por victoria.js, no aquí)
+ * - victoria-breeds.js       → esPPP, clasificarTamano, requiereEtologo, KEYWORDS_AGRESION
+ * - victoria-phrases.js      → (consumida por victoria.js, no aquí)
  */
 
 import { normalizar, filtrarHits } from "./victoria-utils.js";
 import { esCompatibleOnline } from "./victoria-zones.js";
 import { detectarCuadros } from "./victoria-dictionaries.js";
-import { esPPP, clasificarTamano, requiereEtologo, KEYWORDS_AGRESION } from "./victoria-breeds.js";
+import { requiereEtologo, KEYWORDS_AGRESION } from "./victoria-breeds.js";
+import { DICT_BASICA } from "./victoria-dictionaries.js";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TIPOS — documentación de las estructuras principales
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @typedef {Object} Contexto
- * @property {Object}  perro
- * @property {string}  perro.nombre
- * @property {number}  perro.edad_meses
- * @property {string}  perro.raza
- * @property {number}  perro.peso_kg
- * @property {boolean} perro.es_ppp          — calculado por esPPP()
- * @property {Object}  zona                  — output de detectarZona()
- * @property {Array}   cuadros               — output de detectarCuadros()
- * @property {string}  mensaje               — mensaje actual del cliente
- * @property {string|null} pending           — null | 'filtro_mordida' | 'conducta' | 'zona' | 'edad'
- * @property {string|null} respuesta_pendiente — respuesta del cliente a pending
- * @property {boolean} keywords_mordida      — si el mensaje menciona mordida
- * @property {string|null} lateral_detectado — servicio lateral detectado o null
- *
- * @typedef {Object} Decision
- * @property {'responder'|'preguntar'|'derivar'|'fallback'} accion
- * @property {Object|null}  frase_params     — params para obtenerFrase()
- * @property {string|null}  pending_next     — pregunta pendiente para el siguiente turno
- * @property {string|null}  cuadro_ganador
- * @property {boolean}      es_mixto
- * @property {boolean}      bandera_edad_temprana
- * @property {Object}       log
- */
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// KEYWORDS DE MORDIDA — para detección en el Paso 5
+// KEYWORDS para clasificación de mordida (Paso 5)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KEYWORDS_MORDIDA = [
@@ -65,7 +35,6 @@ const KEYWORDS_MORDIDA = [
   "casi muerde", "amago de mordida",
 ];
 
-// Severidad de la consecuencia — evaluada en respuesta al filtro de mordida
 const KEYWORDS_MORDIDA_GRAVE = [
   "sangre", "sangró", "herida", "puntos", "urgencias", "médico",
   "hematoma", "moratón", "marca profunda",
@@ -74,6 +43,18 @@ const KEYWORDS_MORDIDA_GRAVE = [
 const KEYWORDS_MORDIDA_LEVE = [
   "marca leve", "arañazo", "rozó", "sin consecuencias", "no dejó marca",
   "piel roja", "no sangró",
+];
+
+const KEYWORDS_SIN_CONTACTO = [
+  "no llegó", "solo aviso", "se quedó en el aviso", "gruñido",
+  "no muerde", "no ha llegado", "solo ladra", "amago", "amagó",
+  "fingió", "gesto", "dientes sin tocar", "no hubo contacto",
+  "no tocó", "avisó nada más",
+];
+
+const KEYWORDS_NO_SABE = [
+  "no sé", "no lo sé", "no estoy seguro", "no recuerdo",
+  "creo que", "no sabría decirte", "no puedo decirte",
 ];
 
 
@@ -85,8 +66,8 @@ const KEYWORDS_MORDIDA_LEVE = [
  * Función central del sistema. Recibe el contexto completo del turno
  * y devuelve una Decision que victoria.js ejecuta.
  *
- * @param {Contexto} contexto
- * @returns {Decision}
+ * @param {Object} contexto
+ * @returns {Object} Decision
  */
 export function decidirRespuesta(contexto) {
   // Si hay una pregunta pendiente, ir directamente al paso que la gestiona
@@ -94,11 +75,10 @@ export function decidirRespuesta(contexto) {
     return paso5_filtroMordida(contexto);
   }
   if (contexto.pending === "zona") {
-    // La zona ya debe estar resuelta antes de llamar — si llega aquí es bug
-    return _fallbackWhatsapp("pending zona sin resolver");
+    return _fallbackWhatsapp("pending zona sin resolver al entrar al orquestador");
   }
 
-  // Árbol normal de decisión
+  // Árbol normal de decisión — orden estricto de la spec §8
   const pasos = [
     paso0_datosMinimos,
     paso1_etologo,
@@ -106,8 +86,7 @@ export function decidirRespuesta(contexto) {
     paso3_cachorropleno,
     paso4_cachorroTransicion,
     paso5_filtroMordida,
-    // Paso 6-8: cuadros únicos + exclusiones + mixto — en _evaluarCuadros
-    _evaluarCuadros,
+    _evaluarCuadros,       // pasos 6 (cuadros únicos) + 7 (exclusiones) + 8 (mixto)
     paso9_basica,
     paso10_pedirEspecificacion,
   ];
@@ -117,20 +96,17 @@ export function decidirRespuesta(contexto) {
     if (resultado !== null) return resultado;
   }
 
-  // Nunca debería llegar aquí — paso10 siempre devuelve algo
   return _fallbackWhatsapp("árbol agotado sin decisión");
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PASO 0 — Pre-filtro de datos mínimos
-// Si faltan datos críticos, pedir antes de evaluar cuadros
 // ─────────────────────────────────────────────────────────────────────────────
 
 function paso0_datosMinimos(contexto) {
   const { perro, zona } = contexto;
 
-  // Zona desconocida — siempre preguntar primero
   if (zona.necesitaAclaracion) {
     return _decision({
       accion: "preguntar",
@@ -140,7 +116,6 @@ function paso0_datosMinimos(contexto) {
     });
   }
 
-  // Edad desconocida — necesaria para filtro de cachorros
   if (perro.edad_meses === null || perro.edad_meses === undefined) {
     return _decision({
       accion: "preguntar",
@@ -150,7 +125,6 @@ function paso0_datosMinimos(contexto) {
     });
   }
 
-  // Peso desconocido — necesario para criterios de etólogo y clasificación de tamaño
   if (!perro.peso_kg || perro.peso_kg <= 0) {
     return _decision({
       accion: "preguntar",
@@ -160,7 +134,6 @@ function paso0_datosMinimos(contexto) {
     });
   }
 
-  // Raza desconocida — necesaria para detección PPP
   if (!perro.raza || perro.raza.trim() === "") {
     return _decision({
       accion: "preguntar",
@@ -170,13 +143,12 @@ function paso0_datosMinimos(contexto) {
     });
   }
 
-  return null; // todos los datos mínimos presentes, continuar
+  return null;
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PASO 1 — Derivación al etólogo
-// Se activa si cualquiera de los criterios de gravedad se cumple
 // ─────────────────────────────────────────────────────────────────────────────
 
 function paso1_etologo(contexto) {
@@ -191,16 +163,13 @@ function paso1_etologo(contexto) {
   // llamar decidirRespuesta con el campo gravedad_mordida populado, y este paso
   // sí dispara por el criterio 2 de requiereEtologo. No es bug — es diseño.
 
-  // Corrección 1: umbral elevado — solo cuadros con confianza media o alta cuentan
-  // como "señal conductual seria". Confianza baja (un N3 solo) no basta para derivar.
+  // Umbral elevado: PPP sin cuadro serio (media/alta) no deriva
   const hay_senal = cuadros.some((c) => c.confianza === "alta" || c.confianza === "media");
 
-  // ¿Hay descripción de agresión activa?
   const descripcion_agresion = KEYWORDS_AGRESION.some((kw) =>
     textoNorm.includes(normalizar(kw))
   );
 
-  // Gravedad de mordida — solo si ya se procesó el filtro de mordida
   const gravedad_mordida = contexto.gravedad_mordida ?? null;
 
   if (requiereEtologo({
@@ -227,7 +196,6 @@ function paso1_etologo(contexto) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PASO 2 — Servicios laterales
-// Solo si la solicitud PRINCIPAL es un servicio lateral
 // ─────────────────────────────────────────────────────────────────────────────
 
 function paso2_laterales(contexto) {
@@ -248,23 +216,23 @@ function paso2_laterales(contexto) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function paso3_cachorropleno(contexto) {
-  const { perro, cuadros, zona } = contexto;
+  const { perro, cuadros } = contexto;
 
   if (perro.edad_meses > 6) return null;
 
-  // Sub-check: ¿hay posesión fuerte con rigidez corporal?
+  // Sub-check: posesión con rigidez corporal → posesión con bandera edad temprana
   const cuadroPosesion = cuadros.find((c) => c.id === "posesion" && c.confianza !== "ninguna");
   if (cuadroPosesion && _tieneRigidezCorporal(contexto)) {
     return _resolverCuadro("posesion", contexto, { bandera_edad_temprana: true, paso: 3 });
   }
 
-  // Sub-check: ¿hay miedo extremo sostenido?
+  // Sub-check: miedo extremo sostenido → miedos con bandera edad temprana
   const cuadroMiedos = cuadros.find((c) => c.id === "miedos" && c.confianza === "alta");
   if (cuadroMiedos) {
     return _resolverCuadro("miedos", contexto, { bandera_edad_temprana: true, paso: 3 });
   }
 
-  // Cachorro pleno sin excepción → protocolo cachorros
+  // Cachorro pleno sin excepción
   return _resolverCuadro("cachorros", contexto, { paso: 3 });
 }
 
@@ -278,7 +246,7 @@ function paso4_cachorroTransicion(contexto) {
 
   if (perro.edad_meses <= 6 || perro.edad_meses > 9) return null;
 
-  // ¿Hay cuadros instalados con confianza alta? → cuadro específico gana
+  // Cuadro instalado con alta confianza → ese cuadro gana
   const cuadroInstalado = cuadros
     .filter((c) => c.id !== "cachorros" && c.id !== "basica")
     .find((c) => c.confianza === "alta");
@@ -287,124 +255,290 @@ function paso4_cachorroTransicion(contexto) {
     return _resolverCuadro(cuadroInstalado.id, contexto, { paso: 4 });
   }
 
-  // Conductas típicas de etapa sin cuadro instalado → cachorros
+  // Conductas típicas de etapa → cachorros
   const cuadroCachorros = cuadros.find((c) => c.id === "cachorros" && c.confianza !== "ninguna");
   if (cuadroCachorros) {
     return _resolverCuadro("cachorros", contexto, { paso: 4 });
   }
 
-  return null; // edad de transición pero sin señal clara — dejar al árbol continuar
+  return null;
 }
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PASO 5 — Filtro de mordida
-// Se activa si el mensaje contiene keywords de mordida en cuadros de posesión/reactividad
-// También gestiona la respuesta cuando pending === 'filtro_mordida'
 // ─────────────────────────────────────────────────────────────────────────────
 
 function paso5_filtroMordida(contexto) {
-  const { cuadros, mensaje, pending, respuesta_pendiente, perro, zona } = contexto;
-  const textoNorm = normalizar(mensaje);
+  const { cuadros, mensaje, pending, respuesta_pendiente, zona } = contexto;
+  const textoNorm = normalizar(mensaje ?? "");
 
   // ── Modo respuesta: el cliente acaba de responder al filtro de mordida ────
   if (pending === "filtro_mordida" && respuesta_pendiente) {
     const respNorm = normalizar(respuesta_pendiente);
 
-    // Clasificación en orden de prioridad — sin defaults agresivos
-    const esGrave    = filtrarHits(respNorm, KEYWORDS_MORDIDA_GRAVE).length > 0;
-    const esNoSabe   = filtrarHits(respNorm, KEYWORDS_NO_SABE).length > 0;
+    const esGrave     = filtrarHits(respNorm, KEYWORDS_MORDIDA_GRAVE).length > 0;
+    const esNoSabe    = filtrarHits(respNorm, KEYWORDS_NO_SABE).length > 0;
     const sinContacto = filtrarHits(respNorm, KEYWORDS_SIN_CONTACTO).length > 0;
-    const esLeve     = filtrarHits(respNorm, KEYWORDS_MORDIDA_LEVE).length > 0;
+    const esLeve      = filtrarHits(respNorm, KEYWORDS_MORDIDA_LEVE).length > 0;
 
     const cuadroGanador = contexto.cuadro_pendiente_mordida ?? null;
 
-    // 1. Grave explícito → derivar al etólogo
+    // 1. Grave → etólogo
     if (esGrave) {
       return _decision({
         accion: "derivar",
         frase_params: { tipo: "etologo", subtipo: "principal" },
         pending_next: null,
         cuadro_ganador: null,
-        log: _log(5, [], [], zona.zonaDetectada, null, ["mordida_grave", "derivacion_etologo"], "mordida grave confirmada"),
+        log: _log(5, [], [], zona.zonaDetectada, null,
+          ["mordida_grave", "derivacion_etologo"], "mordida grave confirmada"),
       });
     }
 
-    // 2. Cliente no sabe → amago probable, continuar con nota
+    // 2. No sabe → amago probable con nota
     if (esNoSabe) {
       if (!cuadroGanador) return _fallbackWhatsapp("filtro mordida: no_sabe sin cuadro pendiente");
       return _resolverCuadro(cuadroGanador, contexto, {
-        paso: 5,
-        nota: "cliente no pudo precisar gravedad — tratar como amago probable",
+        paso: 5, nota: "cliente no pudo precisar — tratar como amago probable",
       });
     }
 
-    // 3. Sin contacto real o leve → continuar con cuadro
+    // 3. Sin contacto o leve → continuar con cuadro
     if (sinContacto || esLeve) {
       if (!cuadroGanador) return _fallbackWhatsapp("filtro mordida: leve/sincontacto sin cuadro pendiente");
       return _resolverCuadro(cuadroGanador, contexto, {
-        paso: 5,
-        nota: sinContacto ? "sin contacto real confirmado" : "contacto leve confirmado",
+        paso: 5, nota: sinContacto ? "sin contacto real confirmado" : "contacto leve confirmado",
       });
     }
 
-    // 4. No clasificable → repetir pregunta con más detalle (no asumir gravedad)
+    // 4. No clasificable → repregunta, no asumir gravedad
     return _decision({
       accion: "preguntar",
       frase_params: { tipo: "apoyo", subtipo: "filtro_mordida_repregunta" },
-      pending_next: "filtro_mordida", // mantener el pending para el siguiente turno
+      pending_next: "filtro_mordida",
       cuadro_pendiente_mordida: cuadroGanador,
-      log: _log(5, [], [], zona.zonaDetectada, null, ["mordida_no_clasificable"], "respuesta ambigua — repreguntando"),
+      log: _log(5, [], [], zona.zonaDetectada, null,
+        ["mordida_no_clasificable"], "respuesta ambigua — repreguntando"),
     });
   }
 
-  // ── Modo detección: ¿el mensaje actual menciona mordida? ────────────────
+  // ── Modo detección: ¿el mensaje actual menciona mordida? ─────────────────
   const hayMordida = KEYWORDS_MORDIDA.some((kw) => textoNorm.includes(normalizar(kw)));
   if (!hayMordida) return null;
 
-  // ¿Es relevante? Solo en cuadros de posesión o reactividad con confianza suficiente
+  // Solo relevante en posesión o reactividad con confianza suficiente
   const cuadroRelevante = cuadros.find(
     (c) => (c.id === "posesion" || c.id === "reactividad") &&
       (c.confianza === "alta" || c.confianza === "media")
   );
   if (!cuadroRelevante) return null;
 
-  // Preguntar filtro de mordida
   return _decision({
     accion: "preguntar",
     frase_params: { tipo: "apoyo", subtipo: "filtro_mordida" },
     pending_next: "filtro_mordida",
-    cuadro_pendiente_mordida: cuadroRelevante.id, // guardar para cuando llegue la respuesta
+    cuadro_pendiente_mordida: cuadroRelevante.id,
     cuadro_ganador: null,
-    log: _log(5, [cuadroRelevante.id], [], zona.zonaDetectada, null, ["mordida_pendiente"], "keywords de mordida detectadas"),
+    log: _log(5, [cuadroRelevante.id], [], zona.zonaDetectada, null,
+      ["mordida_pendiente"], "keywords de mordida detectadas"),
   });
 }
 
 
-// Keywords para clasificar la respuesta al filtro de mordida
-// Usadas en paso5 modo respuesta — consistentes con el patrón filtrarHits del sistema
-const KEYWORDS_SIN_CONTACTO = [
-  "no llegó", "solo aviso", "se quedó en el aviso", "gruñido",
-  "no muerde", "no ha llegado", "solo ladra", "amago", "amagó",
-  "fingió", "gesto", "dientes sin tocar", "no hubo contacto",
-  "no tocó", "avisó nada más",
-];
+// ─────────────────────────────────────────────────────────────────────────────
+// PASOS 6-8 — Cuadros únicos + exclusiones + caso mixto
+// ─────────────────────────────────────────────────────────────────────────────
 
-const KEYWORDS_NO_SABE = [
-  "no sé", "no lo sé", "no estoy seguro", "no recuerdo",
-  "creo que", "no sabría decirte", "no puedo decirte",
-];
+function _evaluarCuadros(contexto) {
+  // INVARIANTE: aquí solo llegan perros >9 meses.
+  // Los pasos 3 y 4 ya resolvieron cachorros pleno (0-6m) y transición (6-9m).
+  // Si cachorros aparece en el array con confianza alta, la Regla 5 lo neutraliza.
+  // La bandera edad_temprana nunca aparece aquí — los pasos 3-4 la consumen.
+
+  const cuadrosFiltrados = _aplicarExclusiones(contexto.cuadros, contexto);
+  const clasificacion = _clasificarResultado(cuadrosFiltrados);
+
+  if (clasificacion.tipo === "vacio") return null;
+
+  return _resolverResultado(clasificacion, cuadrosFiltrados, contexto);
+}
+
+function _aplicarExclusiones(cuadros, contexto) {
+  const c = cuadros.map((x) => ({ ...x }));
+  const get = (id) => c.find((x) => x.id === id);
+
+  const sep  = get("separacion");
+  const gen  = get("generalizada");
+  const mied = get("miedos");
+  const reac = get("reactividad");
+  const pos  = get("posesion");
+  const bas  = get("basica");
+  const cach = get("cachorros");
+
+  // Regla 1: sep vs gen — resuelta por exclusion_textual en detectarCuadros.
+  // No hay acción aquí — la arquitectura ya lo resuelve sin ciclo posible.
+
+  // Regla 2: reactividad alta → miedos pierde (conducta activa > pasiva)
+  if (reac?.confianza === "alta" && mied?.confianza !== "ninguna") {
+    mied.confianza = "ninguna";
+    mied._excluido_por = "reactividad_alta";
+  }
+
+  // Regla 3: posesión domina sobre reactividad débil.
+  // Si reactividad también tiene alta, es mixto legítimo — no se toca.
+  const posTieneRecurso = (pos?.n2_hits?.length ?? 0) > 0 || (pos?.n3_hits?.length ?? 0) > 0;
+  const posMuchoMasFuerte =
+    pos?.confianza === "alta" &&
+    (reac?.confianza === "media" || reac?.confianza === "baja");
+
+  if (posMuchoMasFuerte && posTieneRecurso) {
+    reac.confianza = "ninguna";
+    reac._excluido_por = "posesion_con_recurso_domina";
+  }
+
+  // Regla 4: generalizada con detonantes concretos serios → baja a "baja"
+  // Umbral alta/media — una mención anecdótica no convierte generalizada en otra cosa
+  const hayDetonantesConcretosSerios =
+    mied?.confianza === "alta" || mied?.confianza === "media" ||
+    reac?.confianza === "alta" || reac?.confianza === "media";
+
+  if ((gen?.confianza === "alta" || gen?.confianza === "media") && hayDetonantesConcretosSerios) {
+    gen.confianza = "baja";
+    gen._excluido_por = "detonantes_concretos_serios";
+  }
+
+  // Regla 5: cachorros >9 meses → neutralizar
+  if (cach && contexto.perro.edad_meses > 9) {
+    cach.confianza = "ninguna";
+    cach._excluido_por = "edad_superior_a_9_meses";
+  }
+
+  // Regla adicional: básica pierde ante cualquier cuadro específico activo
+  const hayEspecificoActivo = [sep, gen, mied, reac, pos].some(
+    (x) => x?.confianza === "alta" || x?.confianza === "media"
+  );
+  if (hayEspecificoActivo && bas) {
+    bas.confianza = "ninguna";
+    bas._excluido_por = "cuadro_especifico_presente";
+  }
+
+  return c;
+}
+
+function _clasificarResultado(cuadrosFiltrados) {
+  const activos = cuadrosFiltrados.filter(
+    (c) => c.confianza === "alta" || c.confianza === "media"
+  );
+
+  if (activos.length === 0) return { tipo: "vacio", cuadros: [], tercero: null };
+  if (activos.length === 1) return { tipo: "unico", cuadros: activos, tercero: null };
+
+  // Tercer cuadro solo al log — no a la frase del cliente (Confirmación 2 Opus)
+  return {
+    tipo: "mixto",
+    cuadros: activos.slice(0, 2),
+    tercero: activos[2] ?? null,
+  };
+}
+
+function _resolverResultado(clasificacion, cuadrosFiltrados, contexto) {
+  const { zona } = contexto;
+  const excluidos = cuadrosFiltrados.filter((c) => c._excluido_por).map((c) => c.id);
+
+  if (clasificacion.tipo === "unico") {
+    return _resolverCuadro(clasificacion.cuadros[0].id, contexto, { paso: 6 });
+  }
+
+  const [primero, segundo] = clasificacion.cuadros;
+  const ids = [primero.id, segundo.id];
+  const tercero = clasificacion.tercero;
+  const esSepGen = ids.includes("separacion") && ids.includes("generalizada");
+
+  // Frases mixtas solo en presencial — fuera de zona: degradar al cuadro más fuerte
+  const zonaSoportaMixto = zona.modalidad === "presencial" && !zona.esSonGotleu;
+
+  if (!zonaSoportaMixto) {
+    const resultado = _resolverCuadro(primero.id, contexto, { paso: 6 });
+    return {
+      ...resultado,
+      mixto_degradado: true,
+      cuadros_originales: [primero.id, segundo.id],  // Carlos ve los dos en la notificación
+      log: _log(6, ids, excluidos, zona.zonaDetectada, "degradado",
+        ["mixto_degradado_por_zona"],
+        `mixto ${ids.join("+")} degradado a ${primero.id} por zona fuera`),
+    };
+  }
+
+  const frase_params = esSepGen
+    ? { tipo: "mixto", subtipo: "separacion_generalizada" }
+    : { tipo: "mixto", subtipo: "plantilla", vars: { cuadro_1: primero.id, cuadro_2: segundo.id } };
+
+  const flags = [];
+  if (esSepGen) flags.push("mixto_sep_gen_especial");
+  if (tercero) flags.push(`tercer_cuadro:${tercero.id}`);
+
+  return _decision({
+    accion: "responder",
+    frase_params,
+    pending_next: null,
+    cuadro_ganador: null,                          // null en mixto — nunca concatenar ids
+    cuadros_originales: [primero.id, segundo.id],  // victoria.js usa esto en notificación
+    es_mixto: true,
+    bandera_edad_temprana: false,
+    log: _log(6, ids, excluidos, zona.zonaDetectada, "presencial", flags,
+      tercero ? `tercer cuadro a valorar en presencial: ${tercero.id}` : ""),
+  });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASO 9 — Educación básica (categoría por defecto)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function paso9_basica(contexto) {
+  const basica = contexto.cuadros.find((c) => c.id === "basica");
+
+  if (!basica || basica.confianza === "ninguna") return null;
+
+  // Respeta el flag requires_concrete_problem del diccionario.
+  // Si está activo y no hay N2 concreto, pedir especificación (paso10).
+  // Así el criterio vive en el diccionario, no hardcodeado aquí.
+  if (DICT_BASICA.requires_concrete_problem && basica.n2_hits.length === 0) return null;
+
+  return _resolverCuadro("basica", contexto, { paso: 9 });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASO 10 — Pedir especificación
+// Paso legítimo del árbol — ningún cuadro disparó con confianza suficiente
+// ─────────────────────────────────────────────────────────────────────────────
+
+function paso10_pedirEspecificacion(contexto) {
+  return _decision({
+    accion: "preguntar",
+    frase_params: { tipo: "apoyo", subtipo: "pedir_especificacion" },
+    pending_next: null,
+    cuadro_ganador: null,
+    log: _log(10, [], [], contexto.zona?.zonaDetectada ?? "desconocida", null, [],
+      "ningún cuadro disparó con confianza suficiente"),
+  });
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS INTERNOS
+// ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Resuelve las 5 rutas de modalidad y devuelve la Decision correcta.
- * Esta es la función central del matching de cuadro × zona.
- *
- * Las 5 rutas (Ajuste 3 de Opus):
- * 1. Zona presencial + cuadro → frase presencial
- * 2. Zona fuera + cuadro compatible online → frase online
- * 3. Zona fuera + cuadro NO compatible online → derivación por zona
- * 4. Zona Son Gotleu + cuadro compatible online → Son Gotleu compatible
- * 5. Zona Son Gotleu + cuadro NO compatible online → Son Gotleu no compatible
+ * Ruta 1: zona presencial → frase presencial
+ * Ruta 2: zona fuera + compatible online → frase online
+ * Ruta 3: zona fuera + NO compatible online → derivación por zona
+ * Ruta 4: Son Gotleu + compatible online → Son Gotleu compatible
+ * Ruta 5: Son Gotleu + NO compatible online → Son Gotleu no compatible
+ * (Son Gotleu se evalúa antes porque tiene su propio flag)
  */
 function _resolverCuadro(cuadroId, contexto, { bandera_edad_temprana = false, paso = 6, nota = "" } = {}) {
   const { zona, perro } = contexto;
@@ -414,33 +548,32 @@ function _resolverCuadro(cuadroId, contexto, { bandera_edad_temprana = false, pa
   let frase_params;
   let modalidad_final;
 
-  if (zona.modalidad === "presencial" && !zona.esSonGotleu) {
-    // Ruta 1: zona presencial normal
-    modalidad_final = "presencial";
-    frase_params = { tipo: "cuadro", cuadro: cuadroId, modalidad: "presencial", vars };
-
-  } else if (zona.esSonGotleu && compatibleOnline) {
-    // Ruta 4: Son Gotleu + compatible online
+  if (zona.esSonGotleu && compatibleOnline) {
+    // Ruta 4
     modalidad_final = "online";
     frase_params = { tipo: "son_gotleu", subtipo: "compatible_online", cuadro: cuadroId, vars };
 
   } else if (zona.esSonGotleu && !compatibleOnline) {
-    // Ruta 5: Son Gotleu + NO compatible online
+    // Ruta 5
     modalidad_final = "derivar";
     frase_params = { tipo: "son_gotleu", subtipo: "no_compatible_online" };
 
+  } else if (zona.modalidad === "presencial") {
+    // Ruta 1
+    modalidad_final = "presencial";
+    frase_params = { tipo: "cuadro", cuadro: cuadroId, modalidad: "presencial", vars };
+
   } else if (zona.modalidad === "fuera" && compatibleOnline) {
-    // Ruta 2: fuera de zona + compatible online
+    // Ruta 2
     modalidad_final = "online";
     frase_params = { tipo: "cuadro", cuadro: cuadroId, modalidad: "online", vars };
 
   } else if (zona.modalidad === "fuera" && !compatibleOnline) {
-    // Ruta 3: fuera de zona + NO compatible online
+    // Ruta 3
     modalidad_final = "derivar";
     frase_params = { tipo: "zona", vars: { cuadro: cuadroId } };
 
   } else {
-    // Zona desconocida — no debería llegar aquí (Paso 0 lo filtra)
     return _fallbackWhatsapp(`zona desconocida en _resolverCuadro para ${cuadroId}`);
   }
 
@@ -458,14 +591,12 @@ function _resolverCuadro(cuadroId, contexto, { bandera_edad_temprana = false, pa
   });
 }
 
-/** Comprueba si el contexto tiene señales de rigidez corporal (para sub-check de posesión en cachorros) */
 function _tieneRigidezCorporal(contexto) {
-  const textoNorm = normalizar(contexto.mensaje);
+  const textoNorm = normalizar(contexto.mensaje ?? "");
   const RIGIDEZ = ["cuerpo tieso", "cuerpo rígido", "cola tiesa", "se tensa", "se rigidiza"];
   return RIGIDEZ.some((kw) => textoNorm.includes(normalizar(kw)));
 }
 
-/** Construye objeto log estructurado (serializable a JSON para Supabase) */
 function _log(paso, cuadros_detectados, cuadros_excluidos, zona, modalidad_final, flags, notas) {
   return {
     paso,
@@ -478,7 +609,6 @@ function _log(paso, cuadros_detectados, cuadros_excluidos, zona, modalidad_final
   };
 }
 
-/** Construye un objeto Decision con defaults seguros */
 function _decision({
   accion,
   frase_params,
@@ -487,41 +617,28 @@ function _decision({
   es_mixto = false,
   bandera_edad_temprana = false,
   cuadro_pendiente_mordida = null,
+  mixto_degradado = false,
+  cuadros_originales = null,  // array [id1, id2] cuando es_mixto o mixto_degradado
   log,
 }) {
   return {
     accion,
     frase_params,
     pending_next,
-    cuadro_ganador,
+    cuadro_ganador,       // string único de id o null — nunca concatenado
     es_mixto,
     bandera_edad_temprana,
-    cuadro_pendiente_mordida, // campo interno — lo usa el orquestador para persistir entre turnos
+    cuadro_pendiente_mordida, // persistido por victoria.js entre turnos
+    mixto_degradado,      // true si había mixto pero se degradó a cuadro único por zona
+    cuadros_originales,   // victoria.js lee esto para la notificación a Carlos
     log,
   };
 }
 
-/** Fallback al WhatsApp humano — último recurso */
 function _fallbackWhatsapp(razon) {
   return _decision({
     accion: "fallback",
     frase_params: { tipo: "apoyo", subtipo: "fallback_whatsapp" },
     log: _log(99, [], [], null, null, ["fallback"], razon),
-  });
-}
-
-// Placeholder para pasos 6-10 — se implementarán tras validación de Opus
-function _evaluarCuadros(_contexto) { return null; }
-function paso9_basica(_contexto) { return null; }
-
-// Paso 10 — pedir especificación: ningún cuadro disparó con suficiente confianza
-// Es un paso legítimo del árbol, no un error. Victoria pide más información.
-function paso10_pedirEspecificacion(contexto) {
-  return _decision({
-    accion: "preguntar",
-    frase_params: { tipo: "apoyo", subtipo: "pedir_especificacion" },
-    pending_next: null,
-    cuadro_ganador: null,
-    log: _log(10, [], [], contexto.zona?.zonaDetectada ?? "desconocida", null, [], "ningún cuadro disparó con confianza suficiente"),
   });
 }
