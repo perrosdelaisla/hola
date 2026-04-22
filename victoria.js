@@ -110,16 +110,12 @@ export function start() {
 
 let _chatEl    = null;
 let _twEl      = null;   // typing indicator
-let _panelEl   = null;
-let _optsEl    = null;
 let _inputEl   = null;
 let _sendEl    = null;
 
 function _conectarUI() {
   _chatEl  = document.getElementById("chat");
   _twEl    = document.getElementById("tw");
-  _panelEl = document.getElementById("panel");
-  _optsEl  = document.getElementById("opts");
 
   // Input y botón viven en index.html — solo los conectamos aquí
   _inputEl = document.getElementById("victoria-input");
@@ -176,6 +172,9 @@ function _mostrarVictoria(texto) {
     <div class="bub">${_escaparHTML(texto)}</div>
   `;
   _chatEl.insertBefore(burbuja, _twEl);
+  // Forzar reflow antes de añadir .in para que la transición CSS se dispare
+  burbuja.getBoundingClientRect();
+  burbuja.classList.add("in");
   _scrollAbajo();
 }
 
@@ -186,6 +185,8 @@ function _mostrarCliente(texto) {
   burbuja.className = "msg usr";
   burbuja.innerHTML = `<div class="bub">${_escaparHTML(texto)}</div>`;
   _chatEl.insertBefore(burbuja, _twEl);
+  burbuja.getBoundingClientRect();
+  burbuja.classList.add("in");
   _scrollAbajo();
 }
 
@@ -204,7 +205,11 @@ function _insertarContenedorEnChat(id, className = "") {
 
 function _mostrarTyping(visible) {
   if (!_twEl) return;
-  _twEl.style.display = visible ? "flex" : "none";
+  if (visible) {
+    _twEl.classList.add("in");
+  } else {
+    _twEl.classList.remove("in");
+  }
 }
 
 function _scrollAbajo() {
@@ -333,33 +338,36 @@ function _procesarS5_Afinado(texto) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PANEL DE OPCIONES (#panel / #opts)
-// Usado en s6 para botones de confirmación de protocolo
+// PANEL DE OPCIONES — inline dentro del chat (no fijo abajo)
+// Los botones aparecen como parte de la conversación, debajo del último mensaje
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Muestra el panel inferior con botones de opción.
- * @param {Array<{label: string, onClick: Function}>} opciones
- */
 function _mostrarOpciones(opciones) {
-  if (!_panelEl || !_optsEl) return;
-  _optsEl.innerHTML = "";
+  if (!_chatEl || !_twEl) return;
+  _ocultarOpciones(); // limpia cualquier bloque anterior
+
+  const wrap = document.createElement("div");
+  wrap.className = "opts-inline";
+  wrap.id = "opts-inline-actual";
+
   opciones.forEach(({ label, onClick }) => {
     const btn = document.createElement("button");
-    btn.className = "opt-btn";
+    btn.className = "opt-btn-inline";
     btn.textContent = label;
     btn.addEventListener("click", () => {
       _ocultarOpciones();
       onClick();
     });
-    _optsEl.appendChild(btn);
+    wrap.appendChild(btn);
   });
-  _panelEl.classList.remove("off");
+
+  _chatEl.insertBefore(wrap, _twEl);
+  _scrollAbajo();
 }
 
 function _ocultarOpciones() {
-  _panelEl?.classList.add("off");
-  if (_optsEl) _optsEl.innerHTML = "";
+  const prev = document.getElementById("opts-inline-actual");
+  if (prev) prev.remove();
 }
 
 function _procesarS6_Protocolo(texto) {
