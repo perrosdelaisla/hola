@@ -39,7 +39,12 @@ const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // ← cambia por string aleatorio antes de producción
 
 // Delay de typing indicator en ms
-const TYPING_DELAY = 900;
+const TYPING_BASE     = 1200;  // mínimo antes de responder
+const TYPING_POR_CHAR = 15;    // ms extra por cada carácter
+const TYPING_MAX      = 3500;  // tope — no hacer esperar más de 3.5s
+const TYPING_DELAY    = 1200;  // fallback para callbacks de botones
+
+const VICTORIA_AVATAR = "https://i.ibb.co/N2kzNQ2w/Picsart-22-03-31-16-58-56-090.jpg";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO CONVERSACIONAL — vive en memoria, se persiste en Supabase al cerrar
@@ -131,7 +136,7 @@ function _conectarUI() {
   }
 }
 
-function _enviarMensaje() {
+async function _enviarMensaje() {
   const texto = _inputEl?.value?.trim();
   if (!texto) return;
   _inputEl.value = "";
@@ -140,10 +145,18 @@ function _enviarMensaje() {
   _registrarTurno("cliente", texto);
   _ocultarOpciones(); // ocultar panel de opciones al escribir texto libre
 
-  // Typing indicator mientras Victoria "piensa"
+  // Mostrar typing mientras Victoria "piensa"
   _mostrarTyping(true);
-  setTimeout(async () => {
-    const respuesta = await _procesarTexto(texto);
+
+  // Procesar la respuesta PRIMERO (antes de calcular el delay)
+  const respuesta = await _procesarTexto(texto);
+
+  // Calcular delay natural: más largo el texto, más tarda en "escribirlo"
+  const longitud = respuesta ? respuesta.length : 0;
+  const delay = Math.min(TYPING_BASE + longitud * TYPING_POR_CHAR, TYPING_MAX);
+
+  // Esperar ese tiempo con el typing visible, luego mostrar respuesta
+  setTimeout(() => {
     _mostrarTyping(false);
     if (respuesta) {
       _mostrarVictoria(respuesta);
@@ -151,8 +164,8 @@ function _enviarMensaje() {
     }
     _actualizarProgreso();
     _scrollAbajo();
-    _inputEl?.focus(); // mantener teclado abierto en móvil
-  }, TYPING_DELAY);
+    _inputEl?.focus();
+  }, delay);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -169,7 +182,7 @@ function _mostrarVictoria(texto) {
   burbuja.className = "msg bot";
   burbuja.innerHTML = `
     <div class="av">
-      <img src="https://i.ibb.co/Q7Ssr8XM/icon.png" alt="V" width="19" height="16" style="object-fit:contain">
+      <img src="${VICTORIA_AVATAR}" alt="Victoria">
     </div>
     <div class="bub">${_escaparHTML(texto)}</div>
   `;
