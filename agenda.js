@@ -99,8 +99,11 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
   });
 
   contenedor.querySelector('#btn-volver-slot').addEventListener('click', () => {
+    // Deseleccionar slot actual y ocultar panel de confirmación
+    // NO llamar a onVolver — el cliente sigue en la agenda eligiendo otro slot
+    contenedor.querySelectorAll('.slot').forEach(b => b.classList.remove('on'));
+    contenedor.querySelector('#agenda-confirmar').style.display = 'none';
     slotSeleccionado = null;
-    if (onVolver) onVolver();
   });
 }
 
