@@ -17,7 +17,7 @@
 
 export const FRASES_PRESENCIAL = {
 
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces los vecinos. Es de los casos que más trabajamos. Contamos con un protocolo específico, con sesiones en el domicilio y pautas concretas que se trabajan entre semana — con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
+  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Contamos con un protocolo específico, con sesiones en el domicilio y pautas concretas que se trabajan entre semana — con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
 
   generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Es un cuadro que trabajamos con un protocolo específico: sesiones en el domicilio, junto a los tutores, trabajando tanto la rutina del perro como el vínculo y las pautas de convivencia. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
 
@@ -40,7 +40,7 @@ export const FRASES_PRESENCIAL = {
 
 export const FRASES_ONLINE = {
 
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces los vecinos. Es de los casos que más trabajamos. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas que se trabajan entre semana. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
+  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas que se trabajan entre semana. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
 
   generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Es un cuadro que trabajamos con un protocolo específico. Como estás fuera de nuestra zona de cobertura presencial, te propongo hacerlo en modalidad online: sesiones por Google Meet, junto a los tutores, trabajando tanto la rutina del perro como el vínculo y las pautas de convivencia. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
 
@@ -97,7 +97,7 @@ export const FRASES_SON_GOTLEU = {
 // No incluyen detalles de modalidad — así al concatenar no se repite información.
 export const FRASES_DIAGNOSTICO_SIN_MODALIDAD = {
 
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces los vecinos. Es de los casos que más trabajamos. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
+  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
 
   generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
 
