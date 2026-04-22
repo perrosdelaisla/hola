@@ -491,7 +491,7 @@ function _procesarS9_DatosCliente(texto) {
 
   if (!state.cliente.nombre) return "¿Cuál es tu nombre completo?";
   if (!state.cliente.telefono) {
-    return "¿Y tu número de teléfono? Para que Carlos pueda contactarte si hace falta.";
+    return "¿Y tu número de teléfono? Para que el equipo pueda contactarte si hace falta.";
   }
 
   // Email obligatorio si online
@@ -527,14 +527,14 @@ async function _procesarS12_Confirmacion(_texto) {
       ? "online por Google Meet"
       : "en tu domicilio";
 
-    return `¡Todo confirmado! 🐾 Carlos se pondrá en contacto contigo para preparar la primera sesión. ` +
+    return `¡Todo confirmado! 🐾 El equipo de Perros de la Isla se pondrá en contacto contigo para preparar la primera sesión. ` +
       `Quedamos el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
-      `Si necesitas cambiar algo, escríbele directamente al 622 922 173. ` +
+      `Si necesitas cambiar algo, escríbenos directamente al 622 922 173. ` +
       `¡Mucho ánimo con ${perro}!`;
   } catch (err) {
     console.error("Error al confirmar cita:", err);
     return "Ha habido un problema técnico al confirmar la cita. " +
-      "Por favor, escribe directamente a Carlos al 622 922 173 y él lo gestiona enseguida.";
+      "Por favor, escribe directamente al equipo de Perros de la Isla al 622 922 173 y lo gestionamos enseguida.";
   }
 }
 
@@ -1013,8 +1013,8 @@ function _registrarTurno(rol, texto) {
 
 function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
-  return "Para poder orientarte bien, te paso directamente con Carlos. " +
-    "Puedes escribirle por WhatsApp al 622 922 173.";
+  return "Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla. " +
+    "Puedes escribirnos por WhatsApp al 622 922 173.";
 }
 
 async function _supabasePost(endpoint, body) {
