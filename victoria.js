@@ -497,7 +497,8 @@ async function _procesarS6_Protocolo(texto) {
     return respuesta;
   }
 
-  // No se entiende la pregunta → derivar al WhatsApp de empresa
+  // No se entiende la pregunta → derivar al WhatsApp de empresa + seguir ofreciendo agenda
+  _mostrarBotonesAgendaTrasPausa();
   return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
     "pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173. " +
     "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
@@ -536,7 +537,7 @@ function _mostrarBotonesAgendaTrasPausa() {
         },
       },
     ]);
-  }, 2500); // Pausa para que el cliente lea la respuesta antes de ver botones
+  }, 4500); // Pausa larga — typing delay + tiempo de lectura, para que los botones aparezcan después del texto
 }
 
 function _procesarS7_Slot(_texto) {
