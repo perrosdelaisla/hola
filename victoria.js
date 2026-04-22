@@ -24,7 +24,13 @@ import { normalizar }                        from "./victoria-utils.js";
 import { detectarZona }                      from "./victoria-zones.js";
 import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js";
 import { DICT_BASICA }                       from "./victoria-dictionaries.js";
-import { obtenerFrase, FRASES_DURACION }     from "./victoria-phrases.js";
+import {
+  obtenerFrase,
+  FRASES_DURACION,
+  FRASES_PRECIO,
+  FRASES_PACK,
+  FRASE_PRECIO_POR_PERRO,
+} from "./victoria-phrases.js";
 import { esPPP }                             from "./victoria-breeds.js";
 import { decidirRespuesta }                  from "./victoria-matching.js";
 import { renderAgenda }                      from "./agenda.js";
@@ -461,42 +467,104 @@ const KEYWORDS_UBICACION = [
   "viene a casa",
 ];
 
+// Keywords para detectar pregunta sobre valor/precio general
+// NOTA: el cliente puede usar "precio/coste/cuesta" pero Victoria responde con "valor"
+const KEYWORDS_PRECIO = [
+  "cuanto cuesta", "cuánto cuesta",
+  "cuanto vale", "cuánto vale",
+  "que precio", "qué precio",
+  "cual es el precio", "cuál es el precio",
+  "cual es el valor", "cuál es el valor",
+  "precio de la sesion", "precio de la sesión",
+  "precio de la clase",
+  "valor de la clase", "valor de la sesion", "valor de la sesión",
+  "que cuesta", "qué cuesta",
+  "cuanto es", "cuánto es",
+  "precios", "tarifa", "tarifas",
+  "coste", "costo",
+];
+
+// Keywords para detectar pregunta sobre pack/descuento
+const KEYWORDS_PACK = [
+  "pack", "paquete", "bono",
+  "descuento", "oferta", "rebaja",
+  "mas barato", "más barato",
+  "mejor precio", "ahorro",
+  "hay algun descuento", "hay algún descuento",
+  "bonos", "packs",
+];
+
+// Keywords para detectar pregunta sobre precio por perro
+const KEYWORDS_PRECIO_POR_PERRO = [
+  "es por perro", "por perro",
+  "precio por perro", "valor por perro",
+  "cobran por perro", "cobras por perro",
+  "cada perro", "por cada perro",
+  "tengo dos perros", "tengo 2 perros",
+  "tengo tres perros", "tengo 3 perros",
+  "tengo varios perros", "tengo mas de un perro", "tengo más de un perro",
+  "mis perros", "mis dos perros",
+  "son dos perros", "son 2 perros",
+];
+
 async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
 
-  // Detectar si es afirmativo corto (para abrir agenda directamente)
-  const esAfirmativo = texto.length < 40 &&
-    KEYWORDS_AFIRMATIVO.some((kw) => norm.includes(normalizar(kw)));
+  // Helper local para matchear keywords
+  const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
 
+  // 1. Afirmativo corto → agenda directa
+  const esAfirmativo = texto.length < 40 && match(KEYWORDS_AFIRMATIVO);
   if (esAfirmativo) {
     state.current_step = "s7";
     return await _iniciarAgenda();
   }
 
-  // Detectar pregunta sobre duración/cuántas clases
-  const preguntaDuracion = KEYWORDS_DURACION.some((kw) => norm.includes(normalizar(kw)));
-  if (preguntaDuracion) {
+  // 2. "¿es por perro?" → respuesta específica (debe ir ANTES que precio/pack
+  //    porque "precio por perro" contiene "precio" y "perro")
+  if (match(KEYWORDS_PRECIO_POR_PERRO)) {
+    _mostrarBotonesAgendaTrasPausa();
+    return FRASE_PRECIO_POR_PERRO;
+  }
+
+  // 3. Pack / descuento → FRASES_PACK (antes que precio porque "pack" es más específico)
+  if (match(KEYWORDS_PACK)) {
+    const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
+    _mostrarBotonesAgendaTrasPausa();
+    return FRASES_PACK[modalidad];
+  }
+
+  // 4. Precio/valor general
+  if (match(KEYWORDS_PRECIO)) {
+    let clave = "sin_modalidad";
+    if (state.modalidad_final === "online")          clave = "online";
+    else if (state.modalidad_final === "presencial") clave = "presencial";
+    _mostrarBotonesAgendaTrasPausa();
+    return FRASES_PRECIO[clave];
+  }
+
+  // 5. Duración / cuántas clases
+  if (match(KEYWORDS_DURACION)) {
     const cuadro = state.decision_actual?.cuadro_ganador ??
       state.decision_actual?.cuadros_originales?.[0] ?? null;
-
     if (cuadro && FRASES_DURACION[cuadro]) {
-      // Programar botones de agenda después de responder
       _mostrarBotonesAgendaTrasPausa();
       return FRASES_DURACION[cuadro];
     }
-    // Fallback si no hay cuadro identificado
-    return _fallbackHumano("pregunta duración sin cuadro identificado");
+    // No hay cuadro → respuesta genérica honesta
+    _mostrarBotonesAgendaTrasPausa();
+    return "La duración depende del caso — van de 4 a 12 clases, según el trabajo que haga falta. " +
+      "El adiestrador te lo concreta en la primera sesión tras conocer a tu perro.";
   }
 
-  // Detectar pregunta sobre ubicación
-  const preguntaUbicacion = KEYWORDS_UBICACION.some((kw) => norm.includes(normalizar(kw)));
-  if (preguntaUbicacion) {
+  // 6. Ubicación / dónde se hace
+  if (match(KEYWORDS_UBICACION)) {
     let respuesta;
     if (state.modalidad_final === "online") {
-      respuesta = "Las sesiones online se hacen por Google Meet — solo necesitas un ordenador o móvil con cámara. " +
-        "Te enviamos el enlace antes de cada sesión y la hacemos desde donde te venga bien.";
+      respuesta = "Las clases online se hacen por Google Meet — solo necesitas un ordenador o móvil con cámara. " +
+        "Te enviamos el enlace antes de cada clase y la hacemos desde donde te venga bien.";
     } else {
-      respuesta = "Las sesiones presenciales se hacen en tu domicilio — es donde el perro vive su día a día y " +
+      respuesta = "Las clases presenciales se hacen en tu domicilio — es donde el perro vive su día a día y " +
         "donde podemos observar con más criterio el comportamiento en su contexto real. " +
         "El adiestrador se desplaza a tu casa.";
     }
@@ -504,10 +572,10 @@ async function _procesarS6_Protocolo(texto) {
     return respuesta;
   }
 
-  // No se entiende la pregunta → derivar al WhatsApp de empresa + seguir ofreciendo agenda
+  // 7. Fallback — no reconocemos la pregunta, mantenemos el hilo con botones
   _mostrarBotonesAgendaTrasPausa();
   return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
-    "pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173. " +
+    "pueden atenderte con más detalle por WhatsApp al 622 922 173. " +
     "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
 }
 
@@ -705,20 +773,23 @@ function _iniciarPago() {
 }
 
 /**
- * Devuelve el mensaje de precio y política según la modalidad.
+ * Devuelve el mensaje de valor + pack + política según la modalidad.
  * Se muestra después del diagnóstico y antes de la agenda.
+ * Tono de marca: "valor" no "precio", "clase" no "sesión".
  */
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
-    return "Antes de seguir, te cuento los detalles prácticos: la sesión tiene un precio de 75€. " +
-      "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total " +
-      "(o sea, el día de la sesión pagarías 30€ más). Si necesitas cancelar o cambiar la cita, sin problema " +
-      "siempre que sea con 48h de antelación.";
+    return "Antes de seguir te cuento los detalles prácticos: el valor de la clase online es de 75€. " +
+      "También tenemos un pack de 4 clases por 240€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
+      "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera sesión, no hace falta elegir ahora. " +
+      "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
+      "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
   }
-  return "Antes de seguir, te cuento los detalles prácticos: la sesión presencial tiene un precio de 90€. " +
-    "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total " +
-    "(o sea, el día de la sesión pagarías 45€ más). Si necesitas cancelar o cambiar la cita, sin problema " +
-    "siempre que sea con 48h de antelación.";
+  return "Antes de seguir te cuento los detalles prácticos: el valor de la clase presencial es de 90€. " +
+    "También tenemos un pack de 4 clases por 300€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
+    "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera sesión, no hace falta elegir ahora. " +
+    "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
+    "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
 }
 
 /**
@@ -770,11 +841,11 @@ function _mostrarPrecioYBotonesAgenda() {
 }
 
 function _explicarPago() {
-  const precio    = 45;
+  const sena      = 45;
   const modalidad = state.modalidad_final === "online"
-    ? "online (75€ la sesión)"
-    : "presencial (90€ la sesión)";
-  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${precio}€. ` +
+    ? "online (75€ la clase)"
+    : "presencial (90€ la clase)";
+  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${sena}€. ` +
     "Puedes pagarla por Bizum al 653 591 301 o por transferencia al IBAN " +
     "ES27 0182 5319 7002 0055 6013 (titular: Carlos Antonio Acevedo). " +
     "Cuando hayas hecho el pago, súbeme la captura y lo confirmo enseguida.";
