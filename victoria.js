@@ -79,9 +79,10 @@ function _estadoInicial() {
     slot_elegido: null,        // { fecha, hora, label, id }
     modalidad_final: null,
     cita_id: null,
-    metodo_pago: null,         // "bizum" o "transf" — del callback de renderPago
-    comprobante_url: null,     // nombre real del campo en la tabla citas
+    metodo_pago: null,
+    comprobante_url: null,
     pago_pendiente_verificar: false,
+    slot_confirmando: false,   // guard contra doble-tap en móvil
     cita_confirmada: false,
 
     historial_turnos: [],
@@ -545,18 +546,27 @@ async function _iniciarAgenda() {
   await renderAgenda(
     contenedor,
     (slotElegido) => {
+      // Guard contra doble-tap en móvil
+      if (state.slot_confirmando) return;
+      state.slot_confirmando = true;
+
       state.slot_elegido = slotElegido;
       state.current_step = "s8";
-      const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
-      _registrarTurno("victoria", msg);
-      _mostrarVictoria(msg);
-      _actualizarProgreso();
+
+      _mostrarTyping(true);
+      setTimeout(() => {
+        _mostrarTyping(false);
+        const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
+        _registrarTurno("victoria", msg);
+        _mostrarVictoria(msg);
+        _actualizarProgreso();
+        state.slot_confirmando = false;
+      }, 800);
     },
     () => {
-      state.current_step = "s6";
-      const msg = "Sin problema. ¿Hay algo más que quieras preguntarme?";
-      _registrarTurno("victoria", msg);
-      _mostrarVictoria(msg);
+      // Callback de cancelación total — actualmente no invocado desde la UI
+      // porque "Elegir otro horario" es puramente local en agenda.js.
+      // Reservado para futuras ampliaciones (ej: botón de cancelar agenda).
     }
   );
 
