@@ -1,974 +1,790 @@
-/* ═══════════════════════════════════════════
-   PERROS DE LA ISLA · Embudo Victoria
-   victoria.js — Lógica conversacional + IA
-   ═══════════════════════════════════════════ */
-
-import { guardarReserva, confirmarSena } from './supabase.js';
-import { renderAgenda, formatearSlot } from './agenda.js';
-import { renderPagos, subirComprobante, buildWhatsAppMsg } from './pagos.js';
-
-/* ════════════════════════════════════════════
-   PROMPT DEL SISTEMA — Victoria
-   ════════════════════════════════════════════ */
-const KNOWLEDGE = `Eres Victoria, secretaria y coordinadora de Perros de la Isla (Mallorca, España).
-Tu misión: atender a personas que buscan ayuda para su perro, hacerles sentir completamente comprendidas y acompañarlas hasta reservar una cita con el adiestrador que llevará su caso.
-
-PERSONALIDAD: Cálida y cercana como una amiga que entiende de perros. Natural, coloquial pero profesional. Cuando alguien cuenta algo difícil, PRIMERO empatizas de verdad — validas lo que sienten, normalizas la situación — y LUEGO orientas. Nunca eres fría ni apresurada. Algún emoji ocasionalmente, sin exagerar.
-
-REGLAS CRÍTICAS:
-- Responde SIEMPRE en español
-- Máximo 3-4 frases por mensaje. Breve, cálida, nunca un muro de texto.
-- Nunca digas que eres una IA ni un bot
-- Nunca uses listas con viñetas — habla de forma natural
-- NUNCA menciones al adiestrador por nombre — di siempre "el adiestrador" o "el adiestrador que llevará su caso"
-- Si hay cualquier problema técnico, redirige cálidamente a WhatsApp SIN mencionar el error
-
-EN CASO DE ERROR: Di "Un momento, déjame consultarlo con el equipo — es más rápido así 😊 Escríbenos por WhatsApp al 622 922 173 y te atendemos enseguida."
-
-CONTENCIÓN EMOCIONAL — MUY IMPORTANTE:
-Cuando alguien describe un problema difícil, responde con empatía genuina ANTES de cualquier protocolo. Usa variantes distintas, nunca la misma frase dos veces. Recoge palabras literales del usuario para reflejarlas de vuelta — eso es escucha activa real. Ejemplos:
-- "Entiendo, debe ser muy agotador para ti también..."
-- "Muchas familias pasan por esto exactamente igual — no estás sola en esto."
-- "No tienes que saber exactamente qué le pasa, para eso estamos nosotros."
-- "Qué situación tan difícil. Lo importante es que estás buscando ayuda."
-
-SOBRE PERROS DE LA ISLA:
-- Equipo de adiestradores con más de 14 años de experiencia, fundado en 2019
-- Servicio exclusivamente a domicilio en Palma, Calviá, Llucmajor e Inca y alrededores
-- Método 100% positivo, respetuoso, sin coerción, sin collares de castigo, sin gritos
-- Lema: "Tu perro merece ser feliz hoy"
-- WhatsApp: 622 922 173 | Email: perrosdelaislapalma@gmail.com
-- Instagram y Facebook: @perrosdelaisla | Web: perrosdelaisla.com
-
-SERVICIOS (usa solo estos, en este orden de prioridad al sugerir):
-1. Educación de cachorros — hasta ~14 meses: socialización, control de impulsos, higiene, mordida, primeras órdenes
-2. Ansiedad y ansiedad por separación — llora/destruye al quedarse solo, no puede relajarse
-3. Miedos y fobias — miedo a ruidos, personas, situaciones concretas identificables
-4. Reactividad e impulsividad — se lanza sobre otros perros en el paseo, tira fuerte, se descontrola ante estímulos
-5. Posesión de recursos — gruñe o amenaza por comida, espacio, juguetes (sin llegar a morder)
-6. Educación básica — falta de educación, correa, paseo, órdenes; adoptados adultos sin problemas emocionales serios
-
-CASOS QUE DERIVAN AL ETÓLOGO (no lo digas directamente, orienta con calidez):
-- Perro que ha mordido a personas o a otros perros
-- Posesión de recursos con mordida
-- Razas PPP con agresiones (Rottweiler, Pit Bull, Dogo, Presa, Fila, Tosa, Akita, etc.)
-- Perros muy grandes con historial de peleas o ataques reales
-Mensaje de derivación: cálido, sin rechazar, presentando al etólogo como el mejor primer paso. Mencionar que el más conocido en la isla es Tomás Camps, sin recomendarlo directamente.
-
-DESAMBIGUACIÓN MIEDOS vs ANSIEDAD:
-- Detonante presente e identificable (petardos, veterinario, personas, coches) → Miedos y fobias
-- Detonante = ausencia de los tutores → Ansiedad por separación
-- Sin detonante claro, siempre en alerta → Ansiedad generalizada
-Pregunta de desambiguación: "¿Hay algo concreto que lo dispare, o le pasa también cuando no hay nada aparente?"
-
-DESAMBIGUACIÓN LLORA SOLO vs EDUCACIÓN BÁSICA:
-Pregunta: "¿Llora y se descontrola solo cuando os vais, o también estando vosotros en casa?"
-- Solo cuando se van → Ansiedad por separación
-- También estando en casa → Educación básica
-
-CUALQUIER protocolo sugerido es ORIENTATIVO — el adiestrador puede ajustarlo al ver al perro en persona.
-
-PRECIOS: Sesión individual 90€ | Pack 4 sesiones 300€ (ahorro 60€) | Seña de reserva: 45€
-Pago de la seña: Bizum o transferencia bancaria. El resto en efectivo o Bizum el día de la sesión.
-Cancelación con 48h de antelación → devolución completa.`;
-
-/* ════════════════════════════════════════════
-   SERVICIOS
-   ════════════════════════════════════════════ */
-export const SVCS = {
-  cachorro: {
-    n: 'Educación de cachorros',
-    tag: 'Cachorros · hasta 14 meses',
-    d: 'Construimos la base desde el principio. Socialización, primeras órdenes, control de impulsos, hábitos de higiene y cómo relacionarse bien con el mundo.',
-    nota: 'El adiestrador conoce a tu cachorro en casa en la primera sesión y ajusta el plan a su carácter y ritmo.',
-    deriva: false,
-  },
-  ansiedad: {
-    n: 'Ansiedad y ansiedad por separación',
-    tag: 'Ansiedad · Separación',
-    d: 'Trabajamos la raíz del problema con paciencia. Entendemos qué genera el estrés de tu perro y construimos paso a paso su seguridad emocional.',
-    nota: 'A veces lo que parece ansiedad tiene otro origen — lo evaluamos en persona antes de definir el protocolo.',
-    deriva: false,
-  },
-  miedos: {
-    n: 'Miedos y fobias',
-    tag: 'Miedos · Fobias',
-    d: 'Trabajamos los miedos desde la raíz, con respeto y sin forzar. El miedo tiene solución cuando se aborda correctamente.',
-    nota: 'Cada miedo tiene su origen — el adiestrador lo evalúa en persona para diseñar el plan más adecuado.',
-    deriva: false,
-  },
-  reactividad: {
-    n: 'Reactividad e impulsividad',
-    tag: 'Reactividad · Tirones',
-    d: 'Para perros que se descontrolan ante estímulos en el paseo. No es agresividad — es que se sienten sobrepasados. Trabajamos para que recuperen la calma.',
-    nota: 'Empezamos siempre entendiendo el porqué antes del cómo. La evaluación inicial es clave.',
-    deriva: false,
-  },
-  posesion: {
-    n: 'Posesión de recursos',
-    tag: 'Posesión de recursos',
-    d: 'Cuando el perro gruñe o amenaza para proteger comida, espacio o juguetes. Lo trabajamos desde la comprensión, sin confrontación.',
-    nota: 'El adiestrador evalúa la intensidad en persona antes de definir el protocolo de trabajo.',
-    deriva: false,
-  },
-  educacion: {
-    n: 'Educación básica',
-    tag: 'Educación básica',
-    d: 'Órdenes, paseo tranquilo, buenos modales en casa y en la calle. Para perros sin problemas emocionales serios — también ideal para adoptados adultos.',
-    nota: 'Adaptamos cada ejercicio al carácter de tu perro. Siempre personalizado.',
-    deriva: false,
-  },
-  derivacion: {
-    n: 'Evaluación con etólogo',
-    tag: 'Requiere etólogo',
-    d: 'Por lo que me cuentas, el mejor primer paso sería una evaluación con un etólogo — son especialistas en estos casos y eso le dará a tu perro la mejor base de trabajo.',
-    nota: 'El más reconocido en Mallorca es Tomás Camps, aunque la búsqueda la hacéis vosotros según lo que os encaje. Una vez hecha la evaluación, podemos retomar sin problema.',
-    deriva: true,
-  },
-};
-
-/* ════════════════════════════════════════════
-   ESTADO GLOBAL
-   ════════════════════════════════════════════ */
-const S = {
-  zona: null,
-  dog: '',
-  dogs: [],        // [{name, age, svc, desc}]
-  multiDog: false,
-  diffProb: false,
-  age: null,
-  desc: '',
-  dur: null,
-  prev: null,
-  svc: null,
-  slot: null,
-  pago: null,
-  citaId: null,
-  clienteId: null,
-  hist: [],
-};
-
-let dogIdx = 0;
-let locked = false;
-
-/* ════════════════════════════════════════════
-   HELPERS UI
-   ════════════════════════════════════════════ */
-const chat = () => document.getElementById('chat');
-const tw   = () => document.getElementById('tw');
-const panel = () => document.getElementById('panel');
-
-function prog(p) {
-  document.getElementById('pf').style.width = p + '%';
-}
-
-function scroll() {
-  setTimeout(() => {
-    const chatEl = chat();
-    const panelEl = panel();
-    const tw = document.getElementById('tw');
-    // Altura del panel fijo
-    const panelH = panelEl.classList.contains('off') ? 0 : panelEl.offsetHeight;
-    // Scrollear para que el typing indicator quede justo encima del panel
-    const targetScroll = tw.offsetTop - chatEl.offsetTop - (chatEl.offsetHeight - panelH) + tw.offsetHeight;
-    chatEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
-  }, 80);
-}
-
-function parseDogs(raw) {
-  return raw.replace(/ y /gi, ',').split(',')
-    .map(s => s.trim().split(' ')[0])
-    .filter(Boolean);
-}
-
-function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
-
-const AVG = `<div class="av">
-  <svg width="19" height="16" viewBox="0 0 120 100" fill="none">
-    <path d="M10 55 C5 45 8 30 18 22 C28 14 42 16 55 12 C68 8 82 2 95 8 C108 14 115 28 112 42 C109 56 98 65 88 72 C78 79 65 85 52 82 C39 79 25 78 17 68 Z" fill="#E8320A"/>
-    <ellipse cx="60" cy="47" rx="16" ry="13" fill="#0c0c0b"/>
-    <ellipse cx="44" cy="28" rx="7" ry="9" fill="#0c0c0b"/>
-    <ellipse cx="76" cy="28" rx="7" ry="9" fill="#0c0c0b"/>
-    <ellipse cx="36" cy="55" rx="6" ry="8" fill="#0c0c0b"/>
-    <ellipse cx="84" cy="55" rx="6" ry="8" fill="#0c0c0b"/>
-  </svg>
-</div>`;
-
-/* ── Typing indicator ── */
-function typing(ms = 1300) {
-  return new Promise(r => {
-    tw().classList.add('in');
-    scroll();
-    setTimeout(() => { tw().classList.remove('in'); r(); }, ms);
-  });
-}
-
-/* ── Mensaje de Victoria ── */
-async function bot(html, delay = 1300) {
-  await typing(delay);
-  const w = document.createElement('div');
-  w.className = 'msg';
-  w.innerHTML = `<div class="mrow">${AVG}<div class="bub bot">${html}</div></div>`;
-  chat().insertBefore(w, tw());
-  requestAnimationFrame(() => w.classList.add('in'));
-  scroll();
-}
-
-/* ── Mensaje del usuario ── */
-function usr(txt) {
-  const w = document.createElement('div');
-  w.className = 'msg';
-  w.innerHTML = `<div class="mrow u"><div class="bub usr">${esc(txt)}</div></div>`;
-  chat().insertBefore(w, tw());
-  requestAnimationFrame(() => w.classList.add('in'));
-  scroll();
-}
-
-/* ── Widget en el chat ── */
-function widget(html) {
-  const w = document.createElement('div');
-  w.className = 'wzone';
-  w.innerHTML = html;
-  chat().insertBefore(w, tw());
-  requestAnimationFrame(() => w.classList.add('in'));
-  setTimeout(scroll, 120);
-  return w;
-}
-
-function widgetEl(el) {
-  el.className = 'wzone';
-  chat().insertBefore(el, tw());
-  requestAnimationFrame(() => el.classList.add('in'));
-  setTimeout(scroll, 120);
-}
-
-/* ── Panel oculto ── */
-function hidePanel() {
-  panel().classList.add('off');
-  document.getElementById('opts').innerHTML = '';
-}
-
-/* ── Opciones ── */
-function showOpts(hint, items, backFn = null) {
-  panel().classList.remove('off');
-  document.getElementById('phint').textContent = hint;
-  const opts = document.getElementById('opts');
-  opts.innerHTML = '';
-  items.forEach(item => {
-    const btn = document.createElement('button');
-    btn.className = 'opt';
-    btn.innerHTML = `<span class="oi">${item.icon}</span><div>
-      <div class="ol">${item.label}</div>
-      ${item.sub ? `<div class="os">${item.sub}</div>` : ''}
-    </div>`;
-    btn.onclick = () => {
-      if (locked) return;
-      locked = true;
-      opts.querySelectorAll('.opt').forEach(b => b.disabled = true);
-      hidePanel();
-      setTimeout(() => { locked = false; }, 600);
-      item.fn();
-    };
-    opts.appendChild(btn);
-  });
-  if (backFn) {
-    const bb = document.createElement('button');
-    bb.className = 'bback';
-    bb.innerHTML = '← Volver atrás';
-    bb.onclick = () => {
-      if (!locked) { locked = true; hidePanel(); setTimeout(() => { locked = false; }, 400); backFn(); }
-    };
-    opts.appendChild(bb);
-  }
-  // Reajustar scroll para que el último mensaje quede visible sobre el panel
-  setTimeout(() => scroll(), 100);
-}
-
-/* ── Input de texto ── */
-function showText(ph, cb, backFn = null) {
-  panel().classList.remove('off');
-  document.getElementById('phint').textContent = 'Escribe tu respuesta';
-  const opts = document.getElementById('opts');
-  opts.innerHTML = `
-    <div class="irow">
-      <textarea class="ti" id="ti" placeholder="${ph}" rows="2"></textarea>
-      <button class="sb" id="sb" disabled>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
-        </svg>
-      </button>
-    </div>
-    ${backFn ? '<button class="bback" id="bb">← Volver atrás</button>' : ''}
-  `;
-  const ti = document.getElementById('ti');
-  const sb = document.getElementById('sb');
-  ti.oninput = () => { sb.disabled = ti.value.trim().length < 2; };
-  ti.onkeydown = e => {
-    if (e.key === 'Enter' && !e.shiftKey && !sb.disabled) { e.preventDefault(); sb.click(); }
-  };
-  sb.onclick = () => {
-    if (locked) return;
-    const v = ti.value.trim();
-    if (!v) return;
-    locked = true;
-    hidePanel();
-    usr(v);
-    setTimeout(() => { locked = false; cb(v); }, 200);
-  };
-  const bb = document.getElementById('bb');
-  if (bb) bb.onclick = () => {
-    if (!locked) { locked = true; hidePanel(); setTimeout(() => { locked = false; }, 400); backFn(); }
-  };
-  setTimeout(() => ti.focus(), 150);
-  // Reajustar scroll
-  setTimeout(() => scroll(), 100);
-}
-
-/* ════════════════════════════════════════════
-   API VICTORIA (Claude)
-   ════════════════════════════════════════════ */
-
-// askVic silencioso — para empatía durante diagnóstico
-// Si falla la IA, simplemente no muestra nada y sigue el flujo
-async function askVicSilent(userText, ctx = '') {
-  const lo = widget(`<div class="ail"><div class="ais"></div><span>Victoria está escribiendo...</span></div>`);
-  const msg = userText + (ctx ? `\n\n[Contexto: ${ctx}]` : '');
-  S.hist.push({ role: 'user', content: msg });
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: KNOWLEDGE,
-        messages: S.hist,
-      }),
-    });
-    if (!res.ok) throw new Error('api');
-    const data = await res.json();
-    const reply = data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
-    if (!reply) throw new Error('empty');
-    S.hist.push({ role: 'assistant', content: reply });
-    lo.remove();
-    await bot(reply.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>'), 200);
-  } catch (e) {
-    S.hist.pop();
-    lo.remove();
-    // Silencioso — el flujo continúa sin mensaje de error
-  }
-}
-
-// askVic normal — para preguntas directas donde necesitamos respuesta
-// Si falla, muestra WhatsApp y detiene el flujo
-async function askVic(userText, ctx = '') {
-  const lo = widget(`<div class="ail"><div class="ais"></div><span>Victoria está escribiendo...</span></div>`);
-  const msg = userText + (ctx ? `\n\n[Contexto: ${ctx}]` : '');
-  S.hist.push({ role: 'user', content: msg });
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 400,
-        system: KNOWLEDGE,
-        messages: S.hist,
-      }),
-    });
-    if (!res.ok) throw new Error('api');
-    const data = await res.json();
-    const reply = data.content?.map(b => b.type === 'text' ? b.text : '').join('') || '';
-    if (!reply) throw new Error('empty');
-    S.hist.push({ role: 'assistant', content: reply });
-    lo.remove();
-    await bot(reply.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>'), 200);
-  } catch (e) {
-    S.hist.pop();
-    lo.remove();
-    await bot(`Un momento, déjame consultarlo con el equipo — es más rápido así 😊<br><a href="https://wa.me/34622922173">WhatsApp: 622 922 173</a>`, 400);
-    // Detener el flujo — no continuar
-    throw e;
-  }
-}
-
-/* ════════════════════════════════════════════
-   DIAGNÓSTICO — Palabras clave
-   ════════════════════════════════════════════ */
-function diagnose(age, desc) {
-  const d = (desc || '').toLowerCase();
-
-  // Cachorro claro
-  if (age === 'cachorro') return { svc: 'cachorro', needsClarify: false };
-
-  // Derivación — mordida real o PPP
-  if (/ha mordido|mordió|mordio|llegó a morder|llego a morder/.test(d)) {
-    return { svc: 'derivacion', needsClarify: false };
-  }
-  if (/rottweiler|pit.?bull|pitbull|dogo|presa canario|fila brasileiro|tosa|akita/.test(d)) {
-    return { svc: 'derivacion', needsClarify: false };
-  }
-
-  // Agresión real con otro perro — posible derivación
-  if (/pelea.{0,20}perros|atacó a|ataco a|se lanzó a morder|se lanzo a morder/.test(d)) {
-    return { svc: 'derivacion', needsClarify: false };
-  }
-
-  // Posesión de recursos — gruñe, sin mordida
-  if (/gruñ|grun|protege.{0,20}(comida|plato|hueso|juguete|cama|sofá)|no le toques/.test(d)) {
-    return { svc: 'posesion', needsClarify: false };
-  }
-
-  // Reactividad clara en el paseo
-  if (/se lanza|se tira|reactiv|tira (de la correa|fuerte)|ladra.{0,20}(perros|bicicleta|niños)|se desboca|no puedo pasear/.test(d)) {
-    return { svc: 'reactividad', needsClarify: false };
-  }
-
-  // Ansiedad por separación — detonante claro = ausencia de tutores
-  if (/nos vamos|me voy|cuando sal|cuando nos va|se queda sol|solo en casa|llora.{0,20}(solo|casa|vamos)|ladra.{0,20}(solo|vamos|sal)|destruy|rompe.{0,20}(solo|casa)/.test(d)) {
-    return { svc: 'ansiedad', needsClarify: false };
-  }
-
-  // Llora — desambiguar si no está claro el detonante
-  if (/llor|rompe/.test(d)) {
-    return {
-      svc: null, needsClarify: true,
-      clarifyQ: 'Para entenderlo mejor — ¿llora y se descontrola <strong>solo cuando os vais</strong>, o también cuando estáis en casa pero no le hacéis caso?',
-      clarifyOpts: [
-        { icon: '🚪', label: 'Solo cuando nos vamos — en cuanto salimos empieza', fn: 'ansiedad' },
-        { icon: '🏠', label: 'También estando nosotros en casa', fn: 'educacion' },
-        { icon: '🔀', label: 'Las dos cosas', fn: 'ansiedad' },
-      ],
-    };
-  }
-
-  // Miedo con detonante claro — desambiguar con ansiedad
-  if (/miedo.{0,20}(petardo|ruido|tormenta|veterinario|hombre|personas|coche|moto|niño)|fobia|terror/.test(d)) {
-    return {
-      svc: null, needsClarify: true,
-      clarifyQ: '¿Hay algo concreto que lo dispare — un ruido, una situación, un tipo de persona — o le pasa también cuando no hay nada aparente?',
-      clarifyOpts: [
-        { icon: '🎯', label: 'Sí, hay algo concreto que lo dispara', fn: 'miedos' },
-        { icon: '😰', label: 'Le pasa aunque no haya nada aparente', fn: 'ansiedad' },
-        { icon: '🔀', label: 'Las dos cosas', fn: 'miedos' },
-      ],
-    };
-  }
-
-  // Ansiedad sin detonante claro
-  if (/ansied|estr[eé]s|pánico|pànico|tiembla|jadea|nervios|asust|no se relaja|siempre alerta/.test(d)) {
-    return { svc: 'ansiedad', needsClarify: false };
-  }
-
-  // Educación básica — incluye casos ambiguos de falta de atención y vínculo
-  if (/no hace caso|no obedece|no me hace caso|sordo|como sordo|ignora|no atiende|falta.{0,20}vinculo|vinculo|sin vinculo|no conecta|no me escucha|orden|obedien|salta encima|tira.{0,15}correa|paseo.{0,20}(mal|imposible)|educac|básic|adoptado|tira cuando|no se queda quieto|no para/.test(d)) {
-    return { svc: 'educacion', needsClarify: false };
-  }
-
-  // Ambiguo — en lugar de derivar al WhatsApp, orientamos hacia educación básica
-  // que es el punto de partida más neutral para una evaluación
-  return { svc: 'educacion', needsClarify: false };
-}
-
-/* ════════════════════════════════════════════
-   FLUJO PRINCIPAL
-   ════════════════════════════════════════════ */
-
-export async function start() {
-  prog(0);
-  await new Promise(r => setTimeout(r, 600));
-  await bot(`¡Hola! Soy Victoria, coordinadora de <em>Perros de la Isla</em> 🐾<br><br>Estoy aquí para ayudarte a encontrar la mejor solución para tu compañero y conectarte con el adiestrador que llevará su caso. ¿Empezamos?`, 1900);
-  setTimeout(s1, 400);
-}
-
-/* ── S1: Zona ── */
-async function s1() {
-  prog(8);
-  await bot(`Lo primero — trabajamos a domicilio, así que necesito saber si llegamos hasta vosotros. ¿En qué zona de Mallorca estáis?`, 1200);
-  showOpts('¿Dónde estáis?', [
-    { icon: '📍', label: 'Palma y alrededores', fn: () => { S.zona = 'Palma'; usr('Palma y alrededores'); s2(); } },
-    { icon: '📍', label: 'Calviá y zona oeste', fn: () => { S.zona = 'Calviá'; usr('Calviá y zona oeste'); s2(); } },
-    { icon: '📍', label: 'Llucmajor y zona este', fn: () => { S.zona = 'Llucmajor'; usr('Llucmajor y zona este'); s2(); } },
-    { icon: '📍', label: 'Inca y zona norte', fn: () => { S.zona = 'Inca'; usr('Inca y zona norte'); s2(); } },
-    { icon: '🗺️', label: 'Otra zona de la isla', sub: 'Pollença, Manacor, Felanitx...', fn: () => { S.zona = 'Otra'; usr('Otra zona'); sFuera(); } },
-  ]);
-}
-
-async function sFuera() {
-  await bot(`Ay, de momento no llegamos hasta esa zona 😕 Cubrimos principalmente Palma, Calviá, Llucmajor e Inca y sus alrededores.<br><br>Si estás cerca de alguna de esas áreas, escríbenos y miramos si es posible.`, 1700);
-  widget(`<div class="warn">📱 <strong>622 922 173</strong> (WhatsApp)<br>📧 perrosdelaislapalma@gmail.com</div>`);
-}
-
-/* ── S2: Nombre del perro ── */
-async function s2() {
-  prog(16);
-  await bot(`¡Perfecto, llegamos hasta vosotros! 🙌 ¿Cómo se llama tu perro? Si tienes varios, dime todos.`, 1100);
-  showText('Ej: Max, Luna y Coco...', async v => {
-    S.dog = v;
-    const names = parseDogs(v);
-    if (names.length > 1) {
-      S.dogs = names.map(n => ({ name: n, age: null, svc: null, desc: '' }));
-      S.multiDog = true;
-      s2b(names);
-    } else {
-      S.dogs = [{ name: names[0], age: null, svc: null, desc: '' }];
-      S.multiDog = false;
-      dogIdx = 0;
-      s3();
-    }
-  }, s1);
-}
-
-async function s2b(names) {
-  const lista = names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1];
-  await bot(`¡Qué pandilla! 🐾 <em>${lista}</em> — apuntados. ¿Todos tienen el mismo tipo de problema o cada uno tiene el suyo?`, 1400);
-  showOpts('¿Mismo problema o diferente?', [
-    { icon: '🔄', label: 'Todos tienen el mismo problema', fn: () => { S.diffProb = false; usr('Todos tienen el mismo problema'); dogIdx = 0; s3(); } },
-    { icon: '🔀', label: 'Cada perro tiene su problemática', fn: () => { S.diffProb = true; usr('Cada uno tiene el suyo'); dogIdx = 0; s3(); } },
-  ], s2);
-}
-
-/* ── S3: Edad ── */
-async function s3() {
-  prog(24);
-  const n = S.dogs[dogIdx]?.name || S.dogs[0]?.name;
-  const plural = S.multiDog && !S.diffProb;
-  await bot(plural
-    ? `¡Qué pandilla! ¿Cuántos años tienen más o menos? Si son edades distintas, dime la del mayor.`
-    : `¡Qué nombre tan bonito! 🐾 ¿Cuántos años tiene <em>${n}</em> más o menos?`, 1000);
-  showOpts(plural ? 'Edad aproximada' : 'Edad de ' + n, [
-    { icon: '🐶', label: 'Cachorro · menos de 1 año', sub: 'Todavía descubriendo el mundo', fn: () => { setAge('cachorro'); usr('Cachorro'); s4(); } },
-    { icon: '🐕', label: 'Joven · 1 a 3 años', sub: 'La adolescencia puede ser intensa', fn: () => { setAge('joven'); usr('Joven, 1-3 años'); s4(); } },
-    { icon: '🐕‍🦺', label: 'Adulto · 3 a 8 años', sub: 'Nunca es tarde para aprender', fn: () => { setAge('adulto'); usr('Adulto'); s4(); } },
-    { icon: '🦮', label: 'Senior · más de 8 años', sub: 'Los mayores también mejoran', fn: () => { setAge('senior'); usr('Mayor de 8 años'); s4(); } },
-  ], s2);
-}
-
-function setAge(age) {
-  S.age = age;
-  if (S.diffProb) S.dogs[dogIdx].age = age;
-  else S.dogs.forEach(d => d.age = age);
-}
-
-/* ── S4: Descripción libre + diagnóstico ── */
-async function s4() {
-  prog(34);
-  const d = S.dogs[dogIdx] || S.dogs[0];
-  const plural = S.multiDog && !S.diffProb;
-  await bot(plural
-    ? `Cuéntame — ¿qué está pasando con el grupo? No hace falta que sea preciso, cuéntamelo como se lo contarías a un amigo.`
-    : `Cuéntame — ¿qué está pasando con <em>${d.name}</em>? No hace falta que sepas exactamente qué es.`,
-    1300);
-  showText('Cuéntame qué está pasando...', async v => {
-    S.desc = v;
-    if (S.diffProb) {
-      S.dogs[dogIdx].desc = v;
-      await s4_diagnose(dogIdx, v, true);
-    } else {
-      S.dogs.forEach(d2 => d2.desc = v);
-      await s4_diagnose(0, v, false);
-    }
-  }, s3);
-}
-
-async function s4_diagnose(idx, desc, perDog) {
-  const d = S.dogs[idx];
-  const age = perDog ? d.age : S.age;
-  const result = diagnose(age, desc);
-  const n = d.name;
-
-  // Empatía primero — silenciosa, si falla la IA el flujo continúa igual
-  await askVicSilent(
-    `El tutor describe esta situación con su perro${perDog ? ' ' + n : ''}: "${desc}". Responde con empatía genuina — valida, normaliza, acompaña en 2-3 frases. No des protocolos todavía. Usa palabras literales de su descripción para reflejar que escuchaste de verdad.`,
-    `Perro: ${n}, ${age}. Zona: ${S.zona}.`
-  );
-
-  if (result.svc === 'derivacion') {
-    // Caso de derivación
-    if (perDog) d.svc = 'derivacion';
-    else S.dogs.forEach(d2 => d2.svc = 'derivacion');
-    S.svc = 'derivacion';
-    await s4_mostrar_derivacion(n);
-    return;
-  }
-
-  if (result.needsClarify) {
-    await bot(result.clarifyQ, 1200);
-    showOpts('Una pregunta más', result.clarifyOpts.map(o => ({
-      icon: o.icon, label: o.label,
-      fn: () => {
-        usr(o.label);
-        if (perDog) d.svc = o.fn;
-        else { S.svc = o.fn; S.dogs.forEach(d2 => d2.svc = o.fn); }
-        s4_confirm(idx, o.fn, perDog);
-      },
-    })));
-  } else {
-    if (perDog) d.svc = result.svc;
-    else { S.svc = result.svc; S.dogs.forEach(d2 => d2.svc = result.svc); }
-    await s4_confirm(idx, result.svc, perDog);
-  }
-}
-
-async function s4_confirm(idx, svcKey, perDog) {
-  const svc = SVCS[svcKey] || SVCS.orientacion;
-  const n = S.dogs[idx]?.name;
-  const plural = S.multiDog && !S.diffProb;
-
-  await bot(
-    `Por lo que me cuentas, lo que ${plural ? 'vuestros perros necesitan' : 'necesita <em>' + n + '</em>'} parece estar relacionado con <strong>${svc.n}</strong>. Esto es orientativo — el adiestrador puede ver algo diferente cuando lo conozca en persona. ¿Seguimos?`,
-    1400
-  );
-
-  if (perDog) {
-    // Multi-dog diferente — siguiente perro
-    setTimeout(() => s4_multi_next(), 400);
-  } else {
-    setTimeout(s5, 400);
-  }
-}
-
-async function s4_mostrar_derivacion(nombre) {
-  const svc = SVCS.derivacion;
-  await bot(`Por lo que me cuentas sobre <em>${nombre}</em>, creo que el primer paso ideal sería una evaluación con un etólogo. Son especialistas en estos casos y eso le dará la mejor base de trabajo. 🙏`, 1600);
-  widget(`
-    <div class="deriv-box">
-      <div class="stag">Recomendación</div>
-      <div class="sname titulo-bebas" style="margin-top:6px">${svc.n}</div>
-      <div class="sdesc" style="margin-top:6px">${svc.d}</div>
-      <div class="snote">💡 ${svc.nota}</div>
-    </div>
-    <div class="warn" style="margin-top:8px">
-      📱 Si en algún momento necesitáis más orientación, estamos aquí.<br>
-      <a href="https://wa.me/34622922173">WhatsApp: 622 922 173</a>
-    </div>
-  `);
-}
-
-async function s4_multi_next() {
-  dogIdx++;
-  if (dogIdx < S.dogs.length) {
-    await bot(`Perfecto 👍 Ahora cuéntame sobre <em>${S.dogs[dogIdx].name}</em>.`, 900);
-    setTimeout(s4, 400);
-  } else {
-    // Todos los perros diagnosticados
-    S.svc = S.dogs[0].svc || 'orientacion';
-    S.age = S.dogs[0].age;
-    S.desc = S.dogs.map(d => `${d.name}: ${d.desc}`).join(' | ');
-    setTimeout(s5, 400);
-  }
-}
-
-/* ── S5: Más detalles ── */
-async function s5() {
-  prog(45);
-  if (S.svc === 'derivacion') return;
-  const n = S.dogs[0]?.name;
-  const plural = S.multiDog && !S.diffProb;
-  await bot(plural
-    ? `Para que el adiestrador llegue bien preparado — ¿puedes contarme algo más? Si hay diferencias entre ellos, menciónalo.`
-    : `Para que el adiestrador llegue bien preparado — ¿puedes contarme algo más sobre <em>${n}</em>? Cuándo ocurre, cómo reacciona...`,
-    1400);
-  showText('Cualquier detalle ayuda...', async v => {
-    // Rediagnóstico si el usuario aporta info nueva más específica
-    const nuevo = diagnose(S.age, v);
-    if (nuevo.svc && nuevo.svc !== 'educacion' && nuevo.svc !== S.svc) {
-      S.svc = nuevo.svc;
-      S.dogs.forEach(d => d.svc = nuevo.svc);
-    }
-    S.desc += ' ' + v;
-    S.dogs.forEach(d => { d.desc += ' ' + v; });
-    setTimeout(s6, 400);
-  }, s4);
-}
-
-/* ── S6: Duración ── */
-async function s6() {
-  prog(55);
-  await bot(`¿Cuánto tiempo lleváis con esta situación?`, 900);
-  showOpts('¿Desde cuándo?', [
-    { icon: '🌱', label: 'Hace poco · menos de 3 meses', fn: () => { S.dur = 'menos de 3 meses'; usr('Hace poco'); s7(); } },
-    { icon: '📅', label: 'Varios meses · 3 a 12 meses', fn: () => { S.dur = '3-12 meses'; usr('Varios meses'); s7(); } },
-    { icon: '📆', label: 'Más de un año', fn: () => { S.dur = 'más de un año'; usr('Más de un año'); s7(); } },
-    { icon: '🤷', label: 'Siempre ha sido así', fn: () => { S.dur = 'siempre'; usr('Siempre ha sido así'); s7(); } },
-  ], s5);
-}
-
-/* ── S7: Experiencia previa ── */
-async function s7() {
-  prog(63);
-  await bot(`¿Habéis trabajado antes con algún adiestrador, o probado algo por vuestra cuenta?`, 1000);
-  showOpts('Experiencia previa', [
-    { icon: '🙅', label: 'No, primera vez', fn: () => { S.prev = 'primera vez'; usr('Primera vez'); s8(); } },
-    { icon: '✅', label: 'Sí, con adiestrador · método positivo', fn: () => { S.prev = 'positivo'; usr('Sí, método positivo'); s8(); } },
-    { icon: '⚙️', label: 'Sí, con adiestrador · método coercitivo', sub: 'Correcciones, collares de pinchos...', fn: () => { S.prev = 'coercitivo'; usr('Sí, método coercitivo'); s8(); } },
-    { icon: '📱', label: 'Sí, por mi cuenta / internet', fn: () => { S.prev = 'cuenta propia'; usr('Sí, por mi cuenta'); s8(); } },
-    { icon: '🔀', label: 'Varias cosas distintas', fn: () => { S.prev = 'varios intentos'; usr('Varias cosas'); s8(); } },
-  ], s6);
-}
-
-/* ── S8: Resumen y propuesta ── */
-async function s8() {
-  prog(72);
-  if (!S.svc) S.svc = 'orientacion';
-  S.dogs.forEach(d => { if (!d.svc) d.svc = S.svc; });
-
-  const n = S.dogs[0]?.name;
-  const plural = S.multiDog;
-  const ctx = S.diffProb
-    ? S.dogs.map(d => `${d.name} (${d.age}): ${SVCS[d.svc || 'orientacion'].n} — ${d.desc}`).join(' | ')
-    : `Perros: ${S.dog}, ${S.age}. Zona: ${S.zona}. Problema: ${S.desc}. Duración: ${S.dur}. Experiencia: ${S.prev}. Servicio: ${SVCS[S.svc].n}.`;
-
-  await askVic(
-    plural
-      ? `Con todo lo que me has contado sobre mis perros (${S.dogs.map(d => d.name).join(', ')}), ¿qué recomiendas y qué puedo esperar de la primera sesión con el adiestrador?`
-      : `Con todo lo que me has contado, ¿qué le recomiendas a ${n} y qué puedo esperar de la primera sesión con el adiestrador?`,
-    ctx
-  );
-
-  // Cards de servicio
-  let cardsHtml = '';
-  if (S.diffProb) {
-    cardsHtml = S.dogs.map(d => {
-      const sv = SVCS[d.svc || 'orientacion'];
-      return `
-        <div style="margin-bottom:6px">
-          <div style="font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">🐾 ${d.name}</div>
-          <div class="scard on">
-            <div class="stag">${sv.tag}</div>
-            <div class="sname titulo-bebas">${sv.n}</div>
-            <div class="sdesc">${sv.d}</div>
-            <div class="snote">💡 ${sv.nota}</div>
-          </div>
-        </div>`;
-    }).join('');
-  } else {
-    const sv = SVCS[S.svc];
-    cardsHtml = `
-      <div class="scard on">
-        <div class="stag">${sv.tag}</div>
-        <div class="sname titulo-bebas">${sv.n}</div>
-        <div class="sdesc">${sv.d}</div>
-        <div class="snote">💡 ${sv.nota}</div>
-      </div>`;
-  }
-
-  await bot(plural ? `Esta sería mi propuesta para el grupo 👇` : `Esta sería mi propuesta para <em>${n}</em> 👇`, 700);
-  widget(`
-    <div>
-      ${cardsHtml}
-      <div class="prow">
-        <div class="pcard">
-          <div class="pamt">90€</div>
-          <div class="plbl">Sesión individual</div>
-          <div class="plbl">a domicilio</div>
-        </div>
-        <div class="pcard hi">
-          <div class="pamt">300€</div>
-          <div class="plbl">Pack 4 sesiones</div>
-          <div class="psave">Ahorras 60€</div>
-        </div>
-      </div>
-      <button class="bmain" onclick="irAgendar()">Quiero reservar una cita →</button>
-      <button class="bsec" onclick="irDuda()">Tengo una pregunta antes</button>
-      <button class="bsec" onclick="irS7()">← Ajustar mis respuestas</button>
-    </div>
-  `);
-
-  window.irAgendar = s9;
-  window.irDuda = sDuda;
-  window.irS7 = s7;
-}
-
-async function sDuda() {
-  if (locked) return;
-  locked = true; setTimeout(() => { locked = false; }, 500);
-  await bot(`Claro, dime — ¿qué te ronda por la cabeza?`, 900);
-  showText('Tu pregunta...', async v => {
-    await askVic(v, `Duda antes de reservar. Servicio: ${SVCS[S.svc || 'orientacion'].n}. Perro: ${S.dog}.`);
-    widget(`<button class="bmain" onclick="irAgendar()">Ver horarios disponibles →</button>`);
-  });
-}
-
-/* ── S9: Agenda ── */
-async function s9() {
-  prog(80);
-  if (locked) return; locked = true; setTimeout(() => { locked = false; }, 600);
-  await bot(`¡Vamos a por ello! Déjame ver los huecos disponibles 📅`, 1100);
-
-  const agendaEl = await renderAgenda(
-    (slot) => {
-      S.slot = slot;
-      usr(`${slot.label} · ${slot.hora}h`);
-      s10();
+/**
+ * victoria.js
+ * Perros de la Isla — Embudo Victoria
+ * Controlador conversacional — conecta matching, frases, agenda y pagos
+ * Versión 1.0 · Abril 2026
+ *
+ * EXPORTS PÚBLICOS:
+ *   iniciarConversacion()  → primer mensaje de bienvenida
+ *   procesarMensaje(texto) → entrada principal del cliente
+ *   obtenerEstado()        → estado actual para la UI
+ *
+ * FLUJO:
+ *   s0  → bienvenida + primera pregunta
+ *   s1  → zona del cliente
+ *   s2  → nombre del perro
+ *   s3  → edad + raza + peso (un solo paso, con repregunta si faltan)
+ *   s4  → descripción libre del problema
+ *   s5  → preguntas de afinado (filtro mordida, conducta, etc.)
+ *   s6  → propuesta de protocolo (Victoria responde con frase)
+ *   s7  → elección de slot (renderAgenda)
+ *   s8  → confirmación del slot elegido
+ *   s9  → datos del cliente (nombre, teléfono, email si online, dirección)
+ *   s10 → explicación del pago
+ *   s11 → subida captura de Bizum/transferencia
+ *   s12 → confirmación final
+ */
+
+import { normalizar }            from "./victoria-utils.js";
+import { detectarZona }          from "./victoria-zones.js";
+import { detectarCuadros, detectarLateral } from "./victoria-dictionaries.js";
+import { obtenerFrase }          from "./victoria-phrases.js";
+import { esPPP }                 from "./victoria-breeds.js";
+import { decidirRespuesta }      from "./victoria-matching.js";
+import { renderAgenda }          from "./agenda.js";
+import { renderPago, confirmarPago } from "./pagos.js";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFIGURACIÓN
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SUPA_URL  = "https://sydzfwwiruxqaxojymdz.supabase.co";
+const SUPA_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2ODMzNDcsImV4cCI6MjA1OTI1OTM0N30.ixjBBHMsEu5ANxl4MXodVdYFhnlEi9MBnj0TxmPHxe0";
+const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // Charly: cambia por string aleatorio antes de producción
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ESTADO CONVERSACIONAL
+// Vive en memoria durante la sesión — se persiste en Supabase al cerrar cita
+// ─────────────────────────────────────────────────────────────────────────────
+
+let state = _estadoInicial();
+
+function _estadoInicial() {
+  return {
+    // Flujo
+    current_step: "s0",
+    pending: null,
+    cuadro_pendiente_mordida: null,
+    gravedad_mordida: null,
+    lateral_detectado: null,
+    decision_actual: null,       // última Decision de victoria-matching
+    s3_intentos: 0,              // reintentos en paso s3
+
+    // Datos del perro
+    perro: {
+      nombre: null,
+      edad_meses: null,
+      raza: null,
+      peso_kg: null,
+      es_ppp: false,
     },
-    s8
-  );
-  widgetEl(agendaEl);
-}
 
-/* ── S10: Pago ── */
-async function s10() {
-  prog(87);
-  await bot(`Anotado 📌 Para confirmar la cita necesito una seña de <em>45€</em> — el 50% de la primera sesión. El resto lo pagas en mano el día de la sesión.<br><br>Si la cancelas con <strong>48h de antelación</strong>, te la devolvemos sin problema. ¿Cómo prefieres pagar?`, 1800);
-
-  const pagosEl = renderPagos(
-    async ({ metodo, archivo }) => {
-      S.pago = metodo;
-      usr('He pagado por ' + metodo);
-      s11(archivo);
+    // Zona (output de detectarZona)
+    zona: {
+      zonaDetectada: null,
+      modalidad: "desconocida",
+      esSonGotleu: false,
+      necesitaAclaracion: true,
     },
-    s9
+
+    // Solo mensajes de s4+s5 — los que usa el matcher
+    mensajes_diagnostico: [],
+
+    // Datos del cliente (recogidos en s9)
+    cliente: {
+      nombre: null,
+      telefono: null,
+      email: null,
+      direccion: null,
+    },
+
+    // Cita
+    slot_elegido: null,
+    modalidad_final: null,
+    cita_id: null,
+    captura_url: null,
+    pago_pendiente_verificar: false,
+    cita_confirmada: false,
+
+    // Historial completo para Carlos (guardado en Supabase al cerrar)
+    historial_turnos: [],
+    log_matching_final: null,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPORTS PÚBLICOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Inicia la conversación. Devuelve el primer mensaje de Victoria.
+ * @returns {string}
+ */
+export function iniciarConversacion() {
+  state = _estadoInicial();
+  const bienvenida = "¡Hola! Soy Victoria, la asistente de Perros de la Isla. " +
+    "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
+    "Para empezar, ¿en qué zona de Mallorca estás?";
+  _registrarTurno("victoria", bienvenida);
+  state.current_step = "s1";
+  return bienvenida;
+}
+
+/**
+ * Procesa el mensaje del cliente y devuelve la respuesta de Victoria.
+ * @param {string} texto
+ * @returns {string|null} — null si el paso usa renderizado especial (agenda, pago)
+ */
+export function procesarMensaje(texto) {
+  if (!texto?.trim()) return null;
+  const textoLimpio = texto.trim();
+  _registrarTurno("cliente", textoLimpio);
+
+  const procesadores = {
+    s1:  _procesarS1_Zona,
+    s2:  _procesarS2_NombrePerro,
+    s3:  _procesarS3_DatosPerro,
+    s4:  _procesarS4_Problema,
+    s5:  _procesarS5_Afinado,
+    s6:  _procesarS6_Protocolo,
+    s7:  _procesarS7_Slot,
+    s8:  _procesarS8_ConfirmacionSlot,
+    s9:  _procesarS9_DatosCliente,
+    s10: _procesarS10_Pago,
+    s11: _procesarS11_Captura,
+    s12: _procesarS12_Confirmacion,
+  };
+
+  const procesador = procesadores[state.current_step];
+  if (!procesador) return _fallbackHumano("paso desconocido: " + state.current_step);
+
+  const respuesta = procesador(textoLimpio);
+  if (respuesta) _registrarTurno("victoria", respuesta);
+  return respuesta;
+}
+
+/** Devuelve el estado actual para que la UI sepa en qué paso está */
+export function obtenerEstado() {
+  return {
+    step: state.current_step,
+    pending: state.pending,
+    modalidad: state.modalidad_final ?? state.zona?.modalidad,
+    cita_confirmada: state.cita_confirmada,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROCESADORES DE PASOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _procesarS1_Zona(texto) {
+  const zona = detectarZona(texto);
+  state.zona = zona;
+
+  if (zona.necesitaAclaracion) {
+    return "No he reconocido esa zona. ¿Puedes decirme el municipio o barrio? " +
+      "Por ejemplo: Palma, Inca, Llucmajor, Calvià…";
+  }
+
+  state.current_step = "s2";
+  return "Perfecto. ¿Cómo se llama tu perro?";
+}
+
+function _procesarS2_NombrePerro(texto) {
+  // Limpiar artículos comunes ("se llama X", "mi perro es X")
+  const nombre = texto
+    .replace(/^(se llama|mi perro (es|se llama)|se llama)\s*/i, "")
+    .replace(/^(es|un|una)\s+/i, "")
+    .trim();
+
+  state.perro.nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  state.current_step = "s3";
+
+  return `¡Qué nombre más bonito! Cuéntame un poco más sobre ${state.perro.nombre}: ` +
+    "¿qué edad tiene, qué raza es y cuánto pesa aproximadamente?";
+}
+
+function _procesarS3_DatosPerro(texto) {
+  const edad = _extraerEdad(texto);
+  const peso = _extraerPeso(texto);
+  const raza = _extraerRaza(texto); // extrae solo la raza, no el texto entero
+
+  if (edad !== null) state.perro.edad_meses = edad;
+  if (peso !== null) state.perro.peso_kg    = peso;
+  if (raza !== null) state.perro.raza       = raza;
+
+  // Calcular PPP — usar texto completo por si la raza está en forma larga
+  state.perro.es_ppp = esPPP(texto);
+
+  const faltaEdad = state.perro.edad_meses === null;
+  const faltaPeso = state.perro.peso_kg    === null;
+  const faltaRaza = state.perro.raza       === null;
+
+  if ((faltaEdad || faltaPeso) && state.s3_intentos < 2) {
+    state.s3_intentos++;
+    if (faltaEdad && faltaPeso) {
+      return `Necesito saber la edad y el peso de ${state.perro.nombre} para orientarte bien. ` +
+        "¿Puedes decirme cuánto tiempo tiene y cuánto pesa aproximadamente?";
+    }
+    if (faltaEdad) {
+      return `¿Qué edad tiene ${state.perro.nombre}? Con meses si aún es cachorro, o años si ya es adulto.`;
+    }
+    if (faltaPeso) {
+      return `¿Cuánto pesa ${state.perro.nombre} aproximadamente? No hace falta que sea exacto.`;
+    }
+  }
+
+  // Si tras 2 intentos sigue faltando, usar defaults y continuar
+  if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
+  if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
+  if (state.perro.raza       === null) state.perro.raza       = "mestizo"; // safe default
+
+  state.current_step = "s4";
+  return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+    "Descríbeme la situación con tus propias palabras.";
+}
+
+function _procesarS4_Problema(texto) {
+  // Añadir a mensajes de diagnóstico (solo s4 y s5 alimentan el matcher)
+  state.mensajes_diagnostico.push(texto);
+
+  // Detectar lateral — función pura
+  const lateral = detectarLateral(texto);
+
+  // Ignorar lateral si hay cuadros fuertes en el mismo mensaje
+  if (lateral) {
+    const cuadros = detectarCuadros(texto);
+    const hayCuadroFuerte = cuadros.cuadros.some(
+      (c) => c.confianza === "alta" || c.confianza === "media"
+    );
+    if (!hayCuadroFuerte) {
+      state.lateral_detectado = lateral;
+    }
+  }
+
+  return _evaluarYResponder(texto);
+}
+
+function _procesarS5_Afinado(texto) {
+  // Las respuestas a preguntas de afinado también alimentan el matcher
+  state.mensajes_diagnostico.push(texto);
+  // Nota: respuesta_pendiente se construye en _construirContexto desde textoActual
+  // No se asigna aquí para evitar duplicidad
+  return _evaluarYResponder(texto);
+}
+
+function _procesarS6_Protocolo(texto) {
+  // El cliente puede preguntar algo después de recibir el protocolo
+  // Si es afirmativo/pregunta, continuar a agenda; si es nueva info, re-evaluar
+  const norm = normalizar(texto);
+  // Mensajes cortos y afirmativos → ir a agenda
+  // Restricción de longitud para evitar falsos positivos ("sí, pero antes quiero preguntar...")
+  const esAfirmativo = texto.length < 20 &&
+    ["sí", "si", "ok", "vale", "perfecto", "adelante",
+     "me interesa", "quiero", "me apunto", "venga"].some(
+      (kw) => norm.includes(kw)
+    );
+
+  if (esAfirmativo) {
+    state.current_step = "s7";
+    return _iniciarAgenda();
+  }
+
+  // Si no es afirmativo, tratar como nueva info diagnóstica
+  state.mensajes_diagnostico.push(texto);
+  return _evaluarYResponder(texto);
+}
+
+function _procesarS7_Slot(_texto) {
+  // La elección de slot se hace con renderAgenda — este paso se gestiona por callback
+  // Si llega texto aquí, probablemente el cliente escribió algo mientras ve la agenda
+  return "Cuando veas un hueco que te venga bien, selecciónalo en el calendario de arriba.";
+}
+
+function _procesarS8_ConfirmacionSlot(texto) {
+  if (!state.slot_elegido) {
+    return "Parece que no has seleccionado ningún horario todavía. " +
+      "Elige el que mejor te venga en el calendario.";
+  }
+
+  const slot = state.slot_elegido;
+  state.current_step = "s9";
+
+  return `Perfecto, reservamos el ${slot.label}. ` +
+    "Para terminar de confirmar la cita necesito algunos datos. " +
+    "¿Cuál es tu nombre completo y tu número de teléfono?";
+}
+
+function _procesarS9_DatosCliente(texto) {
+  // Extracción básica de nombre y teléfono
+  const telefono = _extraerTelefono(texto);
+  if (telefono) state.cliente.telefono = telefono;
+
+  // El nombre es el resto del texto sin el teléfono
+  const nombreCandiato = texto.replace(/\d[\d\s]{8,}/g, "").trim();
+  if (nombreCandiato.length > 2) state.cliente.nombre = nombreCandiato;
+
+  // ¿Falta algún dato?
+  if (!state.cliente.nombre) {
+    return "¿Cuál es tu nombre completo?";
+  }
+  if (!state.cliente.telefono) {
+    return "¿Y tu número de teléfono? Para que Carlos pueda contactarte si hace falta.";
+  }
+
+  // ¿Modalidad online? → email obligatorio
+  const esOnline = state.modalidad_final === "online";
+  if (esOnline && !state.cliente.email) {
+    return "Como la sesión es por Google Meet, necesito también tu email " +
+      "para enviarte el enlace de la videollamada.";
+  }
+
+  // Si el texto tiene formato email, guardarlo
+  const email = _extraerEmail(texto);
+  if (email) state.cliente.email = email;
+
+  state.current_step = "s10";
+  return _explicarPago();
+}
+
+function _procesarS10_Pago(_texto) {
+  state.current_step = "s11";
+  return _iniciarPago();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGO — renderiza el componente y gestiona los callbacks
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * IMPORTANTE PARA index.html:
+ * Los mensajes de Victoria que vienen de callbacks (agenda, pago) se envían
+ * vía CustomEvent "victoria:mensaje". index.html DEBE tener un listener:
+ *
+ *   window.addEventListener("victoria:mensaje", (e) => {
+ *     mostrarMensajeEnChat(e.detail.rol, e.detail.texto);
+ *   });
+ *
+ * Sin ese listener, los mensajes de confirmación de slot y pago no aparecen en el chat.
+ */
+function _iniciarPago() {
+  const contenedor = document.getElementById("victoria-pago-slot");
+  if (!contenedor) {
+    return _explicarPago();
+  }
+
+  renderPago(
+    contenedor,
+    {
+      nombre: state.cliente.nombre,
+      telefono: state.cliente.telefono,
+      slot: state.slot_elegido,
+      modalidad: state.modalidad_final,
+      precio: 45,
+      citaId: state.cita_id,
+    },
+    async ({ metodo, signedUrl, pendienteVerificar }) => {
+      // Pago confirmado (o fallback WhatsApp) — actualizar estado y disparar s12
+      state.captura_url             = signedUrl ?? null;
+      state.pago_pendiente_verificar = !!pendienteVerificar;
+      state.current_step             = "s12";
+
+      const respuesta = await _procesarS12_Confirmacion("");
+      _registrarTurno("victoria", respuesta);
+      _mostrarMensajeEnUI(respuesta);
+    },
+    () => {
+      // Volver al paso anterior
+      state.current_step = "s9";
+      const msg = "Sin problema. ¿Quieres cambiar algo de los datos antes de pagar?";
+      _registrarTurno("victoria", msg);
+      _mostrarMensajeEnUI(msg);
+    }
   );
-  widgetEl(pagosEl);
+
+  return null; // la UI renderiza el componente — no hay texto de chat aquí
 }
 
-/* ── S11: Formulario de datos ── */
-async function s11(archivoComprobante) {
-  prog(93);
-  await bot(`¡Perfecto! Ya casi estamos 🙌 Solo necesito tus datos para que el adiestrador llegue bien preparado.`, 1200);
-  widget(`
-    <div>
-      <div class="frow">
-        <div><label class="flbl">Tu nombre completo *</label><input class="fin" id="fN" type="text" placeholder="Nombre y apellidos" oninput="chkF()"></div>
-        <div><label class="flbl">WhatsApp *</label><input class="fin" id="fT" type="tel" placeholder="+34 6XX XXX XXX" oninput="chkF()"></div>
-      </div>
-      <label class="flbl">Email (para la confirmación)</label>
-      <input class="fin" id="fE" type="email" placeholder="tu@email.com">
-      <label class="flbl">Dirección completa *</label>
-      <input class="fin" id="fD" type="text" placeholder="Calle, número, piso · municipio" oninput="chkF()">
-      <div class="frow">
-        <div><label class="flbl">Nombre del perro *</label><input class="fin" id="fP" type="text" value="${esc(S.dog)}" oninput="chkF()"></div>
-        <div><label class="flbl">Raza</label><input class="fin" id="fRz" type="text" placeholder="Ej: Labrador"></div>
-      </div>
-      <label class="flbl">Edad exacta del perro</label>
-      <input class="fin" id="fAe" type="text" placeholder="Ej: 2 años y 3 meses">
-      <label class="flbl">Experiencia previa con adiestradores y método</label>
-      <input class="fin" id="fAd" type="text" placeholder="Ej: No / Sí, positivo / Sí, collar de pinchos...">
-      <label class="flbl">Describe el problema con el máximo detalle *</label>
-      <textarea class="fin" id="fRes" placeholder="Cuándo empezó, qué lo desencadena, cómo reacciona... El adiestrador leerá esto antes de llegar." oninput="chkF()"></textarea>
-      <button class="bmain verde" id="benv" onclick="enviarFormulario()" disabled>Confirmar mi cita 🐾</button>
-      <button class="bsec" onclick="irS10()">← Volver al pago</button>
-    </div>
-  `);
-
-  window.chkF = () => {
-    const ok = ['fN', 'fT', 'fD', 'fP', 'fRes'].every(id => document.getElementById(id)?.value.trim().length > 0);
-    const b = document.getElementById('benv');
-    if (b) b.disabled = !ok;
-  };
-
-  window.irS10 = () => s10();
-
-  window.enviarFormulario = async () => {
-    if (locked) return; locked = true;
-    await s12(archivoComprobante);
-  };
+function _procesarS11_Captura(_texto) {
+  // La subida se gestiona por pagos.js — esperamos el callback
+  return "Cuando hayas subido la captura y confirmado el pago, lo proceso enseguida.";
 }
 
-/* ── S12: Confirmación final ── */
-async function s12(archivoComprobante) {
-  prog(100);
-  const nombre = document.getElementById('fN')?.value || '';
-  const telefono = document.getElementById('fT')?.value || '';
-  const email = document.getElementById('fE')?.value || '';
-  const direccion = document.getElementById('fD')?.value || '';
-  const perro = document.getElementById('fP')?.value || S.dog;
-  const raza = document.getElementById('fRz')?.value || '';
-  const edad = document.getElementById('fAe')?.value || '';
-  const metodoPrevio = document.getElementById('fAd')?.value || '';
-  const resumen = document.getElementById('fRes')?.value || '';
-
-  usr('¡Enviado!');
-
+async function _procesarS12_Confirmacion(_texto) {
+  // Guardar todo en Supabase y notificar a Carlos
   try {
-    // Guardar en Supabase
-    const { citaId, clienteId } = await guardarReserva({
-      cliente: { nombre, telefono, email, direccion, zona: S.zona, notas: resumen },
-      perros: S.dogs.map(d => ({
-        nombre: d.name || perro,
-        raza, edad,
-        problematica: SVCS[d.svc || 'orientacion']?.n,
-        descripcion: d.desc || resumen,
-        metodoPrevio,
-      })),
-      cita: {
-        fecha: S.slot.fecha,
-        hora: S.slot.hora,
-        metodoPago: S.pago,
-        protocolo: SVCS[S.svc || 'orientacion']?.n,
-        notas: resumen,
-      },
-    });
+    await _guardarCitaEnSupabase();
+    await _notificarCarlos();
+    state.cita_confirmada = true;
+    state.current_step = "s12";
 
-    S.citaId = citaId;
-    S.clienteId = clienteId;
+    const perro = state.perro.nombre ?? "tu perro";
+    const slot  = state.slot_elegido;
+    const modalidad = state.modalidad_final === "online" ? "online por Google Meet" : "en tu domicilio";
 
-    // Subir comprobante si existe
-    if (archivoComprobante) {
-      try {
-        const url = await subirComprobante(archivoComprobante, citaId);
-        await confirmarSena(citaId, S.pago, url);
-      } catch (e) {
-        await confirmarSena(citaId, S.pago, null);
+    return `¡Todo confirmado! 🐾 Carlos se pondrá en contacto contigo para preparar la primera sesión. ` +
+      `Quedamos el ${slot?.label ?? "día acordado"}, ` +
+      `${modalidad}. ` +
+      `Si necesitas cambiar algo, escríbele directamente al 622 922 173. ` +
+      `¡Mucho ánimo con ${perro}!`;
+  } catch (err) {
+    console.error("Error al confirmar cita:", err);
+    return "Ha habido un problema técnico al confirmar la cita. " +
+      "Por favor, escribe directamente a Carlos al 622 922 173 y él lo gestiona enseguida.";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NÚCLEO — evaluar y responder
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Construye el contexto, llama a decidirRespuesta y renderiza la frase.
+ * Es el punto central donde el matching se conecta con la conversación.
+ */
+function _evaluarYResponder(textoActual) {
+  const contexto = _construirContexto(textoActual);
+  const decision = decidirRespuesta(contexto);
+
+  // Persistir campos de estado que el matching necesita entre turnos
+  if (decision.pending_next !== undefined) state.pending = decision.pending_next;
+  if (decision.cuadro_pendiente_mordida)   state.cuadro_pendiente_mordida = decision.cuadro_pendiente_mordida;
+  if (decision.bandera_edad_temprana)      state.bandera_edad_temprana = true;
+
+  // Guardar la decision para usar en confirmación final
+  state.decision_actual = decision;
+  state.log_matching_final = decision.log;
+
+  // Determinar modalidad final si ya se decidió
+  if (decision.frase_params?.modalidad) {
+    state.modalidad_final = decision.frase_params.modalidad;
+  } else if (decision.frase_params?.tipo === "zona" || decision.frase_params?.tipo === "son_gotleu") {
+    state.modalidad_final = "derivar";
+  }
+
+  switch (decision.accion) {
+    case "responder":
+    case "derivar": {
+      const frase = obtenerFrase(decision.frase_params);
+      if (!frase) return _fallbackHumano("obtenerFrase devolvió null para " + JSON.stringify(decision.frase_params));
+
+      // Si es una propuesta de protocolo (no una pregunta), avanzar a s6
+      if (decision.accion === "responder" && state.current_step === "s4") {
+        state.current_step = "s6";
+        // Añadir transición al slot si no es derivación
+        if (state.modalidad_final !== "derivar") {
+          return frase + "\n\n¿Te gustaría ver los horarios disponibles?";
+        }
       }
+      return frase;
     }
 
-  } catch (e) {
-    console.error('Error guardando reserva:', e);
-    // Continuar aunque falle Supabase — al menos llega el WhatsApp
+    case "preguntar": {
+      const frase = obtenerFrase(decision.frase_params);
+      if (!frase) return _fallbackHumano("obtenerFrase null en preguntar");
+      // Nos quedamos en s5 mientras hay preguntas de afinado
+      state.current_step = "s5";
+      return frase;
+    }
+
+    case "fallback":
+      return _fallbackHumano(decision.log?.notas ?? "acción fallback");
+
+    default:
+      return _fallbackHumano("acción desconocida: " + decision.accion);
+  }
+}
+
+/**
+ * Construye el objeto contexto para victoria-matching a partir del estado actual.
+ */
+function _construirContexto(textoActual) {
+  // El mensaje es la concatenación de todos los mensajes de diagnóstico
+  const mensajeCompleto = state.mensajes_diagnostico.join(" ");
+  const cuadros = detectarCuadros(mensajeCompleto);
+
+  return {
+    perro: { ...state.perro },
+    zona:  state.zona,
+    cuadros: cuadros.cuadros,
+    mensaje: mensajeCompleto,
+    pending: state.pending,
+    respuesta_pendiente: state.pending ? textoActual : null,
+    keywords_mordida: _tieneKeywordsMordida(textoActual),
+    lateral_detectado: state.lateral_detectado,
+    gravedad_mordida: state.gravedad_mordida,
+    cuadro_pendiente_mordida: state.cuadro_pendiente_mordida,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AGENDA
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _iniciarAgenda() {
+  // renderAgenda renderiza en el DOM y usa callbacks
+  // Devolvemos null para que la UI sepa que debe mostrar el componente de agenda
+  const contenedor = document.getElementById("victoria-agenda-slot");
+  if (!contenedor) {
+    // Fallback si no hay contenedor — texto de instrucción
+    return "Ahora voy a mostrarte los horarios disponibles para que elijas el que mejor te venga.";
   }
 
-  // Checkmark
-  widget(`<div class="sicon"><svg width="26" height="26" viewBox="0 0 26 26" fill="none"><polyline points="4,14 10,20 22,7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>`);
-
-  await bot(`¡Todo listo, <em>${esc(nombre.split(' ')[0])}</em>! 🎉 He recibido tu solicitud. Revisamos el comprobante y te confirmo la cita en menos de 24h por WhatsApp.`, 1900);
-
-  // Resumen
-  const svcLabel = S.diffProb
-    ? S.dogs.map(d => `${d.name}: ${SVCS[d.svc || 'orientacion'].n}`).join('<br>')
-    : SVCS[S.svc || 'orientacion'].n;
-
-  widget(`
-    <div style="background:var(--s2);border:1px solid var(--s3);border-radius:var(--r16);padding:14px 15px">
-      <div class="srow"><span class="sk">Servicio</span><span class="sv" style="font-size:12px">${svcLabel}</span></div>
-      <div class="srow"><span class="sk">Perro/s</span><span class="sv">${esc(perro)}${raza ? ' · ' + esc(raza) : ''}</span></div>
-      <div class="srow"><span class="sk">Fecha y hora</span><span class="sv">${S.slot.label} · ${S.slot.hora}h</span></div>
-      <div class="srow"><span class="sk">Zona</span><span class="sv">${S.zona}</span></div>
-      <div class="srow"><span class="sk">Seña abonada</span><span class="sv verde">45€ · ${S.pago}</span></div>
-      <div class="srow"><span class="sk">Cancelación</span><span class="sv">Con 48h → devolución completa</span></div>
-    </div>
-  `);
-
-  // Notificación WhatsApp a Carlos
-  const waMsg = buildWhatsAppMsg({
-    cliente: { nombre, telefono, email, direccion, zona: S.zona, notas: resumen },
-    perros: S.dogs.map(d => ({ nombre: d.name || perro, raza, edad, problematica: SVCS[d.svc || 'orientacion']?.n, descripcion: d.desc })),
-    slot: S.slot,
-    metodo: S.pago,
-    protocolo: SVCS[S.svc || 'orientacion']?.n,
-  });
-
-  widget(`
-    <a href="https://wa.me/34653591301?text=${waMsg}" target="_blank" 
-       class="bmain" style="display:block;text-align:center;text-decoration:none;background:var(--verde)">
-      📱 Notificar al equipo por WhatsApp
-    </a>
-  `);
-
-  await askVic(
-    'La reserva está confirmada. ¿Hay algo que deba preparar antes de la primera sesión con el adiestrador?',
-    `Cliente: ${nombre}. Perros: ${perro}. Cita: ${S.slot.label} ${S.slot.hora}h. Servicio: ${SVCS[S.svc || 'orientacion']?.n}. Zona: ${S.zona}.`
+  renderAgenda(
+    (slotElegido) => {
+      // Callback cuando el cliente elige slot
+      state.slot_elegido = slotElegido;
+      state.current_step = "s8";
+      // renderAgenda devuelve { fecha, hora, label } — usar label para mostrar al cliente
+      const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
+      _registrarTurno("victoria", msg);
+      _mostrarMensajeEnUI(msg);
+    },
+    () => {
+      // Callback volver
+      state.current_step = "s6";
+      const msg = "Sin problema. ¿Hay algo más que quieras preguntarme sobre el servicio?";
+      _registrarTurno("victoria", msg);
+      _mostrarMensajeEnUI(msg);
+    }
   );
+
+  return null; // la UI renderiza el componente
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGO
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _explicarPago() {
+  const precio = 45;
+  const modalidad = state.modalidad_final === "online" ? "online (75€ la sesión)" : "presencial (90€ la sesión)";
+
+  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${precio}€. ` +
+    "Puedes pagarla por Bizum al 653 591 301 o por transferencia al IBAN " +
+    "ES27 0182 5319 7002 0055 6013 (titular: Carlos Antonio Acevedo). " +
+    "Cuando hayas hecho el pago, súbeme la captura o el justificante y lo confirmo enseguida.";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERSISTENCIA EN SUPABASE
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _guardarCitaEnSupabase() {
+  // 1. Guardar/actualizar cliente
+  const clienteRes = await _supabasePost("/rest/v1/clientes", {
+    nombre: state.cliente.nombre,
+    telefono: state.cliente.telefono,
+    email: state.cliente.email,
+  });
+  const clienteId = clienteRes?.id ?? null;
+
+  // 2. Guardar perro
+  const perroRes = await _supabasePost("/rest/v1/perros", {
+    nombre: state.perro.nombre,
+    raza: state.perro.raza,
+    edad_meses: state.perro.edad_meses,
+    peso_kg: state.perro.peso_kg,
+    es_ppp: state.perro.es_ppp,
+    cliente_id: clienteId,
+  });
+  const perroId = perroRes?.id ?? null;
+
+  // 3. Guardar cita
+  const decision = state.decision_actual;
+  const cuadros  = decision?.cuadros_originales ?? (decision?.cuadro_ganador ? [decision.cuadro_ganador] : []);
+
+  const citaRes = await _supabasePost("/rest/v1/citas", {
+    cliente_id: clienteId,
+    perro_id: perroId,
+    slot_id: state.slot_elegido?.id ?? null,
+    modalidad: state.modalidad_final,
+    zona: state.zona?.zonaDetectada,
+    cuadros_detectados: cuadros,
+    es_mixto: decision?.es_mixto ?? false,
+    mixto_degradado: decision?.mixto_degradado ?? false,
+    bandera_edad_temprana: state.bandera_edad_temprana ?? false,
+    captura_url: state.captura_url,
+    pago_pendiente_verificar: state.pago_pendiente_verificar,
+    confirmada: true,
+  });
+  state.cita_id = citaRes?.id ?? null;
+
+  // 4. Guardar conversación
+  await _supabasePost("/rest/v1/conversaciones", {
+    cita_id: state.cita_id,
+    turnos: state.historial_turnos,
+    log_matching: state.log_matching_final,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICACIÓN A CARLOS (ntfy.sh)
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _notificarCarlos() {
+  const d = state.decision_actual;
+  const cuadros = d?.cuadros_originales ?? (d?.cuadro_ganador ? [d.cuadro_ganador] : ["no detectado"]);
+  const slot    = state.slot_elegido;
+  const p       = state.perro;
+  const c       = state.cliente;
+
+  const edadTexto = p.edad_meses < 12
+    ? `${p.edad_meses} meses`
+    : `${Math.round(p.edad_meses / 12)} años`;
+
+  // Flags condicionales
+  const flags = [];
+  if (state.bandera_edad_temprana) flags.push("⚠️ Perro joven — atención primera sesión");
+  if (d?.mixto_degradado) flags.push(`ℹ️ Mixto degradado por zona — detectados: ${(d.cuadros_originales ?? []).join(" + ")}`);
+  if (state.cuadro_pendiente_mordida) flags.push("⚠️ Amago de mordida mencionado — cliente no precisó gravedad");
+  if (state.pago_pendiente_verificar) flags.push("⚠️ Comprobante no subido — verificar pago manualmente");
+
+  const flagsTexto = flags.length > 0 ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
+
+  const mensaje = [
+    "[NUEVA CITA CONFIRMADA 🐾]",
+    "",
+    `👤 Cliente: ${c.nombre ?? "—"} · ${c.telefono ?? "—"}`,
+    `📧 Email: ${c.email ?? (state.modalidad_final === "online" ? "⚠️ FALTA" : "presencial — no requerido")}`,
+    "",
+    `🐕 Perro: ${p.nombre ?? "—"} · ${p.raza ?? "—"} · ${edadTexto} · ${p.peso_kg ?? "—"}kg`,
+    `📍 Zona: ${state.zona?.zonaDetectada ?? "—"} · Modalidad: ${state.modalidad_final ?? "—"}`,
+    "",
+    `🧠 Cuadro(s): ${cuadros.join(" + ")}`,
+    `   Flags:\n${flagsTexto}`,
+    "",
+    `📅 Slot: ${slot?.label ?? "—"}`,
+    `💰 Seña: 45€ ${state.pago_pendiente_verificar ? "PENDIENTE DE VERIFICAR" : "Bizum confirmado"}`,
+    state.captura_url ? `📎 Captura: ${state.captura_url}` : "📎 Captura: no subida",
+    "",
+    `[Paso ${d?.log?.paso ?? "?"} | ${d?.log?.notas ?? ""}]`,
+  ].join("\n");
+
+  await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Title": "Nueva cita Perros de la Isla",
+      "Priority": "high",
+      "Tags": "dog,calendar",
+    },
+    body: mensaje,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXTRACCIÓN DE DATOS ESTRUCTURADOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _extraerEdad(texto) {
+  const semanas = texto.match(/(\d+)\s*semanas?/i);
+  if (semanas) return Math.round(parseInt(semanas[1]) / 4.3);
+
+  const meses = texto.match(/(\d+)\s*(meses?|mes)/i);
+  if (meses) return parseInt(meses[1]);
+
+  const anos = texto.match(/(\d+)\s*(años?|ano)/i);
+  if (anos) return parseInt(anos[1]) * 12;
+
+  // "tiene 1 año y 5 meses" → 17
+  const compuesto = texto.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
+  if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
+
+  return null;
+}
+
+function _extraerPeso(texto) {
+  const kg = texto.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilo)/i);
+  if (kg) return parseFloat(kg[1].replace(",", "."));
+  return null;
+}
+
+// Lista de razas comunes para extracción limpia
+// Si el cliente escribe "es un labrador de 3 años", extraemos solo "labrador"
+const RAZAS_COMUNES = [
+  "labrador", "golden retriever", "golden", "pastor alemán", "pastor aleman",
+  "border collie", "border", "bulldog", "beagle", "yorkshire", "yorkshire terrier",
+  "chihuahua", "teckel", "dachshund", "husky", "husky siberiano", "shih tzu",
+  "pug", "boxer", "galgo", "galgo español", "podenco", "cocker", "cocker spaniel",
+  "caniche", "bichon", "bichon frise", "maltés", "maltes", "schnauzer",
+  "samoyedo", "setter", "pointer", "dálmata", "dalmata", "doberman",
+  "gran danés", "gran danes", "san bernardo", "terranova", "mastín", "mastin",
+  "malinois", "pastor belga", "vizsla", "weimaraner", "braco",
+  "jack russell", "fox terrier", "west highland", "westies",
+  "shiba inu", "shiba", "corgi", "basenji", "whippet",
+  "mestizo", "cruce", "mix", "mixto",
+];
+
+function _extraerRaza(texto) {
+  const norm = normalizar(texto);
+  // Ordenar por longitud descendente para que "golden retriever" gane sobre "golden"
+  const razasOrdenadas = [...RAZAS_COMUNES].sort((a, b) => b.length - a.length);
+  for (const raza of razasOrdenadas) {
+    if (norm.includes(normalizar(raza))) {
+      // Devolver en formato capitalizado
+      return raza.charAt(0).toUpperCase() + raza.slice(1);
+    }
+  }
+  // También detectar PPP por si la raza es de lista restringida
+  // esPPP() usa su propia lista — si matchea, devolver el texto que matcheó
+  // (se detectará en el contexto del matching via state.perro.es_ppp)
+  return null; // no detectada — el historial_turnos tiene el texto original
+}
+
+function _extraerTelefono(texto) {
+  const tel = texto.match(/(\+34\s?)?[6789]\d{8}/);
+  if (tel) return tel[0].replace(/\s/g, "");
+  return null;
+}
+
+function _extraerEmail(texto) {
+  const email = texto.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  return email ? email[0] : null;
+}
+
+function _tieneKeywordsMordida(texto) {
+  const MORDIDA = ["muerde", "mordió", "ha mordido", "llegó a morder",
+    "se tira a morder", "mordida", "amago"];
+  const norm = normalizar(texto);
+  return MORDIDA.some((kw) => norm.includes(normalizar(kw)));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS INTERNOS
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _registrarTurno(rol, texto) {
+  state.historial_turnos.push({
+    rol,
+    texto,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+function _mostrarMensajeEnUI(texto) {
+  // Hook para que index.html añada el mensaje al chat
+  // La UI puede sobrescribir esta función o escuchar un evento
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("victoria:mensaje", {
+      detail: { rol: "victoria", texto },
+    }));
+  }
+}
+
+function _fallbackHumano(razon) {
+  console.warn("Victoria fallback:", razon);
+  return "Para poder orientarte bien, te paso directamente con Carlos — " +
+    "él puede atenderte con más detalle. Puedes escribirle por WhatsApp al 622 922 173.";
+}
+
+async function _supabasePost(endpoint, body) {
+  try {
+    const res = await fetch(`${SUPA_URL}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPA_KEY,
+        "Authorization": `Bearer ${SUPA_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Supabase error ${res.status} en ${endpoint}`);
+    const data = await res.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (err) {
+    console.error("Error Supabase:", err);
+    return null;
+  }
 }
