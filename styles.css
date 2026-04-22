@@ -582,3 +582,81 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   .frow { grid-template-columns: 1fr; }
   .prow { flex-direction: column; }
 }
+
+/* ═══════════════════════════════════════════
+   VICTORIA — AÑADIDO v1.2
+   ═══════════════════════════════════════════ */
+
+/* Input fijo abajo con safe-area para iPhone con notch */
+.input-wrap {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--s1);
+  border-top: 1px solid var(--s3);
+  padding: 8px 14px;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 50;
+}
+
+/* Espacio extra en el chat para que el input no tape los mensajes */
+.chat {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+}
+
+/* Widgets de agenda y pago insertados como burbujas en el chat */
+.widget-wrap {
+  width: 100%;
+  margin-left: 38px;
+  margin-bottom: 4px;
+}
+.widget-wrap > div { width: 100%; }
+
+/* Mensajes de Victoria y cliente generados dinámicamente por victoria.js */
+.msg.bot {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 4px 0;
+}
+.msg.bot .bub {
+  background: var(--s2);
+  border: 1px solid var(--s3);
+  border-radius: 18px 18px 18px 4px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.65;
+  max-width: 84%;
+  color: var(--t1);
+}
+.msg.bot .av {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--s2);
+  border: 1.5px solid var(--rojo);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.msg.usr {
+  display: flex;
+  justify-content: flex-end;
+  margin: 4px 0;
+}
+.msg.usr .bub {
+  background: var(--rojo);
+  color: #fff;
+  border-radius: 18px 18px 4px 18px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  max-width: 84%;
+}
+
+/* Animación de entrada para mensajes nuevos */
+.msg { opacity: 0; transform: translateY(6px); transition: opacity .28s ease, transform .28s ease; }
+.msg.in { opacity: 1; transform: translateY(0); }
