@@ -93,15 +93,7 @@ export function decidirRespuesta(contexto) {
 
   for (const paso of pasos) {
     const resultado = paso(contexto);
-    if (resultado !== null) {
-      // LOG TEMPORAL — quitar después de verificar
-      console.log("[decidirRespuesta]", {
-        paso_disparado: paso.name,
-        accion: resultado.accion,
-        frase_params: resultado.frase_params,
-      });
-      return resultado;
-    }
+    if (resultado !== null) return resultado;
   }
 
   return _fallbackWhatsapp("árbol agotado sin decisión");
@@ -559,14 +551,6 @@ function _elegirSubtipoAfinado(cuadros, mensaje) {
 
 function paso10_pedirEspecificacion(contexto) {
   const subtipoAfinado = _elegirSubtipoAfinado(contexto.cuadros, contexto.mensaje);
-
-  // LOG TEMPORAL — quitar después de verificar
-  console.log("[paso10_afinado]", {
-    mensaje: contexto.mensaje,
-    subtipo_elegido: subtipoAfinado,
-    cuadros_confianza: contexto.cuadros.map(c => ({ id: c.id, conf: c.confianza })),
-  });
-
   return _decision({
     accion: "preguntar",
     frase_params: {
