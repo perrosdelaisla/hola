@@ -452,6 +452,13 @@ const KEYWORDS_UBICACION = [
   "donde se dan", "dónde se dan",
   "donde hacen", "dónde hacen",
   "lugar de las clases",
+  "se realizan", "realizan",
+  "se imparten",
+  "donde vamos", "dónde vamos",
+  "a donde voy", "a dónde voy",
+  "tengo que desplazarme", "me desplazo",
+  "os desplazais", "os desplazáis",
+  "viene a casa",
 ];
 
 async function _procesarS6_Protocolo(texto) {
@@ -812,7 +819,6 @@ function _evaluarYResponder(textoActual) {
           return frase;
         }
       }
-      return frase;
       return frase;
     }
 
