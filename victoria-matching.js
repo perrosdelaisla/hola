@@ -515,14 +515,53 @@ function paso9_basica(contexto) {
 // Paso legítimo del árbol — ningún cuadro disparó con confianza suficiente
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Elige el subtipo de pregunta de afinado según qué hits parciales detectó el matcher.
+ * Hace que Victoria pregunte dirigido en vez de genérico.
+ */
+function _elegirSubtipoAfinado(cuadros, mensaje) {
+  const textoLower = (mensaje || "").toLowerCase();
+
+  // Si hay keyword de mordida sin contexto claro → preguntar por contexto
+  if (/\b(muerde|mordido|mordida|amago)\b/.test(textoLower)) {
+    return "contexto_mordida";
+  }
+
+  // Si hay "ladra" sin detonante claro → preguntar a qué ladra
+  if (/\b(ladra|ladrido|ladrar)\b/.test(textoLower)) {
+    return "detonante_ladridos";
+  }
+
+  // Si hay detonante sin conducta → preguntar cómo reacciona
+  const hayDetonante = /\b(petardos|perros|personas|bicicletas|motos|timbre|visitas|tormentas|coches)\b/.test(textoLower);
+  const hayConducta  = /\b(se esconde|se lanza|tiembla|huye|corre|ataca|se paraliza|se queda)\b/.test(textoLower);
+  if (hayDetonante && !hayConducta) {
+    return "respuesta_detonante";
+  }
+
+  // Si hay conducta genérica sin contexto temporal → preguntar cuándo/dónde
+  const hayConductaGeneral = /\b(nervioso|inquieto|reactivo|ansioso|tenso|agresivo|problema)\b/.test(textoLower);
+  const hayContexto = /\b(en casa|en el paseo|en la calle|cuando|si |al ir|al volver|solo)\b/.test(textoLower);
+  if (hayConductaGeneral && !hayContexto) {
+    return "contexto_temporal";
+  }
+
+  return null; // fallback al genérico
+}
+
 function paso10_pedirEspecificacion(contexto) {
+  const subtipoAfinado = _elegirSubtipoAfinado(contexto.cuadros, contexto.mensaje);
   return _decision({
     accion: "preguntar",
-    frase_params: { tipo: "apoyo", subtipo: "pedir_especificacion" },
+    frase_params: {
+      tipo: "apoyo",
+      subtipo: "pedir_especificacion",
+      vars: { subtipo_afinado: subtipoAfinado },
+    },
     pending_next: null,
     cuadro_ganador: null,
     log: _log(10, [], [], contexto.zona?.zonaDetectada ?? "desconocida", null, [],
-      "ningún cuadro disparó con confianza suficiente"),
+      `ningún cuadro disparó — subtipo afinado: ${subtipoAfinado ?? "generico"}`),
   });
 }
 
