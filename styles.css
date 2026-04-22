@@ -564,10 +564,10 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 }
 
 /* ═══════════════════════════════════════════
-   VICTORIA — AÑADIDO v1.2
+   VICTORIA — AÑADIDO v1.3
    ═══════════════════════════════════════════ */
 
-/* Input fijo abajo con safe-area para iPhone con notch */
+/* Input fijo abajo — ocupa todo el ancho disponible */
 .input-wrap {
   position: fixed;
   bottom: 0;
@@ -575,14 +575,25 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   right: 0;
   background: var(--s1);
   border-top: 1px solid var(--s3);
-  padding: 8px 14px;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  padding: 10px 14px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   z-index: 50;
+  display: flex;
+  justify-content: center;
+}
+
+/* Contenedor interno — mismo max-width que el chat para alineación visual */
+.input-wrap .irow {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 /* Espacio extra en el chat para que el input no tape los mensajes */
 .chat {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom));
 }
 
 /* Widgets de agenda y pago insertados como burbujas en el chat */
@@ -593,7 +604,7 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 }
 .widget-wrap > div { width: 100%; }
 
-/* Mensajes de Victoria y cliente generados dinámicamente por victoria.js */
+/* Mensajes de Victoria */
 .msg.bot {
   display: flex;
   align-items: flex-start;
@@ -622,6 +633,8 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   flex-shrink: 0;
   overflow: hidden;
 }
+
+/* Mensajes del cliente */
 .msg.usr {
   display: flex;
   justify-content: flex-end;
@@ -643,32 +656,27 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   transform: none;
 }
 
-/* El contenedor debe ser flex para alinear input+botón */
-.input-wrap {
-  display: flex;
-  align-items: center;
-}
-
-/* Input de texto — estilo coherente con variables del proyecto */
-.input-wrap input {
+/* Input de texto — ocupa todo el espacio del irow */
+.input-wrap input.ti {
   flex: 1;
   background: var(--s2);
   border: 1px solid var(--s3);
   border-radius: var(--r12);
-  padding: 11px 14px;
-  font-size: 13.5px;
+  padding: 12px 16px;
+  font-size: 14px;
   color: var(--t1);
   font-family: var(--fn);
   outline: none;
   transition: border-color .12s;
+  min-height: 44px;
 }
-.input-wrap input:focus { border-color: var(--rojo); }
-.input-wrap input::placeholder { color: var(--t3); }
+.input-wrap input.ti:focus { border-color: var(--rojo); }
+.input-wrap input.ti::placeholder { color: var(--t3); }
 
-/* Botón de enviar — círculo rojo con la flecha centrada */
-.input-wrap button {
-  width: 42px;
-  height: 42px;
+/* Botón de enviar — círculo rojo */
+.input-wrap button.sb {
+  width: 44px;
+  height: 44px;
   background: var(--rojo);
   border: none;
   border-radius: 50%;
@@ -679,7 +687,33 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   align-items: center;
   justify-content: center;
   transition: background .12s, transform .1s;
-  margin-left: 8px;
 }
-.input-wrap button:hover { background: var(--rojo-dk); }
-.input-wrap button:active { transform: scale(.94); }
+.input-wrap button.sb:hover { background: var(--rojo-dk); }
+.input-wrap button.sb:active { transform: scale(.94); }
+
+/* Opciones inline dentro del chat */
+.opts-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 8px 38px;
+  max-width: 84%;
+  animation: fadein .25s ease;
+}
+.opt-btn-inline {
+  background: var(--s2);
+  border: 1.5px solid var(--rojo);
+  border-radius: var(--r12);
+  padding: 12px 16px;
+  color: var(--t1);
+  font-family: var(--fn);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: background .12s, transform .1s;
+  line-height: 1.45;
+}
+.opt-btn-inline:hover { background: var(--rojo-xs); }
+.opt-btn-inline:active { transform: scale(.98); }
+
+@keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
