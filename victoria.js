@@ -1,135 +1,229 @@
 /**
  * victoria.js
  * Perros de la Isla — Embudo Victoria
- * Controlador conversacional — conecta matching, frases, agenda y pagos
- * Versión 1.0 · Abril 2026
+ * Versión 1.1 · Abril 2026
  *
- * EXPORTS PÚBLICOS:
- *   iniciarConversacion()  → primer mensaje de bienvenida
- *   procesarMensaje(texto) → entrada principal del cliente
- *   obtenerEstado()        → estado actual para la UI
+ * EXPORT PRINCIPAL: start() — llamado desde index.html al cargar la página
  *
- * FLUJO:
- *   s0  → bienvenida + primera pregunta
- *   s1  → zona del cliente
- *   s2  → nombre del perro
- *   s3  → edad + raza + peso (un solo paso, con repregunta si faltan)
- *   s4  → descripción libre del problema
- *   s5  → preguntas de afinado (filtro mordida, conducta, etc.)
- *   s6  → propuesta de protocolo (Victoria responde con frase)
- *   s7  → elección de slot (renderAgenda)
- *   s8  → confirmación del slot elegido
- *   s9  → datos del cliente (nombre, teléfono, email si online, dirección)
- *   s10 → explicación del pago
- *   s11 → subida captura de Bizum/transferencia
- *   s12 → confirmación final
+ * CAMBIOS v1.1 (integración con index.html real):
+ * - Export start() en vez de iniciarConversacion() — coincide con index.html
+ * - UI conectada al DOM real: #chat, #tw (typing indicator), #panel, #opts
+ * - Mensajes renderizados directamente en el DOM sin CustomEvent
+ * - Agenda y pago insertados dinámicamente en el chat como burbujas
+ * - _guardarCitaEnSupabase usa campos reales de la tabla citas:
+ *   fecha+hora separados (no slot_id), comprobante_url (no captura_url)
+ *
+ * FLUJO s0→s12:
+ *   s1  zona · s2  nombre perro · s3  edad+raza+peso
+ *   s4  descripción problema · s5  afinado/filtro mordida
+ *   s6  propuesta protocolo · s7  agenda · s8  confirmación slot
+ *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }            from "./victoria-utils.js";
-import { detectarZona }          from "./victoria-zones.js";
-import { detectarCuadros, detectarLateral } from "./victoria-dictionaries.js";
-import { obtenerFrase }          from "./victoria-phrases.js";
-import { esPPP }                 from "./victoria-breeds.js";
-import { decidirRespuesta }      from "./victoria-matching.js";
-import { renderAgenda }          from "./agenda.js";
-import { renderPago, confirmarPago } from "./pagos.js";
+import { normalizar }                        from "./victoria-utils.js";
+import { detectarZona }                      from "./victoria-zones.js";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js";
+import { obtenerFrase }                      from "./victoria-phrases.js";
+import { esPPP }                             from "./victoria-breeds.js";
+import { decidirRespuesta }                  from "./victoria-matching.js";
+import { renderAgenda }                      from "./agenda.js";
+import { renderPago }                        from "./pagos.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
 // ─────────────────────────────────────────────────────────────────────────────
 
-const SUPA_URL  = "https://sydzfwwiruxqaxojymdz.supabase.co";
-const SUPA_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2ODMzNDcsImV4cCI6MjA1OTI1OTM0N30.ixjBBHMsEu5ANxl4MXodVdYFhnlEi9MBnj0TxmPHxe0";
-const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // Charly: cambia por string aleatorio antes de producción
+const SUPA_URL   = "https://sydzfwwiruxqaxojymdz.supabase.co";
+const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2ODMzNDcsImV4cCI6MjA1OTI1OTM0N30.ixjBBHMsEu5ANxl4MXodVdYFhnlEi9MBnj0TxmPHxe0";
+const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // ← cambia por string aleatorio antes de producción
+
+// Delay de typing indicator en ms
+const TYPING_DELAY = 900;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ESTADO CONVERSACIONAL
-// Vive en memoria durante la sesión — se persiste en Supabase al cerrar cita
+// ESTADO CONVERSACIONAL — vive en memoria, se persiste en Supabase al cerrar
 // ─────────────────────────────────────────────────────────────────────────────
 
 let state = _estadoInicial();
 
 function _estadoInicial() {
   return {
-    // Flujo
     current_step: "s0",
     pending: null,
     cuadro_pendiente_mordida: null,
     gravedad_mordida: null,
     lateral_detectado: null,
-    decision_actual: null,       // última Decision de victoria-matching
-    s3_intentos: 0,              // reintentos en paso s3
+    decision_actual: null,
+    bandera_edad_temprana: false,
+    s3_intentos: 0,
 
-    // Datos del perro
-    perro: {
-      nombre: null,
-      edad_meses: null,
-      raza: null,
-      peso_kg: null,
-      es_ppp: false,
-    },
+    perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
-    // Zona (output de detectarZona)
     zona: {
-      zonaDetectada: null,
-      modalidad: "desconocida",
-      esSonGotleu: false,
-      necesitaAclaracion: true,
+      zonaDetectada: null, modalidad: "desconocida",
+      esSonGotleu: false, necesitaAclaracion: true,
     },
 
-    // Solo mensajes de s4+s5 — los que usa el matcher
-    mensajes_diagnostico: [],
+    mensajes_diagnostico: [],  // solo s4+s5 — alimentan el matcher
 
-    // Datos del cliente (recogidos en s9)
-    cliente: {
-      nombre: null,
-      telefono: null,
-      email: null,
-      direccion: null,
-    },
+    cliente: { nombre: null, telefono: null, email: null },
 
-    // Cita
-    slot_elegido: null,
+    slot_elegido: null,        // { fecha, hora, label, id }
     modalidad_final: null,
     cita_id: null,
-    captura_url: null,
+    metodo_pago: null,         // "bizum" o "transf" — del callback de renderPago
+    comprobante_url: null,     // nombre real del campo en la tabla citas
     pago_pendiente_verificar: false,
     cita_confirmada: false,
 
-    // Historial completo para Carlos (guardado en Supabase al cerrar)
     historial_turnos: [],
     log_matching_final: null,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXPORTS PÚBLICOS
+// EXPORT PRINCIPAL — llamado desde index.html
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Inicia la conversación. Devuelve el primer mensaje de Victoria.
- * @returns {string}
+ * Arranca la conversación. Conecta la UI y envía el primer mensaje.
+ * index.html llama a start() al cargar.
  */
-export function iniciarConversacion() {
+export function start() {
   state = _estadoInicial();
-  const bienvenida = "¡Hola! Soy Victoria, la asistente de Perros de la Isla. " +
+  _conectarUI();
+
+  const bienvenida = "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
     "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
     "Para empezar, ¿en qué zona de Mallorca estás?";
+
   _registrarTurno("victoria", bienvenida);
+  _mostrarVictoria(bienvenida);
   state.current_step = "s1";
-  return bienvenida;
+  _actualizarProgreso();
 }
 
-/**
- * Procesa el mensaje del cliente y devuelve la respuesta de Victoria.
- * @param {string} texto
- * @returns {string|null} — null si el paso usa renderizado especial (agenda, pago)
- */
-export function procesarMensaje(texto) {
-  if (!texto?.trim()) return null;
-  const textoLimpio = texto.trim();
-  _registrarTurno("cliente", textoLimpio);
+// ─────────────────────────────────────────────────────────────────────────────
+// CONEXIÓN CON EL DOM REAL (index.html)
+// ─────────────────────────────────────────────────────────────────────────────
 
+let _chatEl    = null;
+let _twEl      = null;   // typing indicator
+let _panelEl   = null;
+let _optsEl    = null;
+let _inputEl   = null;
+let _sendEl    = null;
+
+function _conectarUI() {
+  _chatEl  = document.getElementById("chat");
+  _twEl    = document.getElementById("tw");
+  _panelEl = document.getElementById("panel");
+  _optsEl  = document.getElementById("opts");
+
+  // Input y botón viven en index.html — solo los conectamos aquí
+  _inputEl = document.getElementById("victoria-input");
+  _sendEl  = document.getElementById("victoria-send");
+
+  if (_inputEl && _sendEl) {
+    _inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") _enviarMensaje();
+    });
+    _sendEl.addEventListener("click", _enviarMensaje);
+  }
+}
+
+function _enviarMensaje() {
+  const texto = _inputEl?.value?.trim();
+  if (!texto) return;
+  _inputEl.value = "";
+
+  _mostrarCliente(texto);
+  _registrarTurno("cliente", texto);
+  _ocultarOpciones(); // ocultar panel de opciones al escribir texto libre
+
+  // Typing indicator mientras Victoria "piensa"
+  _mostrarTyping(true);
+  setTimeout(async () => {
+    const respuesta = await _procesarTexto(texto);
+    _mostrarTyping(false);
+    if (respuesta) {
+      _mostrarVictoria(respuesta);
+      _registrarTurno("victoria", respuesta);
+    }
+    _actualizarProgreso();
+    _scrollAbajo();
+    _inputEl?.focus(); // mantener teclado abierto en móvil
+  }, TYPING_DELAY);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RENDERIZADO EN EL CHAT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Muestra un mensaje de Victoria en el chat.
+ * Inserta antes del typing indicator para que siempre quede al final.
+ */
+function _mostrarVictoria(texto) {
+  if (!_chatEl || !_twEl) return;
+  const burbuja = document.createElement("div");
+  burbuja.className = "msg bot";
+  burbuja.innerHTML = `
+    <div class="av">
+      <img src="https://i.ibb.co/Q7Ssr8XM/icon.png" alt="V" width="19" height="16" style="object-fit:contain">
+    </div>
+    <div class="bub">${_escaparHTML(texto)}</div>
+  `;
+  _chatEl.insertBefore(burbuja, _twEl);
+  _scrollAbajo();
+}
+
+/** Muestra un mensaje del cliente */
+function _mostrarCliente(texto) {
+  if (!_chatEl || !_twEl) return;
+  const burbuja = document.createElement("div");
+  burbuja.className = "msg usr";
+  burbuja.innerHTML = `<div class="bub">${_escaparHTML(texto)}</div>`;
+  _chatEl.insertBefore(burbuja, _twEl);
+  _scrollAbajo();
+}
+
+/** Inserta un contenedor especial (agenda, pago) en el chat como burbuja */
+function _insertarContenedorEnChat(id, className = "") {
+  if (!_chatEl || !_twEl) return null;
+  const wrap = document.createElement("div");
+  wrap.className = `msg bot widget-wrap ${className}`;
+  const contenedor = document.createElement("div");
+  contenedor.id = id;
+  wrap.appendChild(contenedor);
+  _chatEl.insertBefore(wrap, _twEl);
+  _scrollAbajo();
+  return contenedor;
+}
+
+function _mostrarTyping(visible) {
+  if (!_twEl) return;
+  _twEl.style.display = visible ? "flex" : "none";
+}
+
+function _scrollAbajo() {
+  if (_chatEl) _chatEl.scrollTop = _chatEl.scrollHeight;
+}
+
+function _escaparHTML(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\n/g, "<br>");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NÚCLEO DEL PROCESAMIENTO
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _procesarTexto(texto) {
   const procesadores = {
     s1:  _procesarS1_Zona,
     s2:  _procesarS2_NombrePerro,
@@ -148,23 +242,11 @@ export function procesarMensaje(texto) {
   const procesador = procesadores[state.current_step];
   if (!procesador) return _fallbackHumano("paso desconocido: " + state.current_step);
 
-  const respuesta = procesador(textoLimpio);
-  if (respuesta) _registrarTurno("victoria", respuesta);
-  return respuesta;
-}
-
-/** Devuelve el estado actual para que la UI sepa en qué paso está */
-export function obtenerEstado() {
-  return {
-    step: state.current_step,
-    pending: state.pending,
-    modalidad: state.modalidad_final ?? state.zona?.modalidad,
-    cita_confirmada: state.cita_confirmada,
-  };
+  return await procesador(texto);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROCESADORES DE PASOS
+// PROCESADORES DE PASOS s1–s12
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _procesarS1_Zona(texto) {
@@ -181,9 +263,8 @@ function _procesarS1_Zona(texto) {
 }
 
 function _procesarS2_NombrePerro(texto) {
-  // Limpiar artículos comunes ("se llama X", "mi perro es X")
   const nombre = texto
-    .replace(/^(se llama|mi perro (es|se llama)|se llama)\s*/i, "")
+    .replace(/^(se llama|mi perro (es|se llama))\s*/i, "")
     .replace(/^(es|un|una)\s+/i, "")
     .trim();
 
@@ -197,37 +278,32 @@ function _procesarS2_NombrePerro(texto) {
 function _procesarS3_DatosPerro(texto) {
   const edad = _extraerEdad(texto);
   const peso = _extraerPeso(texto);
-  const raza = _extraerRaza(texto); // extrae solo la raza, no el texto entero
+  const raza = _extraerRaza(texto);
 
   if (edad !== null) state.perro.edad_meses = edad;
   if (peso !== null) state.perro.peso_kg    = peso;
   if (raza !== null) state.perro.raza       = raza;
 
-  // Calcular PPP — usar texto completo por si la raza está en forma larga
-  state.perro.es_ppp = esPPP(texto);
+  state.perro.es_ppp = esPPP(texto); // texto completo por si PPP está en forma larga
 
   const faltaEdad = state.perro.edad_meses === null;
   const faltaPeso = state.perro.peso_kg    === null;
-  const faltaRaza = state.perro.raza       === null;
 
   if ((faltaEdad || faltaPeso) && state.s3_intentos < 2) {
     state.s3_intentos++;
     if (faltaEdad && faltaPeso) {
-      return `Necesito saber la edad y el peso de ${state.perro.nombre} para orientarte bien. ` +
-        "¿Puedes decirme cuánto tiempo tiene y cuánto pesa aproximadamente?";
+      return `Necesito saber la edad y el peso de ${state.perro.nombre}. ` +
+        "¿Cuánto tiempo tiene y cuánto pesa aproximadamente?";
     }
     if (faltaEdad) {
-      return `¿Qué edad tiene ${state.perro.nombre}? Con meses si aún es cachorro, o años si ya es adulto.`;
+      return `¿Qué edad tiene ${state.perro.nombre}? Con meses si es cachorro, o años si es adulto.`;
     }
-    if (faltaPeso) {
-      return `¿Cuánto pesa ${state.perro.nombre} aproximadamente? No hace falta que sea exacto.`;
-    }
+    return `¿Cuánto pesa ${state.perro.nombre} aproximadamente?`;
   }
 
-  // Si tras 2 intentos sigue faltando, usar defaults y continuar
   if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
   if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
-  if (state.perro.raza       === null) state.perro.raza       = "mestizo"; // safe default
+  if (state.perro.raza       === null) state.perro.raza       = "mestizo";
 
   state.current_step = "s4";
   return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
@@ -235,101 +311,104 @@ function _procesarS3_DatosPerro(texto) {
 }
 
 function _procesarS4_Problema(texto) {
-  // Añadir a mensajes de diagnóstico (solo s4 y s5 alimentan el matcher)
   state.mensajes_diagnostico.push(texto);
 
-  // Detectar lateral — función pura
+  // Detectar lateral — ignorar si hay cuadro fuerte en el mismo mensaje
   const lateral = detectarLateral(texto);
-
-  // Ignorar lateral si hay cuadros fuertes en el mismo mensaje
   if (lateral) {
     const cuadros = detectarCuadros(texto);
     const hayCuadroFuerte = cuadros.cuadros.some(
       (c) => c.confianza === "alta" || c.confianza === "media"
     );
-    if (!hayCuadroFuerte) {
-      state.lateral_detectado = lateral;
-    }
+    if (!hayCuadroFuerte) state.lateral_detectado = lateral;
   }
 
   return _evaluarYResponder(texto);
 }
 
 function _procesarS5_Afinado(texto) {
-  // Las respuestas a preguntas de afinado también alimentan el matcher
   state.mensajes_diagnostico.push(texto);
-  // Nota: respuesta_pendiente se construye en _construirContexto desde textoActual
-  // No se asigna aquí para evitar duplicidad
+  // respuesta_pendiente se construye en _construirContexto — no asignar aquí
   return _evaluarYResponder(texto);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PANEL DE OPCIONES (#panel / #opts)
+// Usado en s6 para botones de confirmación de protocolo
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Muestra el panel inferior con botones de opción.
+ * @param {Array<{label: string, onClick: Function}>} opciones
+ */
+function _mostrarOpciones(opciones) {
+  if (!_panelEl || !_optsEl) return;
+  _optsEl.innerHTML = "";
+  opciones.forEach(({ label, onClick }) => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      _ocultarOpciones();
+      onClick();
+    });
+    _optsEl.appendChild(btn);
+  });
+  _panelEl.classList.remove("off");
+}
+
+function _ocultarOpciones() {
+  _panelEl?.classList.add("off");
+  if (_optsEl) _optsEl.innerHTML = "";
+}
+
 function _procesarS6_Protocolo(texto) {
-  // El cliente puede preguntar algo después de recibir el protocolo
-  // Si es afirmativo/pregunta, continuar a agenda; si es nueva info, re-evaluar
   const norm = normalizar(texto);
-  // Mensajes cortos y afirmativos → ir a agenda
-  // Restricción de longitud para evitar falsos positivos ("sí, pero antes quiero preguntar...")
   const esAfirmativo = texto.length < 20 &&
     ["sí", "si", "ok", "vale", "perfecto", "adelante",
-     "me interesa", "quiero", "me apunto", "venga"].some(
-      (kw) => norm.includes(kw)
-    );
+     "me interesa", "quiero", "me apunto", "venga"].some((kw) => norm.includes(kw));
 
   if (esAfirmativo) {
     state.current_step = "s7";
     return _iniciarAgenda();
   }
 
-  // Si no es afirmativo, tratar como nueva info diagnóstica
+  // Nueva información → re-evaluar con el matcher
   state.mensajes_diagnostico.push(texto);
   return _evaluarYResponder(texto);
 }
 
 function _procesarS7_Slot(_texto) {
-  // La elección de slot se hace con renderAgenda — este paso se gestiona por callback
-  // Si llega texto aquí, probablemente el cliente escribió algo mientras ve la agenda
-  return "Cuando veas un hueco que te venga bien, selecciónalo en el calendario de arriba.";
+  return "Cuando veas un horario que te venga bien, selecciónalo en el calendario de arriba.";
 }
 
-function _procesarS8_ConfirmacionSlot(texto) {
+function _procesarS8_ConfirmacionSlot(_texto) {
   if (!state.slot_elegido) {
     return "Parece que no has seleccionado ningún horario todavía. " +
       "Elige el que mejor te venga en el calendario.";
   }
-
-  const slot = state.slot_elegido;
   state.current_step = "s9";
-
-  return `Perfecto, reservamos el ${slot.label}. ` +
-    "Para terminar de confirmar la cita necesito algunos datos. " +
-    "¿Cuál es tu nombre completo y tu número de teléfono?";
+  return `Perfecto, reservamos el ${state.slot_elegido.label}. ` +
+    "Para confirmar la cita necesito algunos datos: ¿cuál es tu nombre completo y tu teléfono?";
 }
 
 function _procesarS9_DatosCliente(texto) {
-  // Extracción básica de nombre y teléfono
   const telefono = _extraerTelefono(texto);
   if (telefono) state.cliente.telefono = telefono;
 
-  // El nombre es el resto del texto sin el teléfono
-  const nombreCandiato = texto.replace(/\d[\d\s]{8,}/g, "").trim();
-  if (nombreCandiato.length > 2) state.cliente.nombre = nombreCandiato;
+  const nombreCandidato = texto.replace(/\d[\d\s]{8,}/g, "").trim();
+  if (nombreCandidato.length > 2) state.cliente.nombre = nombreCandidato;
 
-  // ¿Falta algún dato?
-  if (!state.cliente.nombre) {
-    return "¿Cuál es tu nombre completo?";
-  }
+  if (!state.cliente.nombre) return "¿Cuál es tu nombre completo?";
   if (!state.cliente.telefono) {
     return "¿Y tu número de teléfono? Para que Carlos pueda contactarte si hace falta.";
   }
 
-  // ¿Modalidad online? → email obligatorio
-  const esOnline = state.modalidad_final === "online";
-  if (esOnline && !state.cliente.email) {
+  // Email obligatorio si online
+  if (state.modalidad_final === "online" && !state.cliente.email) {
     return "Como la sesión es por Google Meet, necesito también tu email " +
       "para enviarte el enlace de la videollamada.";
   }
-
-  // Si el texto tiene formato email, guardarlo
   const email = _extraerEmail(texto);
   if (email) state.cliente.email = email;
 
@@ -342,26 +421,71 @@ function _procesarS10_Pago(_texto) {
   return _iniciarPago();
 }
 
+function _procesarS11_Captura(_texto) {
+  return "Cuando hayas subido la captura y confirmado el pago, lo proceso enseguida.";
+}
+
+async function _procesarS12_Confirmacion(_texto) {
+  try {
+    await _guardarCitaEnSupabase();
+    await _notificarCarlos();
+    state.cita_confirmada = true;
+
+    const perro    = state.perro.nombre ?? "tu perro";
+    const slot     = state.slot_elegido;
+    const modalidad = state.modalidad_final === "online"
+      ? "online por Google Meet"
+      : "en tu domicilio";
+
+    return `¡Todo confirmado! 🐾 Carlos se pondrá en contacto contigo para preparar la primera sesión. ` +
+      `Quedamos el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
+      `Si necesitas cambiar algo, escríbele directamente al 622 922 173. ` +
+      `¡Mucho ánimo con ${perro}!`;
+  } catch (err) {
+    console.error("Error al confirmar cita:", err);
+    return "Ha habido un problema técnico al confirmar la cita. " +
+      "Por favor, escribe directamente a Carlos al 622 922 173 y él lo gestiona enseguida.";
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// PAGO — renderiza el componente y gestiona los callbacks
+// AGENDA — se inserta dinámicamente en el chat
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * IMPORTANTE PARA index.html:
- * Los mensajes de Victoria que vienen de callbacks (agenda, pago) se envían
- * vía CustomEvent "victoria:mensaje". index.html DEBE tener un listener:
- *
- *   window.addEventListener("victoria:mensaje", (e) => {
- *     mostrarMensajeEnChat(e.detail.rol, e.detail.texto);
- *   });
- *
- * Sin ese listener, los mensajes de confirmación de slot y pago no aparecen en el chat.
- */
-function _iniciarPago() {
-  const contenedor = document.getElementById("victoria-pago-slot");
+function _iniciarAgenda() {
+  const contenedor = _insertarContenedorEnChat("victoria-agenda-slot", "agenda-widget");
   if (!contenedor) {
-    return _explicarPago();
+    return "Ahora te muestro los horarios disponibles — " +
+      "si no aparecen, escríbenos al 622 922 173 y te damos opciones.";
   }
+
+  renderAgenda(
+    (slotElegido) => {
+      state.slot_elegido = slotElegido;
+      state.current_step = "s8";
+      const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
+      _registrarTurno("victoria", msg);
+      _mostrarVictoria(msg);
+      _actualizarProgreso();
+    },
+    () => {
+      state.current_step = "s6";
+      const msg = "Sin problema. ¿Hay algo más que quieras preguntarme?";
+      _registrarTurno("victoria", msg);
+      _mostrarVictoria(msg);
+    }
+  );
+
+  return null; // el widget se renderiza en el DOM — sin burbuja de texto
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGO — se inserta dinámicamente en el chat
+// ─────────────────────────────────────────────────────────────────────────────
+
+function _iniciarPago() {
+  const contenedor = _insertarContenedorEnChat("victoria-pago-slot", "pago-widget");
+  if (!contenedor) return _explicarPago();
 
   renderPago(
     contenedor,
@@ -374,81 +498,62 @@ function _iniciarPago() {
       citaId: state.cita_id,
     },
     async ({ metodo, signedUrl, pendienteVerificar }) => {
-      // Pago confirmado (o fallback WhatsApp) — actualizar estado y disparar s12
-      state.captura_url             = signedUrl ?? null;
-      state.pago_pendiente_verificar = !!pendienteVerificar;
-      state.current_step             = "s12";
+      state.metodo_pago                = metodo;  // "bizum" o "transf"
+      state.comprobante_url            = signedUrl ?? null;
+      state.pago_pendiente_verificar   = !!pendienteVerificar;
+      state.current_step               = "s12";
 
+      _mostrarTyping(true);
       const respuesta = await _procesarS12_Confirmacion("");
-      _registrarTurno("victoria", respuesta);
-      _mostrarMensajeEnUI(respuesta);
+      _mostrarTyping(false);
+
+      if (respuesta) {
+        _registrarTurno("victoria", respuesta);
+        _mostrarVictoria(respuesta);
+      }
+      _actualizarProgreso();
     },
     () => {
-      // Volver al paso anterior
       state.current_step = "s9";
       const msg = "Sin problema. ¿Quieres cambiar algo de los datos antes de pagar?";
       _registrarTurno("victoria", msg);
-      _mostrarMensajeEnUI(msg);
+      _mostrarVictoria(msg);
     }
   );
 
-  return null; // la UI renderiza el componente — no hay texto de chat aquí
+  return null;
 }
 
-function _procesarS11_Captura(_texto) {
-  // La subida se gestiona por pagos.js — esperamos el callback
-  return "Cuando hayas subido la captura y confirmado el pago, lo proceso enseguida.";
-}
-
-async function _procesarS12_Confirmacion(_texto) {
-  // Guardar todo en Supabase y notificar a Carlos
-  try {
-    await _guardarCitaEnSupabase();
-    await _notificarCarlos();
-    state.cita_confirmada = true;
-    state.current_step = "s12";
-
-    const perro = state.perro.nombre ?? "tu perro";
-    const slot  = state.slot_elegido;
-    const modalidad = state.modalidad_final === "online" ? "online por Google Meet" : "en tu domicilio";
-
-    return `¡Todo confirmado! 🐾 Carlos se pondrá en contacto contigo para preparar la primera sesión. ` +
-      `Quedamos el ${slot?.label ?? "día acordado"}, ` +
-      `${modalidad}. ` +
-      `Si necesitas cambiar algo, escríbele directamente al 622 922 173. ` +
-      `¡Mucho ánimo con ${perro}!`;
-  } catch (err) {
-    console.error("Error al confirmar cita:", err);
-    return "Ha habido un problema técnico al confirmar la cita. " +
-      "Por favor, escribe directamente a Carlos al 622 922 173 y él lo gestiona enseguida.";
-  }
+function _explicarPago() {
+  const precio    = 45;
+  const modalidad = state.modalidad_final === "online"
+    ? "online (75€ la sesión)"
+    : "presencial (90€ la sesión)";
+  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${precio}€. ` +
+    "Puedes pagarla por Bizum al 653 591 301 o por transferencia al IBAN " +
+    "ES27 0182 5319 7002 0055 6013 (titular: Carlos Antonio Acevedo). " +
+    "Cuando hayas hecho el pago, súbeme la captura y lo confirmo enseguida.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NÚCLEO — evaluar y responder
+// NÚCLEO MATCHING — construir contexto y evaluar
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Construye el contexto, llama a decidirRespuesta y renderiza la frase.
- * Es el punto central donde el matching se conecta con la conversación.
- */
 function _evaluarYResponder(textoActual) {
   const contexto = _construirContexto(textoActual);
   const decision = decidirRespuesta(contexto);
 
-  // Persistir campos de estado que el matching necesita entre turnos
-  if (decision.pending_next !== undefined) state.pending = decision.pending_next;
-  if (decision.cuadro_pendiente_mordida)   state.cuadro_pendiente_mordida = decision.cuadro_pendiente_mordida;
-  if (decision.bandera_edad_temprana)      state.bandera_edad_temprana = true;
+  // Persistir campos de estado entre turnos
+  if (decision.pending_next !== undefined)       state.pending = decision.pending_next;
+  if (decision.cuadro_pendiente_mordida)         state.cuadro_pendiente_mordida = decision.cuadro_pendiente_mordida;
+  if (decision.bandera_edad_temprana)            state.bandera_edad_temprana = true;
 
-  // Guardar la decision para usar en confirmación final
-  state.decision_actual = decision;
+  state.decision_actual    = decision;
   state.log_matching_final = decision.log;
 
-  // Determinar modalidad final si ya se decidió
   if (decision.frase_params?.modalidad) {
     state.modalidad_final = decision.frase_params.modalidad;
-  } else if (decision.frase_params?.tipo === "zona" || decision.frase_params?.tipo === "son_gotleu") {
+  } else if (["zona", "son_gotleu"].includes(decision.frase_params?.tipo)) {
     state.modalidad_final = "derivar";
   }
 
@@ -456,14 +561,42 @@ function _evaluarYResponder(textoActual) {
     case "responder":
     case "derivar": {
       const frase = obtenerFrase(decision.frase_params);
-      if (!frase) return _fallbackHumano("obtenerFrase devolvió null para " + JSON.stringify(decision.frase_params));
+      if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
 
-      // Si es una propuesta de protocolo (no una pregunta), avanzar a s6
+      // Protocolo presentado — avanzar a s6 y mostrar botones de opción
       if (decision.accion === "responder" && state.current_step === "s4") {
         state.current_step = "s6";
-        // Añadir transición al slot si no es derivación
         if (state.modalidad_final !== "derivar") {
-          return frase + "\n\n¿Te gustaría ver los horarios disponibles?";
+          // Mostrar botones en el panel tras un pequeño delay
+          setTimeout(() => {
+            _mostrarOpciones([
+              {
+                label: "Sí, ver horarios disponibles",
+                onClick: () => {
+                  _mostrarCliente("Sí, ver horarios");
+                  _registrarTurno("cliente", "Sí, ver horarios");
+                  state.current_step = "s7";
+                  _mostrarTyping(true);
+                  setTimeout(() => {
+                    _mostrarTyping(false);
+                    _iniciarAgenda();
+                    _actualizarProgreso();
+                  }, TYPING_DELAY);
+                },
+              },
+              {
+                label: "Prefiero preguntar algo más",
+                onClick: () => {
+                  _mostrarCliente("Tengo una pregunta");
+                  _registrarTurno("cliente", "Tengo una pregunta");
+                  const msg = "Claro, cuéntame — estoy aquí.";
+                  _mostrarVictoria(msg);
+                  _registrarTurno("victoria", msg);
+                },
+              },
+            ]);
+          }, TYPING_DELAY + 100);
+          return frase; // sin transición de texto — los botones hacen ese trabajo
         }
       }
       return frase;
@@ -471,139 +604,96 @@ function _evaluarYResponder(textoActual) {
 
     case "preguntar": {
       const frase = obtenerFrase(decision.frase_params);
-      if (!frase) return _fallbackHumano("obtenerFrase null en preguntar");
-      // Nos quedamos en s5 mientras hay preguntas de afinado
+      if (!frase) return _fallbackHumano("frase null en preguntar");
       state.current_step = "s5";
       return frase;
     }
 
     case "fallback":
-      return _fallbackHumano(decision.log?.notas ?? "acción fallback");
+      return _fallbackHumano(decision.log?.notas ?? "fallback");
 
     default:
       return _fallbackHumano("acción desconocida: " + decision.accion);
   }
 }
 
-/**
- * Construye el objeto contexto para victoria-matching a partir del estado actual.
- */
 function _construirContexto(textoActual) {
-  // El mensaje es la concatenación de todos los mensajes de diagnóstico
   const mensajeCompleto = state.mensajes_diagnostico.join(" ");
   const cuadros = detectarCuadros(mensajeCompleto);
 
   return {
-    perro: { ...state.perro },
-    zona:  state.zona,
-    cuadros: cuadros.cuadros,
-    mensaje: mensajeCompleto,
-    pending: state.pending,
+    perro:    { ...state.perro },
+    zona:     state.zona,
+    cuadros:  cuadros.cuadros,
+    mensaje:  mensajeCompleto,
+    pending:  state.pending,
     respuesta_pendiente: state.pending ? textoActual : null,
-    keywords_mordida: _tieneKeywordsMordida(textoActual),
-    lateral_detectado: state.lateral_detectado,
-    gravedad_mordida: state.gravedad_mordida,
+    keywords_mordida:    _tieneKeywordsMordida(textoActual),
+    lateral_detectado:   state.lateral_detectado,
+    gravedad_mordida:    state.gravedad_mordida,
     cuadro_pendiente_mordida: state.cuadro_pendiente_mordida,
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AGENDA
-// ─────────────────────────────────────────────────────────────────────────────
-
-function _iniciarAgenda() {
-  // renderAgenda renderiza en el DOM y usa callbacks
-  // Devolvemos null para que la UI sepa que debe mostrar el componente de agenda
-  const contenedor = document.getElementById("victoria-agenda-slot");
-  if (!contenedor) {
-    // Fallback si no hay contenedor — texto de instrucción
-    return "Ahora voy a mostrarte los horarios disponibles para que elijas el que mejor te venga.";
-  }
-
-  renderAgenda(
-    (slotElegido) => {
-      // Callback cuando el cliente elige slot
-      state.slot_elegido = slotElegido;
-      state.current_step = "s8";
-      // renderAgenda devuelve { fecha, hora, label } — usar label para mostrar al cliente
-      const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
-      _registrarTurno("victoria", msg);
-      _mostrarMensajeEnUI(msg);
-    },
-    () => {
-      // Callback volver
-      state.current_step = "s6";
-      const msg = "Sin problema. ¿Hay algo más que quieras preguntarme sobre el servicio?";
-      _registrarTurno("victoria", msg);
-      _mostrarMensajeEnUI(msg);
-    }
-  );
-
-  return null; // la UI renderiza el componente
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PAGO
-// ─────────────────────────────────────────────────────────────────────────────
-
-function _explicarPago() {
-  const precio = 45;
-  const modalidad = state.modalidad_final === "online" ? "online (75€ la sesión)" : "presencial (90€ la sesión)";
-
-  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${precio}€. ` +
-    "Puedes pagarla por Bizum al 653 591 301 o por transferencia al IBAN " +
-    "ES27 0182 5319 7002 0055 6013 (titular: Carlos Antonio Acevedo). " +
-    "Cuando hayas hecho el pago, súbeme la captura o el justificante y lo confirmo enseguida.";
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // PERSISTENCIA EN SUPABASE
+// Campos alineados con la tabla real de citas (vista en captura de pantalla)
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _guardarCitaEnSupabase() {
-  // 1. Guardar/actualizar cliente
+  // 1. Guardar cliente
   const clienteRes = await _supabasePost("/rest/v1/clientes", {
-    nombre: state.cliente.nombre,
+    nombre:   state.cliente.nombre,
     telefono: state.cliente.telefono,
-    email: state.cliente.email,
+    email:    state.cliente.email,
   });
   const clienteId = clienteRes?.id ?? null;
 
   // 2. Guardar perro
   const perroRes = await _supabasePost("/rest/v1/perros", {
-    nombre: state.perro.nombre,
-    raza: state.perro.raza,
+    nombre:     state.perro.nombre,
+    raza:       state.perro.raza,
     edad_meses: state.perro.edad_meses,
-    peso_kg: state.perro.peso_kg,
-    es_ppp: state.perro.es_ppp,
+    peso_kg:    state.perro.peso_kg,
+    es_ppp:     state.perro.es_ppp,
     cliente_id: clienteId,
   });
   const perroId = perroRes?.id ?? null;
 
-  // 3. Guardar cita
+  // 3. Guardar cita — usando campos reales de la tabla:
+  //    fecha (date) + hora (time) separados, comprobante_url (no captura_url)
   const decision = state.decision_actual;
-  const cuadros  = decision?.cuadros_originales ?? (decision?.cuadro_ganador ? [decision.cuadro_ganador] : []);
+  const cuadros  = decision?.cuadros_originales ??
+    (decision?.cuadro_ganador ? [decision.cuadro_ganador] : []);
+
+  const slot = state.slot_elegido;
+  // slot.fecha es "YYYY-MM-DD", slot.hora es "HH:MM"
+  const fechaCita = slot?.fecha ?? null;
+  const horaCita  = slot?.hora  ?? null;
 
   const citaRes = await _supabasePost("/rest/v1/citas", {
-    cliente_id: clienteId,
-    perro_id: perroId,
-    slot_id: state.slot_elegido?.id ?? null,
-    modalidad: state.modalidad_final,
-    zona: state.zona?.zonaDetectada,
-    cuadros_detectados: cuadros,
-    es_mixto: decision?.es_mixto ?? false,
-    mixto_degradado: decision?.mixto_degradado ?? false,
-    bandera_edad_temprana: state.bandera_edad_temprana ?? false,
-    captura_url: state.captura_url,
+    cliente_id:              clienteId,
+    fecha:                   fechaCita,
+    hora:                    horaCita,
+    estado:                  "confirmada",
+    sena_pagada:             !state.pago_pendiente_verificar,
+    metodo_pago:             state.metodo_pago ?? null,
+    comprobante_url:         state.comprobante_url,  // nombre real del campo
+    modalidad:               state.modalidad_final,
+    zona:                    state.zona?.zonaDetectada,
+    cuadros_detectados:      cuadros,
+    es_mixto:                decision?.es_mixto            ?? false,
+    mixto_degradado:         decision?.mixto_degradado     ?? false,
+    bandera_edad_temprana:   state.bandera_edad_temprana   ?? false,
     pago_pendiente_verificar: state.pago_pendiente_verificar,
-    confirmada: true,
+    confirmada:              true,
   });
   state.cita_id = citaRes?.id ?? null;
 
   // 4. Guardar conversación
   await _supabasePost("/rest/v1/conversaciones", {
-    cita_id: state.cita_id,
-    turnos: state.historial_turnos,
+    cita_id:      state.cita_id,
+    turnos:       state.historial_turnos,
     log_matching: state.log_matching_final,
   });
 }
@@ -613,30 +703,29 @@ async function _guardarCitaEnSupabase() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _notificarCarlos() {
-  const d = state.decision_actual;
-  const cuadros = d?.cuadros_originales ?? (d?.cuadro_ganador ? [d.cuadro_ganador] : ["no detectado"]);
-  const slot    = state.slot_elegido;
-  const p       = state.perro;
-  const c       = state.cliente;
+  const d      = state.decision_actual;
+  const cuadros = d?.cuadros_originales ??
+    (d?.cuadro_ganador ? [d.cuadro_ganador] : ["no detectado"]);
+  const slot   = state.slot_elegido;
+  const p      = state.perro;
+  const c      = state.cliente;
 
-  const edadTexto = p.edad_meses < 12
+  const edadTexto = (p.edad_meses ?? 0) < 12
     ? `${p.edad_meses} meses`
-    : `${Math.round(p.edad_meses / 12)} años`;
+    : `${Math.round((p.edad_meses ?? 24) / 12)} años`;
 
-  // Flags condicionales
   const flags = [];
-  if (state.bandera_edad_temprana) flags.push("⚠️ Perro joven — atención primera sesión");
-  if (d?.mixto_degradado) flags.push(`ℹ️ Mixto degradado por zona — detectados: ${(d.cuadros_originales ?? []).join(" + ")}`);
-  if (state.cuadro_pendiente_mordida) flags.push("⚠️ Amago de mordida mencionado — cliente no precisó gravedad");
+  if (state.bandera_edad_temprana)    flags.push("⚠️ Perro joven — atención primera sesión");
+  if (d?.mixto_degradado)             flags.push(`ℹ️ Mixto degradado — detectados: ${(d.cuadros_originales ?? []).join(" + ")}`);
+  if (state.cuadro_pendiente_mordida) flags.push("⚠️ Amago de mordida — cliente no precisó gravedad");
   if (state.pago_pendiente_verificar) flags.push("⚠️ Comprobante no subido — verificar pago manualmente");
-
-  const flagsTexto = flags.length > 0 ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
+  const flagsTexto = flags.length ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
 
   const mensaje = [
     "[NUEVA CITA CONFIRMADA 🐾]",
     "",
     `👤 Cliente: ${c.nombre ?? "—"} · ${c.telefono ?? "—"}`,
-    `📧 Email: ${c.email ?? (state.modalidad_final === "online" ? "⚠️ FALTA" : "presencial — no requerido")}`,
+    `📧 Email: ${c.email ?? (state.modalidad_final === "online" ? "⚠️ FALTA" : "no requerido")}`,
     "",
     `🐕 Perro: ${p.nombre ?? "—"} · ${p.raza ?? "—"} · ${edadTexto} · ${p.peso_kg ?? "—"}kg`,
     `📍 Zona: ${state.zona?.zonaDetectada ?? "—"} · Modalidad: ${state.modalidad_final ?? "—"}`,
@@ -645,8 +734,8 @@ async function _notificarCarlos() {
     `   Flags:\n${flagsTexto}`,
     "",
     `📅 Slot: ${slot?.label ?? "—"}`,
-    `💰 Seña: 45€ ${state.pago_pendiente_verificar ? "PENDIENTE DE VERIFICAR" : "Bizum confirmado"}`,
-    state.captura_url ? `📎 Captura: ${state.captura_url}` : "📎 Captura: no subida",
+    `💰 Seña: 45€ ${state.pago_pendiente_verificar ? "PENDIENTE DE VERIFICAR" : "confirmada"}`,
+    state.comprobante_url ? `📎 Comprobante: ${state.comprobante_url}` : "📎 Comprobante: no subido",
     "",
     `[Paso ${d?.log?.paso ?? "?"} | ${d?.log?.notas ?? ""}]`,
   ].join("\n");
@@ -664,10 +753,29 @@ async function _notificarCarlos() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// BARRA DE PROGRESO
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PROGRESO_POR_PASO = {
+  s0: 0, s1: 8, s2: 16, s3: 24, s4: 35, s5: 45,
+  s6: 55, s7: 65, s8: 72, s9: 80, s10: 88, s11: 94, s12: 100,
+};
+
+function _actualizarProgreso() {
+  const pf = document.getElementById("pf");
+  if (!pf) return;
+  const pct = PROGRESO_POR_PASO[state.current_step] ?? 0;
+  pf.style.width = `${pct}%`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // EXTRACCIÓN DE DATOS ESTRUCTURADOS
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _extraerEdad(texto) {
+  const compuesto = texto.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
+  if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
+
   const semanas = texto.match(/(\d+)\s*semanas?/i);
   if (semanas) return Math.round(parseInt(semanas[1]) / 4.3);
 
@@ -676,10 +784,6 @@ function _extraerEdad(texto) {
 
   const anos = texto.match(/(\d+)\s*(años?|ano)/i);
   if (anos) return parseInt(anos[1]) * 12;
-
-  // "tiene 1 año y 5 meses" → 17
-  const compuesto = texto.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
-  if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
 
   return null;
 }
@@ -690,42 +794,34 @@ function _extraerPeso(texto) {
   return null;
 }
 
-// Lista de razas comunes para extracción limpia
-// Si el cliente escribe "es un labrador de 3 años", extraemos solo "labrador"
 const RAZAS_COMUNES = [
-  "labrador", "golden retriever", "golden", "pastor alemán", "pastor aleman",
-  "border collie", "border", "bulldog", "beagle", "yorkshire", "yorkshire terrier",
-  "chihuahua", "teckel", "dachshund", "husky", "husky siberiano", "shih tzu",
-  "pug", "boxer", "galgo", "galgo español", "podenco", "cocker", "cocker spaniel",
-  "caniche", "bichon", "bichon frise", "maltés", "maltes", "schnauzer",
-  "samoyedo", "setter", "pointer", "dálmata", "dalmata", "doberman",
-  "gran danés", "gran danes", "san bernardo", "terranova", "mastín", "mastin",
-  "malinois", "pastor belga", "vizsla", "weimaraner", "braco",
-  "jack russell", "fox terrier", "west highland", "westies",
-  "shiba inu", "shiba", "corgi", "basenji", "whippet",
+  "golden retriever", "pastor alemán", "pastor aleman", "border collie",
+  "cocker spaniel", "yorkshire terrier", "shih tzu", "jack russell",
+  "husky siberiano", "gran danés", "gran danes", "san bernardo",
+  "pastor belga", "fox terrier", "west highland",
+  "labrador", "golden", "border", "bulldog", "beagle", "yorkshire",
+  "chihuahua", "teckel", "dachshund", "husky", "pug", "boxer",
+  "galgo", "podenco", "cocker", "caniche", "bichon", "maltés", "maltes",
+  "schnauzer", "samoyedo", "setter", "pointer", "dálmata", "dalmata",
+  "doberman", "terranova", "mastín", "mastin", "malinois", "vizsla",
+  "weimaraner", "braco", "corgi", "basenji", "whippet", "shiba",
   "mestizo", "cruce", "mix", "mixto",
 ];
 
 function _extraerRaza(texto) {
   const norm = normalizar(texto);
-  // Ordenar por longitud descendente para que "golden retriever" gane sobre "golden"
   const razasOrdenadas = [...RAZAS_COMUNES].sort((a, b) => b.length - a.length);
   for (const raza of razasOrdenadas) {
     if (norm.includes(normalizar(raza))) {
-      // Devolver en formato capitalizado
       return raza.charAt(0).toUpperCase() + raza.slice(1);
     }
   }
-  // También detectar PPP por si la raza es de lista restringida
-  // esPPP() usa su propia lista — si matchea, devolver el texto que matcheó
-  // (se detectará en el contexto del matching via state.perro.es_ppp)
-  return null; // no detectada — el historial_turnos tiene el texto original
+  return null;
 }
 
 function _extraerTelefono(texto) {
   const tel = texto.match(/(\+34\s?)?[6789]\d{8}/);
-  if (tel) return tel[0].replace(/\s/g, "");
-  return null;
+  return tel ? tel[0].replace(/\s/g, "") : null;
 }
 
 function _extraerEmail(texto) {
@@ -745,27 +841,13 @@ function _tieneKeywordsMordida(texto) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _registrarTurno(rol, texto) {
-  state.historial_turnos.push({
-    rol,
-    texto,
-    timestamp: new Date().toISOString(),
-  });
-}
-
-function _mostrarMensajeEnUI(texto) {
-  // Hook para que index.html añada el mensaje al chat
-  // La UI puede sobrescribir esta función o escuchar un evento
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("victoria:mensaje", {
-      detail: { rol: "victoria", texto },
-    }));
-  }
+  state.historial_turnos.push({ rol, texto, timestamp: new Date().toISOString() });
 }
 
 function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
-  return "Para poder orientarte bien, te paso directamente con Carlos — " +
-    "él puede atenderte con más detalle. Puedes escribirle por WhatsApp al 622 922 173.";
+  return "Para poder orientarte bien, te paso directamente con Carlos. " +
+    "Puedes escribirle por WhatsApp al 622 922 173.";
 }
 
 async function _supabasePost(endpoint, body) {
@@ -773,14 +855,14 @@ async function _supabasePost(endpoint, body) {
     const res = await fetch(`${SUPA_URL}${endpoint}`, {
       method: "POST",
       headers: {
-        "apikey": SUPA_KEY,
+        "apikey":        SUPA_KEY,
         "Authorization": `Bearer ${SUPA_KEY}`,
-        "Content-Type": "application/json",
-        "Prefer": "return=representation",
+        "Content-Type":  "application/json",
+        "Prefer":        "return=representation",
       },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Supabase error ${res.status} en ${endpoint}`);
+    if (!res.ok) throw new Error(`Supabase ${res.status} en ${endpoint}`);
     const data = await res.json();
     return Array.isArray(data) ? data[0] : data;
   } catch (err) {
