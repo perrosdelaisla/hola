@@ -398,14 +398,14 @@ const KEYWORDS_AFIRMATIVO = [
   "yep", "yes", "ver horarios", "ver horario",
 ];
 
-function _procesarS6_Protocolo(texto) {
+async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
   const esAfirmativo = texto.length < 40 &&
     KEYWORDS_AFIRMATIVO.some((kw) => norm.includes(kw));
 
   if (esAfirmativo) {
     state.current_step = "s7";
-    return _iniciarAgenda();
+    return await _iniciarAgenda();
   }
 
   // No repetir el protocolo — mensaje puente + botones de opción
@@ -413,14 +413,14 @@ function _procesarS6_Protocolo(texto) {
     _mostrarOpciones([
       {
         label: "Sí, ver horarios disponibles",
-        onClick: () => {
+        onClick: async () => {
           _mostrarCliente("Sí, ver horarios");
           _registrarTurno("cliente", "Sí, ver horarios");
           state.current_step = "s7";
           _mostrarTyping(true);
-          setTimeout(() => {
+          setTimeout(async () => {
             _mostrarTyping(false);
-            _iniciarAgenda();
+            await _iniciarAgenda();
             _actualizarProgreso();
           }, TYPING_DELAY);
         },
@@ -515,14 +515,16 @@ async function _procesarS12_Confirmacion(_texto) {
 // AGENDA — se inserta dinámicamente en el chat
 // ─────────────────────────────────────────────────────────────────────────────
 
-function _iniciarAgenda() {
+async function _iniciarAgenda() {
   const contenedor = _insertarContenedorEnChat("victoria-agenda-slot", "agenda-widget");
   if (!contenedor) {
     return "Ahora te muestro los horarios disponibles — " +
       "si no aparecen, escríbenos al 622 922 173 y te damos opciones.";
   }
 
-  renderAgenda(
+  // contenedor como primer parámetro — mismo contrato que pagos.js
+  await renderAgenda(
+    contenedor,
     (slotElegido) => {
       state.slot_elegido = slotElegido;
       state.current_step = "s8";
@@ -637,14 +639,14 @@ function _evaluarYResponder(textoActual) {
             _mostrarOpciones([
               {
                 label: "Sí, ver horarios disponibles",
-                onClick: () => {
+                onClick: async () => {
                   _mostrarCliente("Sí, ver horarios");
                   _registrarTurno("cliente", "Sí, ver horarios");
                   state.current_step = "s7";
                   _mostrarTyping(true);
-                  setTimeout(() => {
+                  setTimeout(async () => {
                     _mostrarTyping(false);
-                    _iniciarAgenda();
+                    await _iniciarAgenda();
                     _actualizarProgreso();
                   }, TYPING_DELAY);
                 },
