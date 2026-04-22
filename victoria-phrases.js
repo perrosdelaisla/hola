@@ -183,7 +183,7 @@ export const FRASES_APOYO = {
   pedir_conducta: `Cuando pasa eso, ¿cómo reacciona exactamente tu perro? ¿Se esconde, se queda paralizado, intenta salir corriendo? ¿O más bien ladra, se lanza, tira de la correa? La respuesta del perro es lo que me ayuda a orientarte bien.`,
 
   // Fallback al WhatsApp humano
-  fallback_whatsapp: `Para poder orientarte bien, te paso directamente con Carlos — él puede atenderte con más detalle. Puedes escribirle por WhatsApp al 622 922 173.`,
+  fallback_whatsapp: `Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla — pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173.`,
 };
 
 
