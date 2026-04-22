@@ -255,7 +255,26 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
       break;
 
     case "apoyo":
-      frase = FRASES_APOYO[subtipo] ?? null;
+      if (subtipo === "pedir_especificacion") {
+        switch (vars?.subtipo_afinado) {
+          case "contexto_temporal":
+            frase = "¿Y en qué momentos pasa eso? ¿en casa, en el paseo, cuando estás tú, o cuando te vas?";
+            break;
+          case "respuesta_detonante":
+            frase = "¿Y qué hace cuando pasa eso? ¿se esconde, ladra, se lanza, se queda paralizado?";
+            break;
+          case "detonante_ladridos":
+            frase = "¿Y a qué le ladra más? ¿a gente en la calle, a otros perros, al timbre, a ruidos en casa?";
+            break;
+          case "contexto_mordida":
+            frase = "¿Cuándo muerde exactamente? ¿mientras juega, si le tocas la comida, al acercarte a su sitio?";
+            break;
+          default:
+            frase = FRASES_APOYO[subtipo] ?? null;
+        }
+      } else {
+        frase = FRASES_APOYO[subtipo] ?? null;
+      }
       break;
 
     default:
