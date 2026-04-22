@@ -24,7 +24,7 @@ import { normalizar }                        from "./victoria-utils.js";
 import { detectarZona }                      from "./victoria-zones.js";
 import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js";
 import { DICT_BASICA }                       from "./victoria-dictionaries.js";
-import { obtenerFrase }                      from "./victoria-phrases.js";
+import { obtenerFrase, FRASES_DURACION }     from "./victoria-phrases.js";
 import { esPPP }                             from "./victoria-breeds.js";
 import { decidirRespuesta }                  from "./victoria-matching.js";
 import { renderAgenda }                      from "./agenda.js";
@@ -425,17 +425,90 @@ const KEYWORDS_AFIRMATIVO = [
   "yep", "yes", "ver horarios", "ver horario",
 ];
 
+// Keywords para detectar pregunta sobre duración/cuántas clases
+const KEYWORDS_DURACION = [
+  "cuantas clases", "cuántas clases",
+  "cuantas sesiones", "cuántas sesiones",
+  "cuantas veces", "cuántas veces",
+  "numero de clases", "número de clases",
+  "numero de sesiones", "número de sesiones",
+  "cuanto dura", "cuánto dura",
+  "duracion", "duración",
+  "cuanto tiempo", "cuánto tiempo",
+  "cuantos meses", "cuántos meses",
+  "cuantas semanas", "cuántas semanas",
+];
+
+// Keywords para detectar pregunta sobre ubicación/dónde se hace
+const KEYWORDS_UBICACION = [
+  "donde se hace", "dónde se hace",
+  "donde son", "dónde son",
+  "donde es", "dónde es",
+  "en que sitio", "en qué sitio",
+  "en casa", "a domicilio",
+  "en mi casa",
+  "vais a casa", "venís a casa",
+  "tengo que ir", "hay que ir",
+  "donde se dan", "dónde se dan",
+  "donde hacen", "dónde hacen",
+  "lugar de las clases",
+];
+
 async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
+
+  // Detectar si es afirmativo corto (para abrir agenda directamente)
   const esAfirmativo = texto.length < 40 &&
-    KEYWORDS_AFIRMATIVO.some((kw) => norm.includes(kw));
+    KEYWORDS_AFIRMATIVO.some((kw) => norm.includes(normalizar(kw)));
 
   if (esAfirmativo) {
     state.current_step = "s7";
     return await _iniciarAgenda();
   }
 
-  // No repetir el protocolo — mensaje puente + botones de opción
+  // Detectar pregunta sobre duración/cuántas clases
+  const preguntaDuracion = KEYWORDS_DURACION.some((kw) => norm.includes(normalizar(kw)));
+  if (preguntaDuracion) {
+    const cuadro = state.decision_actual?.cuadro_ganador ??
+      state.decision_actual?.cuadros_originales?.[0] ?? null;
+
+    if (cuadro && FRASES_DURACION[cuadro]) {
+      // Programar botones de agenda después de responder
+      _mostrarBotonesAgendaTrasPausa();
+      return FRASES_DURACION[cuadro];
+    }
+    // Fallback si no hay cuadro identificado
+    return _fallbackHumano("pregunta duración sin cuadro identificado");
+  }
+
+  // Detectar pregunta sobre ubicación
+  const preguntaUbicacion = KEYWORDS_UBICACION.some((kw) => norm.includes(normalizar(kw)));
+  if (preguntaUbicacion) {
+    let respuesta;
+    if (state.modalidad_final === "online") {
+      respuesta = "Las sesiones online se hacen por Google Meet — solo necesitas un ordenador o móvil con cámara. " +
+        "Te enviamos el enlace antes de cada sesión y la hacemos desde donde te venga bien.";
+    } else {
+      respuesta = "Las sesiones presenciales se hacen en tu domicilio — es donde el perro vive su día a día y " +
+        "donde podemos observar con más criterio el comportamiento en su contexto real. " +
+        "El adiestrador se desplaza a tu casa.";
+    }
+    _mostrarBotonesAgendaTrasPausa();
+    return respuesta;
+  }
+
+  // No se entiende la pregunta → derivar al WhatsApp de empresa
+  return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
+    "pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173. " +
+    "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
+}
+
+/**
+ * Muestra los botones de agenda (Ver horarios / Otra pregunta) después de una pausa,
+ * para que aparezcan una vez Victoria ha terminado de "escribir" su respuesta.
+ * Usado tras responder preguntas de duración/ubicación en s6.
+ */
+function _mostrarBotonesAgendaTrasPausa() {
   setTimeout(() => {
     _mostrarOpciones([
       {
@@ -453,19 +526,17 @@ async function _procesarS6_Protocolo(texto) {
         },
       },
       {
-        label: "Prefiero preguntar algo más",
+        label: "Tengo otra pregunta",
         onClick: () => {
-          _mostrarCliente("Tengo una pregunta");
-          _registrarTurno("cliente", "Tengo una pregunta");
-          const msg = "Claro, cuéntame — estoy aquí.";
+          _mostrarCliente("Tengo otra pregunta");
+          _registrarTurno("cliente", "Tengo otra pregunta");
+          const msg = "Claro, dime.";
           _mostrarVictoria(msg);
           _registrarTurno("victoria", msg);
         },
       },
     ]);
-  }, 100);
-
-  return "¿Quieres ver los horarios disponibles o prefieres preguntarme algo más antes?";
+  }, 2500); // Pausa para que el cliente lea la respuesta antes de ver botones
 }
 
 function _procesarS7_Slot(_texto) {
