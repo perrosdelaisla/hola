@@ -57,6 +57,8 @@ function _estadoInicial() {
     decision_actual: null,
     bandera_edad_temprana: false,
     s3_intentos: 0,
+    s5_intentos: 0,
+    protocolo_ya_presentado: false,
 
     perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
@@ -344,6 +346,12 @@ function _procesarS4_Problema(texto) {
 
 function _procesarS5_Afinado(texto) {
   state.mensajes_diagnostico.push(texto);
+  state.s5_intentos++;
+
+  if (state.s5_intentos >= 3) {
+    return _fallbackHumano("3+ rondas de afinado sin decisión clara");
+  }
+
   // respuesta_pendiente se construye en _construirContexto — no asignar aquí
   return _evaluarYResponder(texto);
 }
@@ -381,20 +389,56 @@ function _ocultarOpciones() {
   if (prev) prev.remove();
 }
 
+// Keywords afirmativas — usadas en s6 para detectar "sí, ver horarios"
+const KEYWORDS_AFIRMATIVO = [
+  "sí", "si", "ok", "okay", "vale", "perfecto", "adelante",
+  "me interesa", "quiero", "me apunto", "venga", "dale",
+  "bien", "muy bien", "suena bien", "me parece bien",
+  "genial", "estupendo", "claro", "por supuesto",
+  "yep", "yes", "ver horarios", "ver horario",
+];
+
 function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
-  const esAfirmativo = texto.length < 20 &&
-    ["sí", "si", "ok", "vale", "perfecto", "adelante",
-     "me interesa", "quiero", "me apunto", "venga"].some((kw) => norm.includes(kw));
+  const esAfirmativo = texto.length < 40 &&
+    KEYWORDS_AFIRMATIVO.some((kw) => norm.includes(kw));
 
   if (esAfirmativo) {
     state.current_step = "s7";
     return _iniciarAgenda();
   }
 
-  // Nueva información → re-evaluar con el matcher
-  state.mensajes_diagnostico.push(texto);
-  return _evaluarYResponder(texto);
+  // No repetir el protocolo — mensaje puente + botones de opción
+  setTimeout(() => {
+    _mostrarOpciones([
+      {
+        label: "Sí, ver horarios disponibles",
+        onClick: () => {
+          _mostrarCliente("Sí, ver horarios");
+          _registrarTurno("cliente", "Sí, ver horarios");
+          state.current_step = "s7";
+          _mostrarTyping(true);
+          setTimeout(() => {
+            _mostrarTyping(false);
+            _iniciarAgenda();
+            _actualizarProgreso();
+          }, TYPING_DELAY);
+        },
+      },
+      {
+        label: "Prefiero preguntar algo más",
+        onClick: () => {
+          _mostrarCliente("Tengo una pregunta");
+          _registrarTurno("cliente", "Tengo una pregunta");
+          const msg = "Claro, cuéntame — estoy aquí.";
+          _mostrarVictoria(msg);
+          _registrarTurno("victoria", msg);
+        },
+      },
+    ]);
+  }, 100);
+
+  return "¿Quieres ver los horarios disponibles o prefieres preguntarme algo más antes?";
 }
 
 function _procesarS7_Slot(_texto) {
@@ -583,7 +627,9 @@ function _evaluarYResponder(textoActual) {
       if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
 
       // Protocolo presentado — avanzar a s6 y mostrar botones de opción
-      if (decision.accion === "responder" && state.current_step === "s4") {
+      if (decision.accion === "responder" &&
+          (state.current_step === "s4" || state.current_step === "s5")) {
+        state.protocolo_ya_presentado = true;
         state.current_step = "s6";
         if (state.modalidad_final !== "derivar") {
           // Mostrar botones en el panel tras un pequeño delay
