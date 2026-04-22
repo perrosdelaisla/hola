@@ -596,7 +596,7 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 /* Mensajes de Victoria y cliente generados dinámicamente por victoria.js */
 .msg.bot {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 8px;
   margin: 4px 0;
 }
