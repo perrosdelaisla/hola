@@ -309,6 +309,17 @@ async function _procesarTexto(texto) {
     return _recalcularTrasDesescalada(texto);
   }
 
+  // ── INTERCEPTOR: cierre elegante tras derivación al etólogo ──
+  // Si Victoria ya derivó al etólogo y el cliente responde cualquier cosa
+  // (que no sea desescalada, ya interceptada arriba), damos un mensaje cálido
+  // de cierre y bloqueamos el input. Evita el efecto robótico de repetir
+  // el mensaje largo de derivación.
+  if (_esPostDerivacionEtologo()) {
+    setTimeout(() => { _insertarCierrePostDerivacion(); }, 3500);
+    return "Gracias a ti por confiar en nosotros. Cualquier duda que te surja en el proceso, " +
+      "en Perros de la Isla estamos a tu disposición. Mucho ánimo con tu perro.";
+  }
+
   const procesadores = {
     s1:  _procesarS1_Zona,
     s2:  _procesarS2_NombrePerro,
@@ -414,19 +425,37 @@ function _procesarGravedadMordida(texto) {
 
   const norm = normalizar(texto);
 
-  const esGrave = ["grave", "lesión", "lesion", "marca", "sangre", "puntos", "fuerte",
-    "herida", "urgencias", "médico", "medico", "hematoma", "moratón",
+  // LEVE se evalúa PRIMERO — si hay negaciones claras gana, aunque mencione palabras como "marca"
+  const esLeve = [
+    "apenas toco", "apenas roza", "apenas tocó", "casi ni toca",
+    "sin marca", "ni marca", "no dejo marca", "no dejó marca", "no deja marca",
+    "sin sangre", "no hubo sangre", "no sangró", "no sangro",
+    "sin herida", "sin lesión", "sin lesion", "no hubo lesión", "no hubo lesion",
+    "sin contacto", "no hubo contacto", "no llegó a morder", "no llego a morder",
+    "ni siquiera llegó", "ni siquiera llego",
+    "leve", "no es grave", "no fue grave", "no es nada grave",
+    "solo gruñe", "solo gruño", "solo gruñido", "solo ladra",
+    "solo amaga", "solo amenaza", "amago",
+    "sin consecuencias", "nada grave",
   ].some(kw => norm.includes(normalizar(kw)));
 
-  const esLeve = ["leve", "sin marca", "solo marca", "no llegó a morder", "amago",
-    "no dejó marca", "no llego", "no hubo contacto", "gruñido", "solo gruño",
-    "sin consecuencias", "no sangró",
+  // GRAVE solo si hay indicadores claros de lesión — quita "marca" suelta (ambigua)
+  const esGrave = [
+    "grave", "muy grave",
+    "lesión", "lesion",
+    "sangre", "sangró", "sangro",
+    "puntos", "puntos de sutura", "sutura",
+    "herida", "herida profunda",
+    "urgencias", "médico", "medico", "hospital",
+    "hematoma", "moratón", "moraton",
+    "dejó marca", "quedó marca", "dejó marcas", "hay marca",
+    "mordisco fuerte", "mordida fuerte",
   ].some(kw => norm.includes(normalizar(kw)));
 
-  if (esGrave) {
-    state.gravedad_mordida = "grave";
-  } else if (esLeve) {
+  if (esLeve) {
     state.gravedad_mordida = "leve";
+  } else if (esGrave) {
+    state.gravedad_mordida = "grave";
   } else if (state.s5_intentos >= 2) {
     // Tras 2 intentos ambiguos, asumir grave por precaución si perro >10kg o PPP
     const esGrande = (state.perro.peso_kg ?? 0) > 10;
@@ -1517,6 +1546,29 @@ function _recalcularTrasDesescalada(texto) {
   }
 
   return respuesta;
+}
+
+/**
+ * True si la última decisión fue una derivación al etólogo y el cliente
+ * sigue escribiendo tras recibir el mensaje de derivación.
+ */
+function _esPostDerivacionEtologo() {
+  const d = state.decision_actual;
+  if (!d) return false;
+  if (d.accion !== "derivar") return false;
+  if (d.frase_params?.tipo !== "etologo") return false;
+  return true;
+}
+
+/**
+ * Inserta el bloque de cierre "Tu perro merece ser feliz, hoy" con los botones
+ * de Instagram y Web, igual que el cierre tras pago. Bloquea el input para que
+ * la conversación quede cerrada tras una derivación al etólogo.
+ */
+function _insertarCierrePostDerivacion() {
+  // Reutilizamos la función de cierre existente — hace exactamente lo que
+  // necesitamos: pinta el bloque, bloquea input y botón de enviar
+  _insertarCierre();
 }
 
 async function _supabasePost(endpoint, body) {
