@@ -278,6 +278,15 @@ function _escaparHTML(str) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _procesarTexto(texto) {
+  // ── INTERCEPTOR: desescalada tras derivación ──
+  // Si el último turno de Victoria fue una derivación al etólogo y el cliente
+  // matiza ("en realidad no muerde", "solo marca"...), recalculamos desde cero
+  // el cuadro con el contexto actualizado. La gente exagera al describir al
+  // principio — hay que permitir corregir.
+  if (_esDesescaladaTrasDerivacion(texto)) {
+    return _recalcularTrasDesescalada(texto);
+  }
+
   const procesadores = {
     s1:  _procesarS1_Zona,
     s2:  _procesarS2_NombrePerro,
@@ -504,6 +513,50 @@ const KEYWORDS_PRECIO_POR_PERRO = [
   "son dos perros", "son 2 perros",
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DESESCALADA — cuando el cliente matiza que exageró al describir
+// Usado tras una derivación al etólogo para permitir recalcular
+// ─────────────────────────────────────────────────────────────────────────────
+
+const KEYWORDS_DESESCALADA = [
+  "en realidad no muerde",
+  "en realidad no es",
+  "en realidad solo",
+  "no es mordida",
+  "no es una mordida",
+  "no fue mordida",
+  "no fue una mordida",
+  "no llega a morder",
+  "no llega a morderme",
+  "no llegó a morder",
+  "no llegó a lastimar",
+  "no lastima",
+  "no lastimó",
+  "no hace daño",
+  "no hizo daño",
+  "no dejó marca",
+  "no deja marca",
+  "sin marca",
+  "no ha mordido",
+  "solo marca",
+  "solo gruñe",
+  "solo ladra",
+  "solo avisa",
+  "solo amaga",
+  "solo amenaza",
+  "solo enseña los dientes",
+  "solo muestra los dientes",
+  "exageré",
+  "exagere",
+  "exageramos",
+  "no fue tanto",
+  "no es tan grave",
+  "no es para tanto",
+  "quizá exageré",
+  "quizas exagere",
+  "tal vez exageré",
+];
+
 async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
   const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
@@ -654,6 +707,13 @@ function _procesarS11_Captura(_texto) {
 }
 
 async function _procesarS12_Confirmacion(_texto) {
+  // Guard: si la cita ya se confirmó en una ejecución previa, no re-ejecutar
+  // el guardado en Supabase ni la notificación ntfy. Devolver null para no
+  // insertar otra burbuja de respuesta.
+  if (state.cita_confirmada) {
+    return null;
+  }
+
   try {
     await _guardarCitaEnSupabase();
     await _notificarCarlos();
@@ -1207,7 +1267,74 @@ function _insertarCierre() {
     </div>
   `;
   _chatEl.insertBefore(cierre, _twEl);
+
+  // Bloquear input y botón de enviar — la conversación ya está cerrada
+  if (_inputEl) {
+    _inputEl.disabled = true;
+    _inputEl.placeholder = "Conversación finalizada";
+    _inputEl.blur();
+  }
+  if (_sendEl) {
+    _sendEl.disabled = true;
+  }
+  // Ocultar visualmente el wrap del input
+  const inputWrap = document.getElementById("victoria-input-wrap");
+  if (inputWrap) {
+    inputWrap.style.opacity = "0.4";
+    inputWrap.style.pointerEvents = "none";
+  }
+
   _scrollAbajo();
+}
+
+/**
+ * Detecta si el cliente está matizando ("en realidad no muerde") justo
+ * después de que Victoria haya derivado al etólogo. Esto permite recalcular
+ * el cuadro con la info corregida — la gente tiende a exagerar al principio.
+ */
+function _esDesescaladaTrasDerivacion(texto) {
+  // Solo aplica si la decisión anterior fue una derivación al etólogo
+  const decisionPrevia = state.decision_actual;
+  if (!decisionPrevia) return false;
+  if (decisionPrevia.accion !== "derivar") return false;
+  if (decisionPrevia.frase_params?.tipo !== "etologo") return false;
+
+  // Buscar keywords de desescalada en el texto nuevo
+  const textoNorm = normalizar(texto);
+  return KEYWORDS_DESESCALADA.some((kw) => textoNorm.includes(normalizar(kw)));
+}
+
+/**
+ * Reevalúa el cuadro tras detectar desescalada. Añade el mensaje corrector
+ * al contexto de diagnóstico y vuelve a llamar al matching. Si tras recalcular
+ * sigue sin haber cuadro claro, pide al cliente su WhatsApp para que el equipo
+ * le contacte (NUNCA dar el WhatsApp de PDLI en fallback).
+ */
+function _recalcularTrasDesescalada(texto) {
+  // Añadir el mensaje al contexto de diagnóstico para que el matcher lo considere
+  state.mensajes_diagnostico.push(texto);
+
+  // Resetear la decisión previa para que el matching empiece limpio
+  state.decision_actual          = null;
+  state.cuadro_pendiente_mordida = null;
+  state.gravedad_mordida         = null;
+  state.pending                  = null;
+
+  // Volver al paso 5 (afinado) — si hay cuadro claro avanza, si no pide detalles
+  state.current_step = "s5";
+
+  // Reevaluar con el contexto actualizado
+  const respuesta = _evaluarYResponder(texto);
+
+  // Si el matching devuelve fallback, sustituir por la versión "pide WhatsApp"
+  // en lugar de "te damos el WhatsApp de PDLI"
+  if (state.decision_actual?.accion === "fallback") {
+    return "Gracias por aclararlo. Para orientarte bien con todos los matices que me comentas, " +
+      "prefiero que alguien del equipo te llame y lo habléis con calma. " +
+      "¿Me puedes dejar tu WhatsApp? En cuanto me lo pases, nos ponemos en contacto contigo.";
+  }
+
+  return respuesta;
 }
 
 async function _supabasePost(endpoint, body) {
