@@ -193,10 +193,8 @@ function configurarModalAddHora() {
 /* ── BLOQUEOS ── */
 
 async function cargarBloqueos() {
-  // Llenar dropdown de horas desde la plantilla
   await llenarDropdownHoras();
 
-  // Cargar lista de bloqueos
   const lista = $('bloqueos-list');
   lista.innerHTML = '<li class="loading">Cargando bloqueos...</li>';
 
@@ -250,12 +248,10 @@ async function cargarBloqueos() {
 
 async function llenarDropdownHoras() {
   const sel = $('bloq-hora');
-  // Limpiar options salvo el primero
   while (sel.options.length > 1) sel.remove(1);
 
   try {
     const slots = await obtenerPlantilla();
-    // Set único de horas
     const horas = [...new Set(slots.map(s => s.hora.substring(0, 5)))].sort();
     horas.forEach(h => {
       const opt = document.createElement('option');
@@ -314,7 +310,6 @@ async function cargarCitas() {
       const horaTxt = (c.hora || '').substring(0, 5);
       const estadoClase = (c.estado || 'pendiente').toLowerCase();
 
-      // Top: fecha + estado
       const top = document.createElement('div');
       top.className = 'cita-top';
 
@@ -330,13 +325,11 @@ async function cargarCitas() {
 
       li.appendChild(top);
 
-      // Cliente
       const clienteDiv = document.createElement('div');
       clienteDiv.className = 'cita-cliente';
       clienteDiv.textContent = `${c.clientes?.nombre ?? '—'} · ${c.clientes?.telefono ?? '—'}`;
       li.appendChild(clienteDiv);
 
-      // Perro
       const perroTxt = (c.perros && c.perros[0])
         ? `${c.perros[0].nombre} (${c.perros[0].raza || '—'})`
         : '—';
@@ -345,13 +338,11 @@ async function cargarCitas() {
       perroDiv.textContent = `🐕 ${perroTxt}`;
       li.appendChild(perroDiv);
 
-      // Zona
       const zonaDiv = document.createElement('div');
       zonaDiv.className = 'cita-zona';
       zonaDiv.textContent = `📍 ${c.clientes?.zona ?? c.zona ?? '—'} · ${c.modalidad ?? '—'}`;
       li.appendChild(zonaDiv);
 
-      // Protocolo
       if (c.protocolo || (c.cuadros_detectados && c.cuadros_detectados.length > 0)) {
         const protoDiv = document.createElement('div');
         protoDiv.className = 'cita-protocolo';
@@ -360,7 +351,6 @@ async function cargarCitas() {
         li.appendChild(protoDiv);
       }
 
-      // Reportado por el cliente
       if (c.reportado) {
         const repDiv = document.createElement('div');
         repDiv.className = 'cita-reportado';
@@ -374,7 +364,6 @@ async function cargarCitas() {
         li.appendChild(repDiv);
       }
 
-      // Acciones
       const actions = document.createElement('div');
       actions.className = 'cita-actions';
 
@@ -394,4 +383,46 @@ async function cargarCitas() {
         btnCancelar.className = 'btn-small danger';
         btnCancelar.textContent = '❌ Cancelar';
         btnCancelar.addEventListener('click', async () => {
-          if (!confirm('¿Canc
+          if (!confirm('¿Cancelar esta cita?')) return;
+          await cancelarCita(c.id);
+          cargarCitas();
+        });
+        actions.appendChild(btnCancelar);
+      }
+
+      li.appendChild(actions);
+      lista.appendChild(li);
+    });
+  } catch (err) {
+    console.error(err);
+    lista.innerHTML = '<li class="empty-state">Error al cargar. Revisa la consola.</li>';
+  }
+}
+
+/* ── UTILS ── */
+
+function formatearFechaLarga(fechaStr) {
+  const f = new Date(fechaStr + 'T00:00:00');
+  const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
+                 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return `${dias[f.getDay()]} ${f.getDate()} ${meses[f.getMonth()]}`;
+}
+
+/* ── INIT ── */
+
+function init() {
+  $('login-btn').addEventListener('click', intentarLogin);
+  $('login-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') intentarLogin();
+  });
+  $('logout-btn').addEventListener('click', logout);
+
+  configurarTabs();
+  configurarModalAddHora();
+  configurarFormBloqueo();
+
+  checkLogin();
+}
+
+document.addEventListener('DOMContentLoaded', init);
