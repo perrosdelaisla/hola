@@ -1,4 +1,3 @@
-
 /**
  * pagos.js
  * Perros de la Isla — Embudo Victoria
@@ -14,7 +13,7 @@
  */
 
 const SUPA_URL = "https://sydzfwwiruxqaxojymdz.supabase.co";
-const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2ODMzNDcsImV4cCI6MjA1OTI1OTM0N30.ixjBBHMsEu5ANxl4MXodVdYFhnlEi9MBnj0TxmPHxe0";
+const SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NjAwODAsImV4cCI6MjA5MjMzNjA4MH0.0SpunQTuSwYaAjzWEDQivZy7971-Tf3CX2KxAEo8Nuw";
 const BUCKET  = "pagos";
 
 // ─────────────────────────────────────────────────────────────────────────────
