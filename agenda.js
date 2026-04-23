@@ -39,6 +39,18 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
     return;
   }
 
+  // Fix C — Filtrar slots: primer día visible a +5 días del actual
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const fechaMinima = new Date(hoy);
+  fechaMinima.setDate(fechaMinima.getDate() + 5);
+
+  slots = slots.filter((s) => {
+    // s.fecha tiene formato "YYYY-MM-DD"
+    const fechaSlot = new Date(s.fecha + "T00:00:00");
+    return fechaSlot >= fechaMinima;
+  });
+
   if (!slots || slots.length === 0) {
     contenedor.innerHTML = `
       <div class="warn">
@@ -79,7 +91,7 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
 
   contenedor.innerHTML = html;
 
-  // Eventos con addEventListener — sin globals de window
+  // Fix D — Eventos con scroll automático al panel de confirmación
   contenedor.querySelectorAll('.slot').forEach(btn => {
     btn.addEventListener('click', () => {
       contenedor.querySelectorAll('.slot').forEach(b => b.classList.remove('on'));
@@ -90,7 +102,12 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
         // label completo: "Lun 28 abr · 10:00h" — usado en mensaje de confirmación
         label: btn.querySelector('.sday').textContent + ' · ' + btn.dataset.hora + 'h',
       };
-      contenedor.querySelector('#agenda-confirmar').style.display = 'block';
+      const panelConfirmar = contenedor.querySelector('#agenda-confirmar');
+      panelConfirmar.style.display = 'block';
+      // Scroll suave al panel de confirmación para que el cliente vea los botones
+      setTimeout(() => {
+        panelConfirmar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
     });
   });
 
