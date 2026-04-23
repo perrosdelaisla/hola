@@ -57,10 +57,13 @@ export const FRASES_ONLINE = {
 export const FRASES_ETOLOGO = {
 
   // Frase principal — siempre
-  principal: `Gracias por escribirme con tanto detalle. Por lo que describes, lo que tu perro necesita en este momento va más allá de un protocolo de adiestramiento — sería importante empezar por una valoración con un etólogo veterinario. Los etólogos tienen formación clínica en comportamiento canino y pueden valorar si hay algún componente médico o neurológico detrás del cuadro, además de definir un plan individualizado. No es un "no" a trabajar con vosotros — es que el orden importa, y empezar por ahí es lo que mejor le va a ir a tu perro. Una vez hecha esa evaluación, si el etólogo considera que hay terreno para un acompañamiento desde el adiestramiento, aquí estamos para retomar. Gracias de nuevo por la confianza.`,
+  principal: `Gracias por escribirme con tanto detalle. Por lo que describes, lo que tu perro necesita en este momento va más allá de un protocolo de adiestramiento — sería importante empezar por una valoración con un etólogo veterinario. Los etólogos tienen formación clínica en comportamiento canino y pueden valorar si hay algún componente médico o neurológico detrás del cuadro, además de definir un plan individualizado. No es un "no" a trabajar con vosotros — es que el orden importa, y empezar por ahí es lo que mejor le va a ir a tu perro. Si en un futuro, una vez hecha esa evaluación, quieres plantearte un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Gracias de nuevo por la confianza.`,
 
   // Solo si el cliente pregunta explícitamente por recomendación de nombre
   complementaria: `En Mallorca hay varios profesionales. El más conocido es Tomás Camps, aunque te recomendaría mirar también qué perfil te queda más cerca de zona y con quién te sientes cómodo — es una decisión personal y es importante que el encaje sea bueno.`,
+
+  // Mordida con víctima humana o animal vulnerable + perro >10kg (paso 1b)
+  mordida_personas: `Gracias por contármelo con tanta claridad. Por lo que describes, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento — cuando hay mordida a personas, es imprescindible una evaluación clínica para garantizar la seguridad de todos, incluido tu perro. En Perros de la Isla no aceptamos casos así sin esa valoración previa, es un criterio firme que mantenemos por responsabilidad profesional. Te recomiendo buscar un etólogo veterinario colegiado en tu zona. Si en un futuro, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
 };
 
 
@@ -72,7 +75,6 @@ export const FRASES_ETOLOGO = {
 export const FRASE_DERIVACION_ZONA = `Gracias por escribirme. Por lo que me cuentas, el cuadro de tu perro es de los que trabajamos únicamente en modalidad presencial — {cuadro} necesita observación directa del perro en su contexto real para evaluar bien el caso y aplicar el protocolo con criterio. Por videollamada no daríamos el nivel de trabajo que el caso merece. Como estás fuera de nuestra zona de cobertura, te recomendaría buscar un profesional cerca de ti con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros. Si en algún momento te planteas desplazarte a Mallorca o cambias de zona, aquí seguimos.`;
 
 // Etiquetas para sustituir {cuadro} según el cuadro detectado
-// Todas en singular para concordar con "necesita" en la frase
 export const ETIQUETAS_CUADRO_ZONA = {
   reactividad: "la reactividad",
   posesion: "la posesión de recursos",
@@ -86,15 +88,11 @@ export const ETIQUETAS_CUADRO_ZONA = {
 
 export const FRASES_SON_GOTLEU = {
 
-  // Cuadro compatible con online → frase de política interna + frase diagnóstico sin modalidad
   compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo. Lo que sí podemos hacer es trabajarlo en modalidad online por Google Meet, junto a los tutores, con pautas concretas entre semana — funciona muy bien para este tipo de casos.`,
 
-  // Cuadro NO compatible con online → solo derivación
   no_compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo, y este tipo de caso solo lo trabajamos presencialmente porque necesita observación directa del perro en su contexto. Te recomendaría buscar un profesional cerca de tu zona con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros.`,
 };
 
-// Versiones "solo diagnóstico" para concatenar con la frase de Son Gotleu compatible_online.
-// No incluyen detalles de modalidad — así al concatenar no se repite información.
 export const FRASES_DIAGNOSTICO_SIN_MODALIDAD = {
 
   separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
@@ -113,17 +111,11 @@ export const FRASES_DIAGNOSTICO_SIN_MODALIDAD = {
 
 export const FRASES_MIXTO = {
 
-  // Plantilla general — sustituir {cuadro_1} y {cuadro_2}
-  // Orden: primero cuadro emocional de fondo, luego cuadro de conducta externa
   plantilla: `Por lo que me cuentas parece haber dos componentes en lo que describes: por un lado, {cuadro_1}; por otro, {cuadro_2}. Son dos capas que se pueden trabajar en paralelo, con pautas diferenciadas — a veces se refuerzan entre ellas y abordarlas juntas da mejores resultados que tratar solo una. En la primera sesión el adiestrador valora en directo cuál prima y cómo priorizar el trabajo. Sesiones en el domicilio, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido.`,
 
-  // Variante especial: separación + generalizada (formulación integrada)
   separacion_generalizada: `Por lo que me cuentas, hay un cuadro de ansiedad que se manifiesta tanto cuando estás con él como cuando se queda solo — un estado de tensión de base que se agrava en la soledad. Es una combinación frecuente y se trabaja con un protocolo integrado. Sesiones en el domicilio, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios.`,
 };
 
-// Etiquetas para sustituir {cuadro_1} y {cuadro_2} en la plantilla mixta
-// Nota: "basica" no está incluida — por diseño nunca entra en caso mixto.
-// Si el motor llega aquí con "basica" es un bug de matching, no un caso válido.
 export const ETIQUETAS_MIXTO = {
   separacion: "ansiedad por separación",
   generalizada: "ansiedad generalizada de fondo",
@@ -158,38 +150,28 @@ export const FRASES_LATERALES = {
 
 export const FRASES_APOYO = {
 
-  // Cuando no hay keywords claras (Paso 10 del árbol)
   pedir_especificacion: `Cuéntame algo más del día a día con tu perro — qué situaciones te gustaría mejorar, qué has notado que te preocupa, cómo es la convivencia. Con eso puedo orientarte mejor.`,
 
-  // Filtro de mordida (Principio 13) — antes de proponer protocolo en posesión/reactividad
   filtro_mordida: `Para orientarte bien necesito saber una cosa: cuando ha habido episodios así, ¿ha llegado a haber contacto real con los dientes sobre alguien, o se queda en el aviso (gruñido, mostrar dientes, cuerpo rígido)? Si ha habido contacto, ¿qué consecuencia tuvo (marca leve, hematoma, herida con sangre, puntos)? Muchos perros lo que hacen es avisar con el gesto, es información útil para ver cómo abordamos el caso.`,
 
-  // Si la respuesta al filtro de mordida no permite clasificar la gravedad
   filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 
-  // Pregunta de zona cuando no se detecta
   pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.`,
 
-  // Pregunta de edad cuando no se ha recogido
   pedir_edad: `¿Qué edad tiene tu perro? Con meses si aún es cachorro, o años si ya es adulto.`,
 
-  // Pregunta de peso aproximado
   pedir_peso: `¿Qué peso aproximado tiene? No hace falta que sea exacto, un número aproximado me vale.`,
 
-  // Pregunta de raza
   pedir_raza: `¿Qué raza es? Si es mestizo o no estás seguro, descríbeme cómo es de tamaño y complexión.`,
 
-  // Pregunta de conducta cuando hay detonante pero falta descripción de respuesta
   pedir_conducta: `Cuando pasa eso, ¿cómo reacciona exactamente tu perro? ¿Se esconde, se queda paralizado, intenta salir corriendo? ¿O más bien ladra, se lanza, tira de la correa? La respuesta del perro es lo que me ayuda a orientarte bien.`,
 
-  // Fallback al WhatsApp humano
   fallback_whatsapp: `Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla — pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173.`,
 };
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8.5 DURACIÓN DE PROTOCOLOS — respuesta cuando el cliente pregunta cuántas clases
-// Se usa solo si el cliente lo pregunta explícitamente, nunca proactivamente.
+// 8.5 DURACIÓN DE PROTOCOLOS
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_DURACION = {
@@ -212,9 +194,6 @@ export const FRASES_DURACION = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FRASES DE PRECIO / VALOR
-// Se responden cuando el cliente pregunta por el valor ANTES de que Victoria
-// lo haya mencionado (en s4, s5 o s6 si aún no se presentó el protocolo).
-// Tono de marca: "valor" no "precio", "clase" no "sesión".
 // ─────────────────────────────────────────────────────────────────────────────
 export const FRASES_PRECIO = {
   presencial:
@@ -231,7 +210,6 @@ export const FRASES_PRECIO = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FRASES DE PACK / DESCUENTO
-// Se responden cuando el cliente pregunta específicamente por el pack o descuento.
 // ─────────────────────────────────────────────────────────────────────────────
 export const FRASES_PACK = {
   presencial:
@@ -245,7 +223,6 @@ export const FRASES_PACK = {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FRASE PRECIO POR PERRO
-// Pregunta típica cuando el cliente tiene más de un perro.
 // ─────────────────────────────────────────────────────────────────────────────
 export const FRASE_PRECIO_POR_PERRO =
   "El valor es por clase, no por perro. Si tienes más de un perro trabajamos con ellos en la misma clase — " +
@@ -254,20 +231,10 @@ export const FRASE_PRECIO_POR_PERRO =
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 9. UTILIDAD — obtenerFrase()
-// Función central que victoria.js usa para recuperar frases
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
  * Devuelve la frase correcta según cuadro, modalidad y contexto.
- * Sustituye variables ({nombre_perro}, {cuadro_1}, {cuadro_2}, {cuadro}) si se pasan.
- *
- * @param {Object} params
- * @param {string} params.tipo         — 'cuadro' | 'lateral' | 'etologo' | 'zona' | 'son_gotleu' | 'mixto' | 'apoyo' | 'duracion'
- * @param {string} [params.cuadro]     — id del cuadro (separacion, miedos, etc.)
- * @param {string} [params.modalidad]  — 'presencial' | 'online'
- * @param {string} [params.subtipo]    — para lateral, apoyo, etologo, son_gotleu, mixto
- * @param {Object} [params.vars]       — variables a sustituir: { nombre_perro, cuadro_1, cuadro_2 }
- * @returns {string|null}
  */
 export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
   let frase = null;
@@ -299,7 +266,6 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
 
     case "son_gotleu":
       frase = FRASES_SON_GOTLEU[subtipo] ?? null;
-      // Si es compatible_online, concatenar la descripción del cuadro sin repetir modalidad
       if (subtipo === "compatible_online" && cuadro && FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro]) {
         frase = frase + " " + FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro];
       }
@@ -350,13 +316,7 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
       frase = null;
   }
 
-  // Sustituir nombre del perro solo en frases que empiezan con apertura diagnóstica
-  // ("Lo que me cuentas", "Eso que describes", "Lo que describes").
-  // Es intencional que frases de etólogo, caso mixto, Son Gotleu, derivación por zona
-  // y servicios laterales NO se personalicen con el nombre — leen forzado si se hace.
   if (frase && vars.nombre_perro) {
-    // Solo sustituir en la primera frase del texto, y solo si encaja naturalmente
-    // "Lo que me cuentas sobre {nombre_perro} encaja con..."
     frase = frase.replace(
       /^(Lo que me cuentas|Eso que describes|Lo que describes)/,
       (match) => `${match} sobre ${vars.nombre_perro}`
