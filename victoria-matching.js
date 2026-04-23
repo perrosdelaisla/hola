@@ -57,6 +57,58 @@ const KEYWORDS_NO_SABE = [
   "creo que", "no sabría decirte", "no puedo decirte",
 ];
 
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYWORDS para detección de víctimas (Paso 1b — mordida vulnerable)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Cualquier mención de persona como víctima (tutor, familia, terceros).
+// Si hay mordida + alguna de estas + perro >10kg → derivar sin preguntar.
+const KEYWORDS_VICTIMA_HUMANA = [
+  // Pronombres/posesivos — tutor o plural familiar
+  "me muerde", "me mordió", "me ha mordido", "me llegó a morder",
+  "nos muerde", "nos mordió", "nos ha mordido",
+  "te muerde", "te mordió",
+  // Niños
+  "niño", "niños", "niña", "niñas",
+  "bebé", "bebés", "bebe", "bebes",
+  "crío", "críos", "cría", "crías",
+  "hijo", "hija", "hijos", "hijas",
+  "nieto", "nieta", "nietos", "nietas",
+  "sobrino", "sobrina", "sobrinos", "sobrinas",
+  "peque", "peques", "pequeño", "pequeña",
+  "menor", "menores",
+  "chiquito", "chiquita", "chiquillo", "chiquilla",
+  // Mayores
+  "anciano", "anciana", "ancianos", "ancianas",
+  "mayor", "mayores", "persona mayor", "personas mayores",
+  "abuelo", "abuela", "abuelos", "abuelas",
+  "embarazada", "embarazadas",
+  // Familia y relaciones
+  "mujer", "marido", "pareja", "novio", "novia", "esposa", "esposo",
+  "hermano", "hermana", "hermanos", "hermanas",
+  "madre", "padre", "mama", "papa", "mamá", "papá",
+  "suegra", "suegro", "cuñado", "cuñada",
+  "tío", "tía", "tios", "tias", "primo", "prima",
+  // Terceros
+  "vecino", "vecina", "vecinos", "vecinas",
+  "amigo", "amiga", "amigos", "amigas",
+  "invitado", "invitada", "invitados", "invitadas",
+  "visita", "visitas", "visitante", "visitantes",
+  "persona", "personas", "gente", "alguien",
+  "repartidor", "cartero", "técnico",
+  "empleada", "empleado",
+  "todo el mundo", "cualquiera", "los que vienen",
+];
+
+// Animales vulnerables (solo cuentan si perro agresor >10kg).
+const KEYWORDS_VICTIMA_ANIMAL_VULNERABLE = [
+  "cachorro", "cachorros", "cachorra", "cachorras",
+  "perro pequeño", "perros pequeños", "perra pequeña", "perras pequeñas",
+  "perrito", "perrita", "perritos", "perritas",
+  "chihuahua", "yorkshire", "maltés", "pomerania", "shih tzu",
+  "gato", "gatos", "gata", "gatas", "gatito", "gatitos",
+];
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ORQUESTADOR PRINCIPAL
@@ -82,6 +134,7 @@ export function decidirRespuesta(contexto) {
   const pasos = [
     paso0_datosMinimos,
     paso1_etologo,
+    paso1b_mordidaVulnerable,
     paso2_laterales,
     paso3_cachorropleno,
     paso4_cachorroTransicion,
@@ -191,6 +244,46 @@ function paso1_etologo(contexto) {
   }
 
   return null;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASO 1b — Mordida con víctima relevante y perro >10kg
+// Se evalúa DESPUÉS del paso 1 (etólogo general) y ANTES del paso 5 (filtro
+// de mordida), porque la regla es absoluta: mordida + perro grande + víctima
+// humana o animal vulnerable = derivar, sin preguntar gravedad.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function paso1b_mordidaVulnerable(contexto) {
+  const { mensaje, perro } = contexto;
+  const textoNorm = normalizar(mensaje ?? "");
+
+  // ¿Hay mordida?
+  const hayMordida = KEYWORDS_MORDIDA.some((kw) =>
+    textoNorm.includes(normalizar(kw))
+  );
+  if (!hayMordida) return null;
+
+  // ¿Perro >10kg + víctima relevante?
+  const tipoVictima = _detectarVictimaParaDerivacion(mensaje, perro);
+  if (!tipoVictima) return null;
+
+  // Derivar al etólogo con frase específica
+  return _decision({
+    accion: "derivar",
+    frase_params: { tipo: "etologo", subtipo: "mordida_personas" },
+    pending_next: null,
+    cuadro_ganador: null,
+    log: _log(
+      1.5,
+      [],
+      [],
+      contexto.zona?.zonaDetectada,
+      null,
+      ["derivacion_etologo", "mordida_perro_grande", `victima:${tipoVictima}`],
+      `mordida + perro ${perro.peso_kg}kg + víctima ${tipoVictima} — derivación directa`
+    ),
+  });
 }
 
 
@@ -572,12 +665,6 @@ function paso10_pedirEspecificacion(contexto) {
 
 /**
  * Resuelve las 5 rutas de modalidad y devuelve la Decision correcta.
- * Ruta 1: zona presencial → frase presencial
- * Ruta 2: zona fuera + compatible online → frase online
- * Ruta 3: zona fuera + NO compatible online → derivación por zona
- * Ruta 4: Son Gotleu + compatible online → Son Gotleu compatible
- * Ruta 5: Son Gotleu + NO compatible online → Son Gotleu no compatible
- * (Son Gotleu se evalúa antes porque tiene su propio flag)
  */
 function _resolverCuadro(cuadroId, contexto, { bandera_edad_temprana = false, paso = 6, nota = "" } = {}) {
   const { zona, perro } = contexto;
@@ -588,27 +675,22 @@ function _resolverCuadro(cuadroId, contexto, { bandera_edad_temprana = false, pa
   let modalidad_final;
 
   if (zona.esSonGotleu && compatibleOnline) {
-    // Ruta 4
     modalidad_final = "online";
     frase_params = { tipo: "son_gotleu", subtipo: "compatible_online", cuadro: cuadroId, vars };
 
   } else if (zona.esSonGotleu && !compatibleOnline) {
-    // Ruta 5
     modalidad_final = "derivar";
     frase_params = { tipo: "son_gotleu", subtipo: "no_compatible_online" };
 
   } else if (zona.modalidad === "presencial") {
-    // Ruta 1
     modalidad_final = "presencial";
     frase_params = { tipo: "cuadro", cuadro: cuadroId, modalidad: "presencial", vars };
 
   } else if (zona.modalidad === "fuera" && compatibleOnline) {
-    // Ruta 2
     modalidad_final = "online";
     frase_params = { tipo: "cuadro", cuadro: cuadroId, modalidad: "online", vars };
 
   } else if (zona.modalidad === "fuera" && !compatibleOnline) {
-    // Ruta 3
     modalidad_final = "derivar";
     frase_params = { tipo: "zona", vars: { cuadro: cuadroId } };
 
@@ -657,19 +739,19 @@ function _decision({
   bandera_edad_temprana = false,
   cuadro_pendiente_mordida = null,
   mixto_degradado = false,
-  cuadros_originales = null,  // array [id1, id2] cuando es_mixto o mixto_degradado
+  cuadros_originales = null,
   log,
 }) {
   return {
     accion,
     frase_params,
     pending_next,
-    cuadro_ganador,       // string único de id o null — nunca concatenado
+    cuadro_ganador,
     es_mixto,
     bandera_edad_temprana,
-    cuadro_pendiente_mordida, // persistido por victoria.js entre turnos
-    mixto_degradado,      // true si había mixto pero se degradó a cuadro único por zona
-    cuadros_originales,   // victoria.js lee esto para la notificación a Carlos
+    cuadro_pendiente_mordida,
+    mixto_degradado,
+    cuadros_originales,
     log,
   };
 }
@@ -680,4 +762,30 @@ function _fallbackWhatsapp(razon) {
     frase_params: { tipo: "apoyo", subtipo: "fallback_whatsapp" },
     log: _log(99, [], [], null, null, ["fallback"], razon),
   });
+}
+
+/**
+ * Detecta si hay una víctima relevante para derivación automática en mordida.
+ * Solo se aplica si el perro pesa >10kg — bajo umbral, el filtro de mordida
+ * (paso 5) hace su trabajo normal preguntando gravedad.
+ *
+ * @returns {string|null} "humano" | "animal_vulnerable" | null
+ */
+function _detectarVictimaParaDerivacion(mensaje, perro) {
+  // Umbral de peso — por debajo, no aplica derivación automática
+  if (!perro || !perro.peso_kg || perro.peso_kg <= 10) return null;
+
+  const textoNorm = normalizar(mensaje ?? "");
+
+  const esHumano = KEYWORDS_VICTIMA_HUMANA.some((kw) =>
+    textoNorm.includes(normalizar(kw))
+  );
+  if (esHumano) return "humano";
+
+  const esAnimalVulnerable = KEYWORDS_VICTIMA_ANIMAL_VULNERABLE.some((kw) =>
+    textoNorm.includes(normalizar(kw))
+  );
+  if (esAnimalVulnerable) return "animal_vulnerable";
+
+  return null;
 }
