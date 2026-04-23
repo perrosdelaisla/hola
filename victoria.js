@@ -26,10 +26,15 @@ import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js";
 import { DICT_BASICA }                       from "./victoria-dictionaries.js";
 import {
   obtenerFrase,
-  FRASES_DURACION,
   FRASES_PRECIO,
   FRASES_PACK,
   FRASE_PRECIO_POR_PERRO,
+  FRASE_MENSAJE_PRINCIPAL,
+  FRASE_RAMIFICACION,
+  FRASE_COMO_TRABAJAMOS_PRESENCIAL,
+  FRASE_COMO_TRABAJAMOS_ONLINE,
+  FRASE_CIERRE_METODOLOGIA,
+  FRASE_DURACION_UNIFICADA,
 } from "./victoria-phrases.js";
 import { esPPP }                             from "./victoria-breeds.js";
 import { decidirRespuesta }                  from "./victoria-matching.js";
@@ -91,6 +96,7 @@ function _estadoInicial() {
     slot_confirmando: false,   // guard contra doble-tap en móvil
     cita_confirmada: false,
     mostrar_precio_tras_protocolo: false,
+    mostrar_ramificacion_tras_protocolo: false,
 
     historial_turnos: [],
     log_matching_final: null,
@@ -188,9 +194,15 @@ async function _enviarMensaje() {
     _scrollAbajo();
     _inputEl?.focus();
 
-    // Si debe mostrar precio tras protocolo (flag activado por _evaluarYResponder)
+    // Si debe mostrar botones de ramificación tras el mensaje principal
+    if (state.mostrar_ramificacion_tras_protocolo) {
+      state.mostrar_ramificacion_tras_protocolo = false; // consumir flag
+      _mostrarBotonesRamificacion();
+    }
+
+    // (flag legacy — ya no se activa en v2.0 pero se mantiene por compatibilidad)
     if (state.mostrar_precio_tras_protocolo) {
-      state.mostrar_precio_tras_protocolo = false; // consumir flag
+      state.mostrar_precio_tras_protocolo = false;
       _mostrarPrecioYBotonesAgenda();
     }
   }, delay);
@@ -292,7 +304,7 @@ async function _procesarTexto(texto) {
     s2:  _procesarS2_NombrePerro,
     s3:  _procesarS3_DatosPerro,
     s4:  _procesarS4_Problema,
-    s5:  _procesarS5_Afinado,
+    s5:  _procesarGravedadMordida,
     s6:  _procesarS6_Protocolo,
     s7:  _procesarS7_Slot,
     s8:  _procesarS8_ConfirmacionSlot,
@@ -381,25 +393,42 @@ function _procesarS4_Problema(texto) {
   state.mensajes_diagnostico.push(texto);
 
   const lateral = detectarLateral(texto);
-  if (lateral) {
-    const cuadros = detectarCuadros(texto);
-    const hayCuadroFuerte = cuadros.cuadros.some(
-      (c) => c.confianza === "alta" || c.confianza === "media"
-    );
-    if (!hayCuadroFuerte) state.lateral_detectado = lateral;
-  }
+  if (lateral) state.lateral_detectado = lateral;
 
   return _evaluarYResponder(texto);
 }
 
-function _procesarS5_Afinado(texto) {
+function _procesarGravedadMordida(texto) {
   state.mensajes_diagnostico.push(texto);
   state.s5_intentos++;
 
-  if (state.s5_intentos >= 3) {
-    return _fallbackHumano("3+ rondas de afinado sin decisión clara");
+  const norm = normalizar(texto);
+
+  const esGrave = ["grave", "lesión", "lesion", "marca", "sangre", "puntos", "fuerte",
+    "herida", "urgencias", "médico", "medico", "hematoma", "moratón",
+  ].some(kw => norm.includes(normalizar(kw)));
+
+  const esLeve = ["leve", "sin marca", "solo marca", "no llegó a morder", "amago",
+    "no dejó marca", "no llego", "no hubo contacto", "gruñido", "solo gruño",
+    "sin consecuencias", "no sangró",
+  ].some(kw => norm.includes(normalizar(kw)));
+
+  if (esGrave) {
+    state.gravedad_mordida = "grave";
+  } else if (esLeve) {
+    state.gravedad_mordida = "leve";
+  } else if (state.s5_intentos >= 2) {
+    // Tras 2 intentos ambiguos, asumir grave por precaución si perro >10kg o PPP
+    const esGrande = (state.perro.peso_kg ?? 0) > 10;
+    const esPPP    = state.perro.es_ppp ?? false;
+    state.gravedad_mordida = (esGrande || esPPP) ? "grave" : "leve";
+  } else {
+    // Primer intento ambiguo → repregunta
+    return "Para orientarte bien, necesito saber si hubo contacto real de los dientes y si dejó alguna marca " +
+      "(enrojecimiento, hematoma, sangre). Cuéntame con un poco más de detalle.";
   }
 
+  state.pending = null;
   return _evaluarYResponder(texto);
 }
 
@@ -587,15 +616,9 @@ async function _procesarS6_Protocolo(texto) {
   }
 
   if (match(KEYWORDS_DURACION)) {
-    const cuadro = state.decision_actual?.cuadro_ganador ??
-      state.decision_actual?.cuadros_originales?.[0] ?? null;
-    if (cuadro && FRASES_DURACION[cuadro]) {
-      _mostrarBotonesAgendaTrasPausa();
-      return FRASES_DURACION[cuadro];
-    }
     _mostrarBotonesAgendaTrasPausa();
-    return "La duración depende del caso — van de 4 a 12 clases, según el trabajo que haga falta. " +
-      "El adiestrador te lo concreta en la primera sesión tras conocer a tu perro.";
+    const perro = state.perro.nombre ?? null;
+    return obtenerFrase({ tipo: "duracion", vars: { perro } });
   }
 
   if (match(KEYWORDS_UBICACION)) {
@@ -616,6 +639,80 @@ async function _procesarS6_Protocolo(texto) {
   return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
     "pueden atenderte con más detalle por WhatsApp al 622 922 173. " +
     "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
+}
+
+/**
+ * Muestra los botones de ramificación tras el mensaje principal:
+ * - "Cómo son las clases" → metodología + cierre → precio + agenda
+ * - "Ver precios" → precio + agenda directamente
+ */
+function _mostrarBotonesRamificacion() {
+  setTimeout(() => {
+    _mostrarOpciones([
+      {
+        label: "Cómo son las clases",
+        onClick: () => {
+          _mostrarCliente("Cómo son las clases");
+          _registrarTurno("cliente", "Cómo son las clases");
+          _mostrarTyping(true);
+          setTimeout(() => {
+            _mostrarTyping(false);
+            const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
+            const perro = state.perro.nombre ?? null;
+            const frase = obtenerFrase({
+              tipo: "como_trabajamos",
+              vars: { perro, modalidad },
+            });
+            _mostrarVictoria(frase);
+            _registrarTurno("victoria", frase);
+            _actualizarProgreso();
+
+            // Tras la metodología → cierre + botones
+            setTimeout(() => {
+              _mostrarTyping(true);
+              setTimeout(() => {
+                _mostrarTyping(false);
+                const cierre = obtenerFrase({ tipo: "cierre_metodologia" });
+                _mostrarVictoria(cierre);
+                _registrarTurno("victoria", cierre);
+
+                setTimeout(() => {
+                  _mostrarOpciones([
+                    {
+                      label: "Sí, ver precios y horarios",
+                      onClick: () => {
+                        _mostrarCliente("Sí, ver precios y horarios");
+                        _registrarTurno("cliente", "Sí, ver precios y horarios");
+                        _mostrarPrecioYBotonesAgenda();
+                      },
+                    },
+                    {
+                      label: "Tengo otra pregunta",
+                      onClick: () => {
+                        _mostrarCliente("Tengo otra pregunta");
+                        _registrarTurno("cliente", "Tengo otra pregunta");
+                        const msg = "Claro, dime.";
+                        _mostrarVictoria(msg);
+                        _registrarTurno("victoria", msg);
+                      },
+                    },
+                  ]);
+                }, 200);
+              }, 1200);
+            }, 3000);
+          }, TYPING_DELAY);
+        },
+      },
+      {
+        label: "Ver precios",
+        onClick: () => {
+          _mostrarCliente("Ver precios");
+          _registrarTurno("cliente", "Ver precios");
+          _mostrarPrecioYBotonesAgenda();
+        },
+      },
+    ]);
+  }, 4500);
 }
 
 function _mostrarBotonesAgendaTrasPausa() {
@@ -897,27 +994,35 @@ function _evaluarYResponder(textoActual) {
   state.decision_actual    = decision;
   state.log_matching_final = decision.log;
 
-  if (decision.frase_params?.modalidad) {
+  // Determinar modalidad_final desde frase_params o vars
+  if (decision.frase_params?.vars?.modalidad) {
+    state.modalidad_final = decision.frase_params.vars.modalidad;
+  } else if (decision.frase_params?.modalidad) {
     state.modalidad_final = decision.frase_params.modalidad;
   } else if (["zona", "son_gotleu"].includes(decision.frase_params?.tipo)) {
     state.modalidad_final = "derivar";
   }
 
   switch (decision.accion) {
-    case "responder":
-    case "derivar": {
+    case "responder": {
       const frase = obtenerFrase(decision.frase_params);
       if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
 
-      if (decision.accion === "responder" &&
-          (state.current_step === "s4" || state.current_step === "s5")) {
+      // Mensaje principal unificado → avanzar a s6 y mostrar botones de ramificación
+      if (decision.frase_params.tipo === "mensaje_principal") {
         state.protocolo_ya_presentado = true;
         state.current_step = "s6";
-        if (state.modalidad_final !== "derivar") {
-          state.mostrar_precio_tras_protocolo = true;
-          return frase;
-        }
+        // Flag: _enviarMensaje mostrará botones de ramificación DESPUÉS del mensaje
+        state.mostrar_ramificacion_tras_protocolo = true;
+        return frase;
       }
+
+      return frase;
+    }
+
+    case "derivar": {
+      const frase = obtenerFrase(decision.frase_params);
+      if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
       return frase;
     }
 
@@ -938,12 +1043,11 @@ function _evaluarYResponder(textoActual) {
 
 function _construirContexto(textoActual) {
   const mensajeCompleto = state.mensajes_diagnostico.join(" ");
-  const cuadros = detectarCuadros(mensajeCompleto);
 
   return {
     perro:    { ...state.perro },
     zona:     state.zona,
-    cuadros:  cuadros.cuadros,
+    cuadros:  [],  // ya no se usa en el matching simplificado
     mensaje:  mensajeCompleto,
     pending:  state.pending,
     respuesta_pendiente: state.pending ? textoActual : null,
@@ -1320,8 +1424,8 @@ function _recalcularTrasDesescalada(texto) {
   state.gravedad_mordida         = null;
   state.pending                  = null;
 
-  // Volver al paso 5 (afinado) — si hay cuadro claro avanza, si no pide detalles
-  state.current_step = "s5";
+  // Volver al paso 4 — reprocessar el problema como si fuera la primera vez
+  state.current_step = "s4";
 
   // Reevaluar con el contexto actualizado
   const respuesta = _evaluarYResponder(texto);
