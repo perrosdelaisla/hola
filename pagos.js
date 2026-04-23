@@ -51,7 +51,7 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
         <label class="upload-label" for="input-captura-bizum">
           <span class="upload-label-text">📎 Toca aquí para subir la captura del Bizum</span>
           <input type="file" id="input-captura-bizum"
-            accept="image/*" capture="environment"
+            accept="image/*"
             class="upload-input" />
         </label>
         <div id="preview-bizum" class="upload-preview hidden"></div>
@@ -66,7 +66,7 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
         <label class="upload-label" for="input-captura-transf">
           <span class="upload-label-text">📎 Toca aquí para subir el justificante</span>
           <input type="file" id="input-captura-transf"
-            accept="image/*,application/pdf" capture="environment"
+            accept="image/*,application/pdf"
             class="upload-input" />
         </label>
         <div id="preview-transf" class="upload-preview hidden"></div>
@@ -238,7 +238,7 @@ export async function subirComprobante(file, datosCita) {
   }
 
   const { signedURL } = await signRes.json();
-  return `${SUPA_URL}${signedURL}`;
+  return `${SUPA_URL}/storage/v1${signedURL}`;
 }
 
 
