@@ -982,6 +982,42 @@ async function _notificarCarlos() {
   const reportadoTexto = mensajesCliente.slice(0, 2).join(" · ").slice(0, 400) ||
     "Sin texto del cliente";
 
+  // Mensaje listo para copiar-pegar y enviar al cliente por WhatsApp
+  // Charly lo envía manualmente tras verificar que el Bizum/transferencia llegó
+  const primerNombre = (c.nombre ?? "").split(" ")[0] || "hola";
+  const nombrePerro  = p.nombre ?? "tu peludito";
+  const razaPerro    = p.raza   ?? "";
+  const perroTexto   = razaPerro ? `${nombrePerro} (${razaPerro})` : nombrePerro;
+  const slotLabel    = slot?.label ?? "—";
+  const modalidadTexto = state.modalidad_final === "online"
+    ? "online por Google Meet"
+    : "presencial · en tu domicilio";
+
+  const mensajeCliente = [
+    `¡Hola ${primerNombre}! 🐾`,
+    "",
+    "Soy Carlos, de Perros de la Isla. Te confirmo que hemos recibido la seña de 45€ y tu cita está reservada.",
+    "",
+    `📅 Día y hora: ${slotLabel}`,
+    `🐕 Peludito: ${perroTexto}`,
+    `🎯 Protocolo: ${protocoloHumano}`,
+    `📍 Modalidad: ${modalidadTexto}`,
+    "",
+    "Cómo trabajamos:",
+    "",
+    "La clase dura 1 hora y puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos, no cerrar la sesión a toque de reloj.",
+    "",
+    "Entre clases tienes consultas por WhatsApp con el adiestrador. Te enviamos videos de referencia para que tengas claro cómo practicar, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.",
+    "",
+    "Si necesitas cambiar o cancelar algo, avísame con 48h de antelación y lo reorganizamos sin problema.",
+    "",
+    "Cualquier duda hasta entonces, aquí estoy.",
+    "",
+    "Un abrazo,",
+    "Carlos",
+    "Perros de la Isla 🐾",
+  ].join("\n");
+
   const mensaje = [
     "[NUEVA CITA CONFIRMADA 🐾]",
     "",
@@ -1003,6 +1039,12 @@ async function _notificarCarlos() {
     state.comprobante_url ? `📎 Comprobante: ${state.comprobante_url}` : "📎 Comprobante: no subido",
     "",
     `[Paso ${d?.log?.paso ?? "?"} | ${d?.log?.notas ?? ""}]`,
+    "",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "📱 MENSAJE PARA EL CLIENTE (copiar y enviar por WhatsApp):",
+    "━━━━━━━━━━━━━━━━━━━━━━━━━",
+    "",
+    mensajeCliente,
   ].join("\n");
 
   await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
