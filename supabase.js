@@ -289,6 +289,43 @@ export async function obtenerCitasAdmin() {
   );
 }
 
+/**
+ * Como obtenerCitasAdmin, pero además trae el texto reportado por el cliente
+ * desde la tabla `conversaciones`. El panel admin lo muestra bajo cada cita.
+ */
+export async function obtenerCitasAdminConReportado() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const citas = await supa(
+    `citas?fecha=gte.${hoy}&order=fecha,hora&select=*,clientes(nombre,telefono,zona),perros(nombre,raza,edad,problematica)`
+  );
+
+  if (!citas || citas.length === 0) return [];
+
+  const ids = citas.map(c => c.id).join(',');
+  const conversaciones = await supa(
+    `conversaciones?cita_id=in.(${ids})&select=cita_id,turnos`
+  );
+
+  const reportadoPorCita = {};
+  (conversaciones || []).forEach(conv => {
+    const turnos = Array.isArray(conv.turnos) ? conv.turnos : [];
+    const mensajesCliente = turnos
+      .filter(t => t.rol === 'cliente')
+      .slice(0, 4)
+      .map(t => t.texto);
+    const ordenadosPorLongitud = mensajesCliente
+      .slice()
+      .sort((a, b) => (b?.length || 0) - (a?.length || 0));
+    reportadoPorCita[conv.cita_id] =
+      ordenadosPorLongitud.slice(0, 2).join(' · ').slice(0, 400) || null;
+  });
+
+  return citas.map(cita => ({
+    ...cita,
+    reportado: reportadoPorCita[cita.id] || null,
+  }));
+}
+
 export async function confirmarCita(citaId) {
   await supa(`citas?id=eq.${citaId}`, 'PATCH', { estado: 'confirmada' });
 }
