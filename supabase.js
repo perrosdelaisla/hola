@@ -30,28 +30,41 @@ async function supa(path, method = 'GET', body = null) {
    ════════════════════════════════════════════ */
 
 /**
- * Devuelve los slots disponibles para los próximos 7 días
- * Excluye: días bloqueados, slots ya con 2 citas confirmadas
+ * Devuelve los slots disponibles para los próximos 25 días
+ * Excluye:
+ *  - días bloqueados (bloqueos.hora = NULL)
+ *  - horas concretas bloqueadas (bloqueos.hora = HH:MM)
+ *  - slots con cita ya confirmada
+ *  - días que ya alcanzaron el máximo de citas (sábado 1, resto 2)
+ *  - domingos u otros días para los que no haya slots en la plantilla
  */
 export async function obtenerSlotsDisponibles() {
   const hoy = new Date();
-  // Empezamos desde mañana
+  // Empezamos desde mañana (el filtro +5 días lo aplica agenda.js después)
   const desde = new Date(hoy);
   desde.setDate(hoy.getDate() + 1);
-  // Hasta 14 días adelante
+  // Hasta 25 días adelante
   const hasta = new Date(hoy);
-  hasta.setDate(hoy.getDate() + 14);
+  hasta.setDate(hoy.getDate() + 25);
 
-  // 1. Traer slots activos
+  // 1. Traer slots activos de la plantilla
   const slots = await supa('slots?activo=eq.true&order=dia_semana,hora');
 
-  // 2. Traer bloqueos en el rango
+  // 2. Traer bloqueos en el rango — incluye campo hora
   const desdeStr = desde.toISOString().split('T')[0];
   const hastaStr = hasta.toISOString().split('T')[0];
   const bloqueos = await supa(
-    `bloqueos?fecha=gte.${desdeStr}&fecha=lte.${hastaStr}&select=fecha`
+    `bloqueos?fecha=gte.${desdeStr}&fecha=lte.${hastaStr}&select=fecha,hora`
   );
-  const diasBloqueados = new Set(bloqueos.map(b => b.fecha));
+
+  // Día entero bloqueado: cuando hora=NULL
+  const diasBloqueadosCompletos = new Set(
+    bloqueos.filter(b => b.hora === null).map(b => b.fecha)
+  );
+  // Bloqueos puntuales por hora: Set de "YYYY-MM-DD_HH:MM:SS"
+  const slotsBloqueados = new Set(
+    bloqueos.filter(b => b.hora !== null).map(b => `${b.fecha}_${b.hora}`)
+  );
 
   // 3. Traer citas confirmadas en el rango
   const citas = await supa(
@@ -79,21 +92,22 @@ export async function obtenerSlotsDisponibles() {
     const diaSemana = cursor.getDay(); // 0=dom, 1=lun ... 6=sab
     const fechaStr = cursor.toISOString().split('T')[0];
 
-    // Saltar domingos y días bloqueados
-    if (diaSemana !== 0 && !diasBloqueados.has(fechaStr)) {
+    // Saltar días bloqueados completos
+    if (!diasBloqueadosCompletos.has(fechaStr)) {
       // Límite de citas por día (sábado: 1, resto: 2)
       const maxCitas = diaSemana === 6 ? 1 : 2;
       const citasHoy = citasPorDia[fechaStr] || 0;
 
       if (citasHoy < maxCitas) {
-        // Slots de este día de semana
+        // Slots de este día de semana desde la plantilla
         const slotsHoy = slots.filter(s => s.dia_semana === diaSemana);
 
         slotsHoy.forEach(slot => {
           const slotKey = `${fechaStr}_${slot.hora}`;
           const citasEnSlot = citasPorSlot[slotKey] || 0;
 
-          if (citasEnSlot === 0) {
+          // Excluir si hay cita en ese slot o si está bloqueado puntualmente
+          if (citasEnSlot === 0 && !slotsBloqueados.has(slotKey)) {
             disponibles.push({
               fecha: fechaStr,
               hora: slot.hora.substring(0, 5), // "10:30"
@@ -179,13 +193,82 @@ export async function confirmarSena(citaId, metodoPago, comprobanteUrl = null) {
 }
 
 /* ════════════════════════════════════════════
+   ADMIN — PLANTILLA DE SLOTS (horario semanal base)
+   ════════════════════════════════════════════ */
+
+/**
+ * Devuelve toda la plantilla de slots, ordenada por día y hora.
+ * Incluye los inactivos (el panel admin los muestra en gris).
+ */
+export async function obtenerPlantilla() {
+  return supa('slots?order=dia_semana,hora');
+}
+
+/**
+ * Añade un nuevo slot a la plantilla.
+ * Si ya existe un slot con mismo día y hora, devuelve el existente (no duplica).
+ */
+export async function añadirSlotPlantilla(dia_semana, hora) {
+  // Evitar duplicados
+  const existentes = await supa(
+    `slots?dia_semana=eq.${dia_semana}&hora=eq.${hora}`
+  );
+  if (existentes && existentes.length > 0) {
+    return existentes[0];
+  }
+  const [creado] = await supa('slots', 'POST', {
+    dia_semana,
+    hora,
+    activo: true,
+  });
+  return creado;
+}
+
+/**
+ * Elimina un slot de la plantilla por id.
+ */
+export async function eliminarSlotPlantilla(id) {
+  await supa(`slots?id=eq.${id}`, 'DELETE');
+}
+
+/**
+ * Activa o desactiva un slot sin borrarlo.
+ * Útil para "pausar" temporalmente una franja sin perder el dato.
+ */
+export async function toggleSlotActivo(id, activo) {
+  await supa(`slots?id=eq.${id}`, 'PATCH', { activo });
+}
+
+/* ════════════════════════════════════════════
    ADMIN — BLOQUEOS
    ════════════════════════════════════════════ */
 
-export async function bloquearDia(fecha, motivo = '') {
-  await supa('bloqueos', 'POST', { fecha, motivo });
+/**
+ * Crea un bloqueo.
+ * Si hora es null → bloquea el día entero.
+ * Si hora tiene valor (HH:MM o HH:MM:SS) → bloquea solo esa hora concreta.
+ */
+export async function bloquearDia(fecha, motivo = '', hora = null) {
+  const body = { fecha, motivo };
+  if (hora) {
+    // Normalizar a HH:MM:SS
+    body.hora = hora.length === 5 ? `${hora}:00` : hora;
+  }
+  await supa('bloqueos', 'POST', body);
 }
 
+/**
+ * Elimina un bloqueo por id (la forma más precisa — el admin panel lista bloqueos
+ * con su id y usa este).
+ */
+export async function eliminarBloqueo(id) {
+  await supa(`bloqueos?id=eq.${id}`, 'DELETE');
+}
+
+/**
+ * Elimina todos los bloqueos de un día (sin especificar hora).
+ * Se mantiene por compatibilidad con lógica antigua.
+ */
 export async function desbloquearDia(fecha) {
   await supa(`bloqueos?fecha=eq.${fecha}`, 'DELETE');
 }
