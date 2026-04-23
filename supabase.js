@@ -285,7 +285,7 @@ export async function obtenerBloqueos() {
 export async function obtenerCitasAdmin() {
   const hoy = new Date().toISOString().split('T')[0];
   return supa(
-    `citas?fecha=gte.${hoy}&order=fecha,hora&select=*,clientes(nombre,telefono,zona),perros(nombre,raza,edad,problematica)`
+    `citas?fecha=gte.${hoy}&order=fecha,hora&select=*,clientes(nombre,telefono,zona,perros(nombre,raza,edad,problematica))`
   );
 }
 
@@ -296,7 +296,7 @@ export async function obtenerCitasAdmin() {
 export async function obtenerCitasAdminConReportado() {
   const hoy = new Date().toISOString().split('T')[0];
   const citas = await supa(
-    `citas?fecha=gte.${hoy}&order=fecha,hora&select=*,clientes(nombre,telefono,zona),perros(nombre,raza,edad,problematica)`
+    `citas?fecha=gte.${hoy}&order=fecha,hora&select=*,clientes(nombre,telefono,zona,perros(nombre,raza,edad,problematica))`
   );
 
   if (!citas || citas.length === 0) return [];
