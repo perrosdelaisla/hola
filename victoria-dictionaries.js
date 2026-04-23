@@ -130,7 +130,6 @@ export const DICT_SEPARACION = {
     "empiezo a trabajar fuera",
   ],
 
-  // Patrones literales que anulan el cuadro si aparecen en el mensaje
   exclusions_textual: [
     "también cuando estoy",
     "aunque esté en casa",
@@ -142,8 +141,6 @@ export const DICT_SEPARACION = {
     "estando nosotros",
   ],
 
-  // Reglas que dependen del matcheo de otros cuadros
-  // Aplicadas por victoria-matching.js DESPUÉS de evaluar todos los diccionarios
   exclusions_cooccurrence: [
     {
       condition: "Si 'generalizada' tiene confianza alta o media comparable → gana generalizada",
@@ -151,7 +148,6 @@ export const DICT_SEPARACION = {
     },
   ],
 
-  // No aplica reglas compuestas para este cuadro
   compound_rules: [],
 };
 
@@ -211,7 +207,6 @@ export const DICT_GENERALIZADA = {
     "cambió desde",
     "antes era tranquilo",
     "antes estaba bien",
-    // Palabras de frecuencia genéricas — solo refuerzan en combinación con N1/N2
     "constantemente",
     "permanentemente",
     "en todo momento",
@@ -270,13 +265,11 @@ export const DICT_MIEDOS = {
   ],
 
   n2: [
-    // Detonantes con conducta pasiva
     "petardos", "fuegos artificiales", "tormentas", "truenos", "cohetes",
     "ruidos fuertes", "explosiones",
     "paraguas", "escobas", "aspiradora", "secador", "bolsas", "globos",
     "veterinario", "peluquería canina",
     "escaleras", "ascensor", "sitios nuevos",
-    // Corporal específico de miedo
     "cola entre las piernas",
     "orejas hacia atrás",
     "babea del miedo",
@@ -293,7 +286,6 @@ export const DICT_MIEDOS = {
     "protectora",
     "rescate",
     "maltrato",
-    // Bajados de N2 por ser signos corporales compartidos con otros cuadros
     "encogido",
     "postura baja",
     "jadea mucho",
@@ -316,8 +308,6 @@ export const DICT_MIEDOS = {
     },
   ],
 
-  // Regla clave: detonante + respuesta PASIVA confirma miedos
-  // Si respuesta es activa → victoria-matching.js debe reclasificar como reactividad
   compound_rules: [
     {
       id: "detonante_con_evitacion",
@@ -339,14 +329,13 @@ export const DICT_MIEDOS = {
         "petardos", "tormentas", "veterinario", "paraguas",
         "aspiradora", "escaleras", "ascensor",
       ],
-      // Dispara si hay detonante Y NO hay ninguna de estas conductas
       excludes_all_of: [
         "se esconde", "tiembla", "sale corriendo", "se paraliza",
         "se queda paralizado", "no se mueve", "se queda congelado",
         "intenta huir", "se bloquea",
         "ladra", "se lanza", "persigue", "se tira", "se abalanza",
       ],
-      requires_also: null, // null = usa excludes_all_of en su lugar
+      requires_also: null,
       confidence: "baja",
     },
   ],
@@ -417,7 +406,6 @@ export const DICT_REACTIVIDAD = {
   ],
 
   n3: [
-    // Detonantes típicos
     "otros perros", "perros en la calle", "perros grandes", "perros pequeños",
     "bicicletas", "motos", "patinetes", "skates", "runners", "corredores",
     "personas", "desconocidos", "gente por la calle", "visitas", "gente en casa",
@@ -425,7 +413,6 @@ export const DICT_REACTIVIDAD = {
     "timbre", "puerta", "llaman a la puerta", "tocan el timbre",
     "ventana", "balcón", "ve por la ventana", "mira por la ventana",
     "paseo", "sacar", "sacarlo",
-    // Bajados de N2 por ser ambiguos entre cuadros
     "hiperactivo",
     "demasiada energía",
   ],
@@ -443,7 +430,6 @@ export const DICT_REACTIVIDAD = {
     },
   ],
 
-  // Regla clave: vehículos y ciertos detonantes típicos son reactividad por defecto
   compound_rules: [
     {
       id: "detonante_con_respuesta_activa",
@@ -490,29 +476,23 @@ export const DICT_POSESION = {
   ],
 
   n2: [
-    // Conductas específicas de posesión (con recurso implícito)
     "ladra al acercarme",
     "reacciona si toco",
-    // Corporal
     "mirada fija",
     "me mira mal",
     "labio levantado",
     "colmillos",
-    // Marco erróneo del cliente — específico de posesión con recurso
     "dominante con",
     "se cree el jefe con",
     "me desafía con",
-    // Posesión afectiva
     "se pone entre",
     "se interpone",
     "celoso de",
   ],
 
   n3: [
-    // Recursos (objetos genéricos — solos no son diagnóstico)
     "comida", "plato", "hueso", "chuchería", "juguete", "pelota",
     "peluche", "cama", "sofá", "rincón", "sitio",
-    // Contextos
     "cuando come",
     "mientras come",
     "al darle de comer",
@@ -536,7 +516,7 @@ export const DICT_POSESION = {
     },
     {
       condition: "Si hay signos claros de juego (cola relajada, reverencia) → no es posesión",
-      loses_to: null, // no dispara ningún otro cuadro, simplemente se cancela
+      loses_to: null,
     },
   ],
 
@@ -549,9 +529,6 @@ export const DICT_POSESION = {
 export const DICT_BASICA = {
   id: "basica",
 
-  // Flag para victoria-matching.js:
-  // Si básica activa pero el mensaje no contiene ninguna conducta problemática concreta
-  // (solo intención genérica como "mejorar la convivencia"), no disparar protocolo → pedir especificación.
   requires_concrete_problem: true,
 
   n1: [
@@ -571,6 +548,33 @@ export const DICT_BASICA = {
     "empezar bien",
     "desde cero",
     "empezar con buen pie",
+    // Variantes con pronombre que faltaban — evita fallo del caso real
+    "no me escucha",
+    "no me escuchas",
+    "no nos escucha",
+    "no te escucha",
+    "no le escucha",
+    "no me hace ni caso",
+    "no nos hace ni caso",
+    "pasa de mí",
+    "pasa de nosotros",
+    // Pica — comer basura, cosas del suelo, cacas (muy frecuente en consultas)
+    "come del suelo",
+    "come todo del suelo",
+    "come basura",
+    "come cacas",
+    "come cosas de la calle",
+    "come lo que encuentra",
+    "come todo lo que encuentra",
+    "come todo lo que ve",
+    "se come todo",
+    "se come de todo",
+    "come cualquier cosa",
+    "traga lo que encuentra",
+    "pica del suelo",
+    "recoge cosas del suelo",
+    "lame el suelo",
+    "mete la boca en todo",
   ],
 
   n2: [
@@ -604,6 +608,35 @@ export const DICT_BASICA = {
     "no me hace caso",
     "no nos obedece",
     "salta a nosotros",
+    // Llamada — variantes con pronombre
+    "no me viene",
+    "no me vuelve",
+    "no viene cuando lo llamo",
+    "no viene cuando le llamo",
+    "no acude",
+    "no responde si lo llamo",
+    // Paseo con correa — variantes que faltaban
+    "tira muchísimo",
+    "tira como un loco",
+    "no sabe ir con correa",
+    "me saca a pasear él",
+    // Robo de comida
+    "me roba la comida",
+    "nos roba la comida",
+    "coge comida de la mesa",
+    "se sube a la mesa a comer",
+    "quita comida de la mano",
+    "le robo la comida",
+    // Saltos / manejo casa
+    "salta a todo el mundo",
+    "se sube encima",
+    "se tira encima al saludar",
+    "salta al saludar",
+    // Gestión del paseo más coloquial
+    "en la calle es igual",
+    "en la calle no me escucha",
+    "en la calle no hace caso",
+    "fuera de casa no me escucha",
   ],
 
   n3: [
@@ -619,12 +652,20 @@ export const DICT_BASICA = {
     "nuevo hogar",
     "primer perro",
     "nunca hemos tenido perro",
+    // Contextos típicos de pica y paseo sin control
+    "en el suelo",
+    "cosas del suelo",
+    "en la calle",
+    "en el parque",
+    "cuando lo suelto",
+    "cuando lo saco",
+    "en el paseo",
+    "sin correa",
+    "correa larga",
   ],
 
   exclusions_textual: [],
 
-  // Solo se activa si ningún cuadro específico se dispara con fuerza
-  // loses_to lista explícita — victoria-matching.js itera esta lista para aplicar la regla
   exclusions_cooccurrence: [
     {
       condition: "Si alguno de estos cuadros tiene confianza alta → ese cuadro gana, básica no se dispara",
@@ -651,22 +692,17 @@ export const DICT_CACHORROS = {
   ],
 
   n2: [
-    // Mordida exploratoria
     "muerde todo",
     "muerde manos",
     "muerde cuando juega",
-    // Aprendizaje
     "no sabe dónde ir",
     "no avisa",
     "marca la casa",
-    // Rutinas
     "llora por las noches",
     "no se adapta",
-    // Socialización
     "primera vez fuera",
     "no conoce otros perros",
     "nunca ha salido",
-    // Expectativas
     "empezar bien desde el principio",
     "desde pequeño",
     "queremos educarlo bien",
@@ -685,8 +721,6 @@ export const DICT_CACHORROS = {
 
   exclusions_textual: [],
 
-  // Cachorros solo se dispara dentro de los tramos de edad correctos
-  // La lógica de tramos vive en victoria-matching.js
   exclusions_cooccurrence: [
     {
       condition: "Si edad >9 meses y hay cuadro instalado → cuadro específico gana",
@@ -707,8 +741,7 @@ export const DICT_CACHORROS = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// REGISTRO COMPLETO — todos los diccionarios en orden de precedencia
-// (el orden importa: victoria-matching.js los evalúa en este orden para cuadros únicos)
+// REGISTRO COMPLETO
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const TODOS_LOS_DICCIONARIOS = [
@@ -729,30 +762,6 @@ export const TODOS_LOS_DICCIONARIOS = [
 /**
  * Analiza el mensaje del cliente y devuelve los cuadros detectados
  * con su nivel de confianza y los hits por nivel.
- *
- * Esta función hace el matching puro de keywords.
- * Las reglas de precedencia, exclusiones por co-ocurrencia y decisión
- * final viven en victoria-matching.js (que consume este output).
- *
- * Lógica de confianza:
- *   alta  → 1+ hit N1
- *   media → 2+ hits N2, o 1 hit N2 + 2+ hits N3
- *   baja  → 1 hit N2 + 1 hit N3, o solo N3
- *   none  → sin hits
- *
- * @param {string} mensaje — texto libre del cliente
- * @returns {{
- *   cuadros: Array<{
- *     id: string,
- *     confianza: 'alta'|'media'|'baja'|'ninguna',
- *     n1_hits: string[],
- *     n2_hits: string[],
- *     n3_hits: string[],
- *     exclusion_textual: boolean,
- *     compound_hits: string[]
- *   }>,
- *   requiere_aclaracion: boolean
- * }}
  */
 export function detectarCuadros(mensaje) {
   const textoNorm = normalizar(mensaje);
@@ -762,15 +771,12 @@ export function detectarCuadros(mensaje) {
     const n2_hits = filtrarHits(textoNorm, dict.n2);
     const n3_hits = filtrarHits(textoNorm, dict.n3);
 
-    // Exclusión textual directa
     const exclusion_textual = (dict.exclusions_textual || []).some((ex) =>
       textoNorm.includes(normalizar(ex))
     );
 
-    // Compound rules — devuelven array de { id, confidence }
     const compound_hits = _evaluarCompoundRules(textoNorm, dict.compound_rules || []);
 
-    // Contar compound hits de alta confianza para elevar la confianza del cuadro
     const compound_hits_alta_count = compound_hits.filter((h) => h.confidence === "alta").length;
 
     const confianza = _calcularConfianza(n1_hits, n2_hits, n3_hits, exclusion_textual, compound_hits_alta_count);
@@ -786,7 +792,6 @@ export function detectarCuadros(mensaje) {
     };
   });
 
-  // requiere_aclaracion = ningún cuadro tiene confianza alta o media
   const hayConfianzaSuficiente = cuadros.some(
     (c) => c.confianza === "alta" || c.confianza === "media"
   );
@@ -802,10 +807,6 @@ export function detectarCuadros(mensaje) {
 // HELPERS INTERNOS
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Crítica 3: compound rules con confidence "alta" elevan la confianza del cuadro
- * aunque no haya N1. compound_hits_alta_count = número de reglas "alta" que dispararon.
- */
 function _calcularConfianza(n1_hits, n2_hits, n3_hits, exclusion_textual, compound_hits_alta_count) {
   if (exclusion_textual) return "ninguna";
   if (n1_hits.length >= 1) return "alta";
@@ -817,13 +818,6 @@ function _calcularConfianza(n1_hits, n2_hits, n3_hits, exclusion_textual, compou
   return "ninguna";
 }
 
-/**
- * Crítica 4: soporta dos modos de compound rule:
- * - requires_also (array): dispara si hay detonante Y alguna conducta del array
- * - excludes_all_of (array): dispara si hay detonante Y NINGUNA conducta del array
- *
- * Devuelve array de objetos { id, confidence } para los que dispararon.
- */
 function _evaluarCompoundRules(textoNorm, compound_rules) {
   const hits = [];
   for (const rule of compound_rules) {
@@ -835,18 +829,15 @@ function _evaluarCompoundRules(textoNorm, compound_rules) {
     let dispara = false;
 
     if (rule.excludes_all_of) {
-      // Modo "detonante sin conducta": dispara si NO hay ninguna conducta listada
       const tieneConducta = rule.excludes_all_of.some((kw) =>
         textoNorm.includes(normalizar(kw))
       );
       dispara = !tieneConducta;
     } else if (Array.isArray(rule.requires_also) && rule.requires_also.length > 0) {
-      // Modo "detonante con conducta": dispara si hay al menos una conducta listada
       dispara = rule.requires_also.some((kw) =>
         textoNorm.includes(normalizar(kw))
       );
     } else {
-      // requires_also vacío o null — no aplica ningún modo, no dispara
       dispara = false;
     }
 
@@ -882,12 +873,15 @@ function _evaluarCompoundRules(textoNorm, compound_rules) {
 // CASO 5: Ambiguo — pedir aclaración
 // detectarCuadros("quiero mejorar la convivencia con mi perro")
 // Esperado: basica → confianza baja, requiere_aclaracion: true
+//
+// CASO 6 (nuevo): Pica
+// detectarCuadros("come todo lo que encuentra en la calle, basura, cacas, no me escucha")
+// Esperado: basica → confianza alta (n1: "come todo lo que encuentra", "no me escucha")
 // ─────────────────────────────────────────────────────────────────────────────
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DETECCIÓN DE SERVICIOS LATERALES
-// Función pura — solo detecta la keyword.
-// La lógica de "ignorar si hay cuadro fuerte" vive en victoria.js (orquestador).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const DICT_LATERALES = {
@@ -916,10 +910,6 @@ export const DICT_LATERALES = {
 /**
  * Detecta si el texto del cliente corresponde principalmente a un servicio lateral.
  * Devuelve el id del lateral o null.
- * La decisión de usarlo o ignorarlo (si hay cuadros fuertes) la toma victoria.js.
- *
- * @param {string} texto
- * @returns {string|null} id del lateral o null
  */
 export function detectarLateral(texto) {
   const norm = normalizar(texto);
