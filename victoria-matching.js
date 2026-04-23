@@ -377,15 +377,29 @@ function paso5_filtroMordida(contexto) {
 
     const cuadroGanador = contexto.cuadro_pendiente_mordida ?? null;
 
-    // 1. Grave → etólogo
+    // 1. Grave → etólogo SOLO si perro >10kg.
+    //    Si ≤10kg, el daño es manejable por Charly con protocolo del cuadro
+    //    ganador — se deja nota interna para valorar en primera sesión.
     if (esGrave) {
-      return _decision({
-        accion: "derivar",
-        frase_params: { tipo: "etologo", subtipo: "principal" },
-        pending_next: null,
-        cuadro_ganador: null,
-        log: _log(5, [], [], zona.zonaDetectada, null,
-          ["mordida_grave", "derivacion_etologo"], "mordida grave confirmada"),
+      const pesoRelevante = (contexto.perro?.peso_kg ?? 0) > 10;
+
+      if (pesoRelevante) {
+        return _decision({
+          accion: "derivar",
+          frase_params: { tipo: "etologo", subtipo: "principal" },
+          pending_next: null,
+          cuadro_ganador: null,
+          log: _log(5, [], [], zona.zonaDetectada, null,
+            ["mordida_grave", "derivacion_etologo", "perro_grande"],
+            `mordida grave + perro ${contexto.perro?.peso_kg}kg confirmada`),
+        });
+      }
+
+      // Perro ≤10kg con mordida grave → protocolo normal con nota
+      if (!cuadroGanador) return _fallbackWhatsapp("filtro mordida: grave en perro pequeño sin cuadro pendiente");
+      return _resolverCuadro(cuadroGanador, contexto, {
+        paso: 5,
+        nota: `mordida grave en perro ${contexto.perro?.peso_kg}kg — valorar en primera sesión`,
       });
     }
 
