@@ -41,7 +41,7 @@ import { renderPago }                        from "./pagos.js";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SUPA_URL   = "https://sydzfwwiruxqaxojymdz.supabase.co";
-const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2ODMzNDcsImV4cCI6MjA1OTI1OTM0N30.ixjBBHMsEu5ANxl4MXodVdYFhnlEi9MBnj0TxmPHxe0";
+const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5ZHpmd3dpcnV4cWF4b2p5bWR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NjAwODAsImV4cCI6MjA5MjMzNjA4MH0.0SpunQTuSwYaAjzWEDQivZy7971-Tf3CX2KxAEo8Nuw";
 const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // ← cambia por string aleatorio antes de producción
 
 // Delay de typing indicator en ms
@@ -329,10 +329,6 @@ function _procesarS3_DatosPerro(texto) {
   const faltaEdad = state.perro.edad_meses === null;
   const faltaPeso = state.perro.peso_kg    === null;
 
-  // La edad es crítica para el matching (cachorros, filtros de edad)
-  // El peso es informativo — si falta tras 1 intento, usar default y avanzar
-  // La edad merece hasta 3 intentos con mensajes distintos antes del default
-
   if (faltaEdad) {
     state.s3_intentos++;
     if (state.s3_intentos === 1) {
@@ -341,17 +337,14 @@ function _procesarS3_DatosPerro(texto) {
     if (state.s3_intentos === 2) {
       return `Perdona, no he sabido leerlo bien. Dímelo con números si puedes — por ejemplo "3 años" o "8 meses".`;
     }
-    // Tercer intento fallido → default y avanzar
     state.perro.edad_meses = 24;
   }
 
   if (faltaPeso && state.s3_intentos <= 1) {
-    // Solo pedimos el peso si es el primer bloqueo (edad ya resuelta)
     state.s3_intentos++;
     return `¿Y cuánto pesa ${state.perro.nombre} aproximadamente? Un número aproximado me vale — por ejemplo "12 kilos".`;
   }
 
-  // Si falta peso tras intento o no se pudo extraer → default y avanzar
   if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
   if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
   if (state.perro.raza       === null) state.perro.raza       = "mestizo";
@@ -364,7 +357,6 @@ function _procesarS3_DatosPerro(texto) {
 function _procesarS4_Problema(texto) {
   state.mensajes_diagnostico.push(texto);
 
-  // Detectar lateral — ignorar si hay cuadro fuerte en el mismo mensaje
   const lateral = detectarLateral(texto);
   if (lateral) {
     const cuadros = detectarCuadros(texto);
@@ -385,18 +377,16 @@ function _procesarS5_Afinado(texto) {
     return _fallbackHumano("3+ rondas de afinado sin decisión clara");
   }
 
-  // respuesta_pendiente se construye en _construirContexto — no asignar aquí
   return _evaluarYResponder(texto);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PANEL DE OPCIONES — inline dentro del chat (no fijo abajo)
-// Los botones aparecen como parte de la conversación, debajo del último mensaje
+// PANEL DE OPCIONES — inline dentro del chat
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _mostrarOpciones(opciones) {
   if (!_chatEl || !_twEl) return;
-  _ocultarOpciones(); // limpia cualquier bloque anterior
+  _ocultarOpciones();
 
   const wrap = document.createElement("div");
   wrap.className = "opts-inline";
@@ -422,7 +412,6 @@ function _ocultarOpciones() {
   if (prev) prev.remove();
 }
 
-// Keywords afirmativas — usadas en s6 para detectar "sí, ver horarios"
 const KEYWORDS_AFIRMATIVO = [
   "sí", "si", "ok", "okay", "vale", "perfecto", "adelante",
   "me interesa", "quiero", "me apunto", "venga", "dale",
@@ -431,7 +420,6 @@ const KEYWORDS_AFIRMATIVO = [
   "yep", "yes", "ver horarios", "ver horario",
 ];
 
-// Keywords para detectar pregunta sobre duración/cuántas clases
 const KEYWORDS_DURACION = [
   "cuantas clases", "cuántas clases",
   "cuantas sesiones", "cuántas sesiones",
@@ -445,7 +433,6 @@ const KEYWORDS_DURACION = [
   "cuantas semanas", "cuántas semanas",
 ];
 
-// Keywords para detectar pregunta sobre ubicación/dónde se hace
 const KEYWORDS_UBICACION = [
   "donde se hace", "dónde se hace",
   "donde son", "dónde son",
@@ -467,8 +454,6 @@ const KEYWORDS_UBICACION = [
   "viene a casa",
 ];
 
-// Keywords para detectar pregunta sobre valor/precio general
-// NOTA: el cliente puede usar "precio/coste/cuesta" pero Victoria responde con "valor"
 const KEYWORDS_PRECIO = [
   "cuanto cuesta", "cuánto cuesta",
   "cuanto vale", "cuánto vale",
@@ -484,7 +469,6 @@ const KEYWORDS_PRECIO = [
   "coste", "costo",
 ];
 
-// Keywords para detectar pregunta sobre pack/descuento
 const KEYWORDS_PACK = [
   "pack", "paquete", "bono",
   "descuento", "oferta", "rebaja",
@@ -494,7 +478,6 @@ const KEYWORDS_PACK = [
   "bonos", "packs",
 ];
 
-// Keywords para detectar pregunta sobre precio por perro
 const KEYWORDS_PRECIO_POR_PERRO = [
   "es por perro", "por perro",
   "precio por perro", "valor por perro",
@@ -509,32 +492,25 @@ const KEYWORDS_PRECIO_POR_PERRO = [
 
 async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
-
-  // Helper local para matchear keywords
   const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
 
-  // 1. Afirmativo corto → agenda directa
   const esAfirmativo = texto.length < 40 && match(KEYWORDS_AFIRMATIVO);
   if (esAfirmativo) {
     state.current_step = "s7";
     return await _iniciarAgenda();
   }
 
-  // 2. "¿es por perro?" → respuesta específica (debe ir ANTES que precio/pack
-  //    porque "precio por perro" contiene "precio" y "perro")
   if (match(KEYWORDS_PRECIO_POR_PERRO)) {
     _mostrarBotonesAgendaTrasPausa();
     return FRASE_PRECIO_POR_PERRO;
   }
 
-  // 3. Pack / descuento → FRASES_PACK (antes que precio porque "pack" es más específico)
   if (match(KEYWORDS_PACK)) {
     const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
     _mostrarBotonesAgendaTrasPausa();
     return FRASES_PACK[modalidad];
   }
 
-  // 4. Precio/valor general
   if (match(KEYWORDS_PRECIO)) {
     let clave = "sin_modalidad";
     if (state.modalidad_final === "online")          clave = "online";
@@ -543,7 +519,6 @@ async function _procesarS6_Protocolo(texto) {
     return FRASES_PRECIO[clave];
   }
 
-  // 5. Duración / cuántas clases
   if (match(KEYWORDS_DURACION)) {
     const cuadro = state.decision_actual?.cuadro_ganador ??
       state.decision_actual?.cuadros_originales?.[0] ?? null;
@@ -551,13 +526,11 @@ async function _procesarS6_Protocolo(texto) {
       _mostrarBotonesAgendaTrasPausa();
       return FRASES_DURACION[cuadro];
     }
-    // No hay cuadro → respuesta genérica honesta
     _mostrarBotonesAgendaTrasPausa();
     return "La duración depende del caso — van de 4 a 12 clases, según el trabajo que haga falta. " +
       "El adiestrador te lo concreta en la primera sesión tras conocer a tu perro.";
   }
 
-  // 6. Ubicación / dónde se hace
   if (match(KEYWORDS_UBICACION)) {
     let respuesta;
     if (state.modalidad_final === "online") {
@@ -572,18 +545,12 @@ async function _procesarS6_Protocolo(texto) {
     return respuesta;
   }
 
-  // 7. Fallback — no reconocemos la pregunta, mantenemos el hilo con botones
   _mostrarBotonesAgendaTrasPausa();
   return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
     "pueden atenderte con más detalle por WhatsApp al 622 922 173. " +
     "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
 }
 
-/**
- * Muestra los botones de agenda (Ver horarios / Otra pregunta) después de una pausa,
- * para que aparezcan una vez Victoria ha terminado de "escribir" su respuesta.
- * Usado tras responder preguntas de duración/ubicación en s6.
- */
 function _mostrarBotonesAgendaTrasPausa() {
   setTimeout(() => {
     _mostrarOpciones([
@@ -612,7 +579,7 @@ function _mostrarBotonesAgendaTrasPausa() {
         },
       },
     ]);
-  }, 4500); // Pausa larga — typing delay + tiempo de lectura, para que los botones aparezcan después del texto
+  }, 4500);
 }
 
 function _procesarS7_Slot(_texto) {
@@ -641,7 +608,6 @@ function _procesarS9_DatosCliente(texto) {
     return "¿Y tu número de teléfono? Para que el equipo pueda contactarte si hace falta.";
   }
 
-  // Email obligatorio si online
   if (state.modalidad_final === "online" && !state.cliente.email) {
     return "Como la sesión es por Google Meet, necesito también tu email " +
       "para enviarte el enlace de la videollamada.";
@@ -696,11 +662,9 @@ async function _iniciarAgenda() {
       "si no aparecen, escríbenos al 622 922 173 y te damos opciones.";
   }
 
-  // contenedor como primer parámetro — mismo contrato que pagos.js
   await renderAgenda(
     contenedor,
     (slotElegido) => {
-      // Guard contra doble-tap en móvil
       if (state.slot_confirmando) return;
       state.slot_confirmando = true;
 
@@ -718,13 +682,11 @@ async function _iniciarAgenda() {
       }, 800);
     },
     () => {
-      // Callback de cancelación total — actualmente no invocado desde la UI
-      // porque "Elegir otro horario" es puramente local en agenda.js.
-      // Reservado para futuras ampliaciones (ej: botón de cancelar agenda).
+      // Reservado para futuras ampliaciones
     }
   );
 
-  return null; // el widget se renderiza en el DOM — sin burbuja de texto
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -746,7 +708,7 @@ function _iniciarPago() {
       citaId: state.cita_id,
     },
     async ({ metodo, signedUrl, pendienteVerificar }) => {
-      state.metodo_pago                = metodo;  // "bizum" o "transf"
+      state.metodo_pago                = metodo;
       state.comprobante_url            = signedUrl ?? null;
       state.pago_pendiente_verificar   = !!pendienteVerificar;
       state.current_step               = "s12";
@@ -772,11 +734,6 @@ function _iniciarPago() {
   return null;
 }
 
-/**
- * Devuelve el mensaje de valor + pack + política según la modalidad.
- * Se muestra después del diagnóstico y antes de la agenda.
- * Tono de marca: "valor" no "precio", "clase" no "sesión".
- */
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
     return "Antes de seguir te cuento los detalles prácticos: el valor de la clase online es de 75€. " +
@@ -792,12 +749,7 @@ function _mensajePrecio() {
     "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
 }
 
-/**
- * Muestra precio y botones de acción DESPUÉS de que el protocolo esté en pantalla.
- * Llamada desde _enviarMensaje cuando state.mostrar_precio_tras_protocolo === true.
- */
 function _mostrarPrecioYBotonesAgenda() {
-  // Pausa para que el cliente lea el protocolo antes del siguiente mensaje
   setTimeout(() => {
     _mostrarTyping(true);
 
@@ -807,7 +759,6 @@ function _mostrarPrecioYBotonesAgenda() {
       _mostrarVictoria(msgPrecio);
       _registrarTurno("victoria", msgPrecio);
 
-      // Botones tras el mensaje de precio
       setTimeout(() => {
         _mostrarOpciones([
           {
@@ -852,14 +803,13 @@ function _explicarPago() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NÚCLEO MATCHING — construir contexto y evaluar
+// NÚCLEO MATCHING
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _evaluarYResponder(textoActual) {
   const contexto = _construirContexto(textoActual);
   const decision = decidirRespuesta(contexto);
 
-  // Persistir campos de estado entre turnos
   if (decision.pending_next !== undefined)       state.pending = decision.pending_next;
   if (decision.cuadro_pendiente_mordida)         state.cuadro_pendiente_mordida = decision.cuadro_pendiente_mordida;
   if (decision.bandera_edad_temprana)            state.bandera_edad_temprana = true;
@@ -879,13 +829,11 @@ function _evaluarYResponder(textoActual) {
       const frase = obtenerFrase(decision.frase_params);
       if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
 
-      // Protocolo presentado — avanzar a s6 y marcar flag para precio+botones
       if (decision.accion === "responder" &&
           (state.current_step === "s4" || state.current_step === "s5")) {
         state.protocolo_ya_presentado = true;
         state.current_step = "s6";
         if (state.modalidad_final !== "derivar") {
-          // Flag: _enviarMensaje mostrará precio+botones DESPUÉS de pintar el protocolo
           state.mostrar_precio_tras_protocolo = true;
           return frase;
         }
@@ -928,11 +876,9 @@ function _construirContexto(textoActual) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PERSISTENCIA EN SUPABASE
-// Campos alineados con la tabla real de citas (vista en captura de pantalla)
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _guardarCitaEnSupabase() {
-  // 1. Guardar cliente
   const clienteRes = await _supabasePost("/rest/v1/clientes", {
     nombre:   state.cliente.nombre,
     telefono: state.cliente.telefono,
@@ -940,7 +886,6 @@ async function _guardarCitaEnSupabase() {
   });
   const clienteId = clienteRes?.id ?? null;
 
-  // 2. Guardar perro
   const perroRes = await _supabasePost("/rest/v1/perros", {
     nombre:     state.perro.nombre,
     raza:       state.perro.raza,
@@ -951,14 +896,11 @@ async function _guardarCitaEnSupabase() {
   });
   const perroId = perroRes?.id ?? null;
 
-  // 3. Guardar cita — usando campos reales de la tabla:
-  //    fecha (date) + hora (time) separados, comprobante_url (no captura_url)
   const decision = state.decision_actual;
   const cuadros  = decision?.cuadros_originales ??
     (decision?.cuadro_ganador ? [decision.cuadro_ganador] : []);
 
   const slot = state.slot_elegido;
-  // slot.fecha es "YYYY-MM-DD", slot.hora es "HH:MM"
   const fechaCita = slot?.fecha ?? null;
   const horaCita  = slot?.hora  ?? null;
 
@@ -969,7 +911,7 @@ async function _guardarCitaEnSupabase() {
     estado:                  "confirmada",
     sena_pagada:             !state.pago_pendiente_verificar,
     metodo_pago:             state.metodo_pago ?? null,
-    comprobante_url:         state.comprobante_url,  // nombre real del campo
+    comprobante_url:         state.comprobante_url,
     modalidad:               state.modalidad_final,
     zona:                    state.zona?.zonaDetectada,
     cuadros_detectados:      cuadros,
@@ -981,7 +923,6 @@ async function _guardarCitaEnSupabase() {
   });
   state.cita_id = citaRes?.id ?? null;
 
-  // 4. Guardar conversación
   await _supabasePost("/rest/v1/conversaciones", {
     cita_id:      state.cita_id,
     turnos:       state.historial_turnos,
@@ -1063,7 +1004,6 @@ function _actualizarProgreso() {
 // EXTRACCIÓN DE DATOS ESTRUCTURADOS
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Mapa de números en palabras → dígitos (español)
 const NUMEROS_PALABRA = {
   "un": "1", "una": "1", "uno": "1",
   "dos": "2", "tres": "3", "cuatro": "4", "cinco": "5",
@@ -1072,10 +1012,6 @@ const NUMEROS_PALABRA = {
   "catorce": "14", "quince": "15",
 };
 
-/**
- * Normaliza números escritos en palabras a dígitos.
- * "un año" → "1 año", "siete kilos" → "7 kilos"
- */
 function _normalizarNumeros(texto) {
   let t = texto.toLowerCase();
   for (const [palabra, digito] of Object.entries(NUMEROS_PALABRA)) {
@@ -1087,7 +1023,6 @@ function _normalizarNumeros(texto) {
 function _extraerEdad(texto) {
   const t = _normalizarNumeros(texto);
 
-  // "1 año y 5 meses" → 17
   const compuesto = t.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
   if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
 
