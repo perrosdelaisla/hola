@@ -182,7 +182,7 @@ export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — 
 
 Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
 
-export const FRASE_CIERRE_METODOLOGIA = `Genial. ¿Te paso la información de precios y los horarios disponibles?`;
+export const FRASE_CIERRE_METODOLOGIA = `¿Quieres que te pase la información de precios y los horarios disponibles?`;
 
 export const FRASE_DURACION_UNIFICADA = `La duración depende del protocolo:
 
