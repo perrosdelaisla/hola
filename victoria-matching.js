@@ -40,8 +40,13 @@ export function decidirRespuesta(contexto) {
   const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida } = contexto;
 
   // ── FILTRO 1: Mordida ────────────────────────────────────────────────────
+  //
+  // Se activa si el texto actual menciona mordida O si ya tenemos una gravedad
+  // definida de un turno anterior (el cliente está respondiendo a la repregunta
+  // de gravedad). Esto evita que Victoria "olvide" el filtro de seguridad entre
+  // turnos y caiga al caso general vendiendo clases para mordidas graves.
 
-  if (keywords_mordida) {
+  if (keywords_mordida || gravedad_mordida) {
     // Gravedad aún no definida → preguntar
     if (!gravedad_mordida) {
       return _decision({
