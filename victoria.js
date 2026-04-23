@@ -1000,7 +1000,7 @@ async function _notificarCarlos() {
   // Mensaje listo para copiar-pegar y enviar al cliente por WhatsApp
   // Charly lo envía manualmente tras verificar que el Bizum/transferencia llegó
   const primerNombre = (c.nombre ?? "").split(" ")[0] || "hola";
-  const nombrePerro  = p.nombre ?? "tu peludito";
+  const nombrePerro  = p.nombre ?? "tu perro";
   const razaPerro    = p.raza   ?? "";
   const perroTexto   = razaPerro ? `${nombrePerro} (${razaPerro})` : nombrePerro;
   const slotLabel    = slot?.label ?? "—";
@@ -1014,7 +1014,7 @@ async function _notificarCarlos() {
     "Soy Carlos, de Perros de la Isla. Te confirmo que hemos recibido la seña de 45€ y tu cita está reservada.",
     "",
     `📅 Día y hora: ${slotLabel}`,
-    `🐕 Peludito: ${perroTexto}`,
+    `🐕 Perro: ${perroTexto}`,
     `🎯 Protocolo: ${protocoloHumano}`,
     `📍 Modalidad: ${modalidadTexto}`,
     "",
