@@ -254,7 +254,17 @@ function _insertarContenedorEnChat(id, className = "") {
   contenedor.id = id;
   wrap.appendChild(contenedor);
   _chatEl.insertBefore(wrap, _twEl);
-  _scrollAbajo();
+
+  // Para la agenda, scrollear al INICIO del widget (no al final)
+  // así el usuario ve "Lun X may" arriba del todo y puede elegir con calma
+  if (className.includes("agenda-widget")) {
+    setTimeout(() => {
+      wrap.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  } else {
+    _scrollAbajo();
+  }
+
   return contenedor;
 }
 
@@ -545,9 +555,13 @@ const KEYWORDS_PRECIO_POR_PERRO = [
 const KEYWORDS_MATERIALES = [
   "que llevo", "qué llevo",
   "que tengo que llevar", "qué tengo que llevar",
+  "tengo que llevar",
+  "llevar algo", "traer algo",
   "que necesito", "qué necesito",
+  "necesito algo", "necesito llevar", "necesito preparar",
   "que debo tener", "qué debo tener",
   "que preparo", "qué preparo",
+  "hace falta algo", "hace falta que lleve", "hace falta preparar",
   "materiales", "material",
   "herramientas",
   "tengo que tener algo", "hay que tener algo",
