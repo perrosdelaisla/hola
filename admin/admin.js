@@ -330,8 +330,10 @@ async function cargarCitas() {
       clienteDiv.textContent = `${c.clientes?.nombre ?? '—'} · ${c.clientes?.telefono ?? '—'}`;
       li.appendChild(clienteDiv);
 
-      const perroTxt = (c.perros && c.perros[0])
-        ? `${c.perros[0].nombre} (${c.perros[0].raza || '—'})`
+      // Los perros vienen anidados dentro de clientes (perro pertenece a cliente, no a cita)
+      const perrosArr = c.clientes?.perros ?? [];
+      const perroTxt = (perrosArr.length > 0)
+        ? `${perrosArr[0].nombre} (${perrosArr[0].raza || '—'})`
         : '—';
       const perroDiv = document.createElement('div');
       perroDiv.className = 'cita-perro';
