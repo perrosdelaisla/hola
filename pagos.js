@@ -1,3 +1,4 @@
+
 /**
  * pagos.js
  * Perros de la Isla — Embudo Victoria
@@ -200,16 +201,16 @@ export async function subirComprobante(file, datosCita) {
   const timestamp = Date.now();
   const nombre    = `cita_${datosCita.citaId ?? timestamp}_${timestamp}.jpg`;
 
-  // Subir al bucket
+  // Subir al bucket — sin x-upsert y sin Content-Type explícito
+  // (Supabase detecta el MIME del Blob automáticamente y la anon key
+  // acepta mejor el upload cuando no se fuerzan estos headers)
   const uploadRes = await fetch(
     `${SUPA_URL}/storage/v1/object/${BUCKET}/${nombre}`,
     {
       method: "POST",
       headers: {
-        "apikey": SUPA_KEY,
+        "apikey":        SUPA_KEY,
         "Authorization": `Bearer ${SUPA_KEY}`,
-        "Content-Type": esImagen ? "image/jpeg" : file.type,
-        "x-upsert": "false",
       },
       body: blob,
     }
