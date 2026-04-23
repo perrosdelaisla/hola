@@ -542,6 +542,23 @@ const KEYWORDS_PRECIO_POR_PERRO = [
   "son dos perros", "son 2 perros",
 ];
 
+const KEYWORDS_MATERIALES = [
+  "que llevo", "qué llevo",
+  "que tengo que llevar", "qué tengo que llevar",
+  "que necesito", "qué necesito",
+  "que debo tener", "qué debo tener",
+  "que preparo", "qué preparo",
+  "materiales", "material",
+  "herramientas",
+  "tengo que tener algo", "hay que tener algo",
+  "algo especial", "cosa especial",
+  "tengo que comprar", "hay que comprar",
+  "que me compro", "qué me compro",
+  "llevar comida", "llevar premios",
+  "necesito collar", "necesito arnés", "necesito arnes",
+  "necesito correa",
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DESESCALADA — cuando el cliente matiza que exageró al describir
 // Usado tras una derivación al etólogo para permitir recalcular
@@ -590,23 +607,22 @@ async function _procesarS6_Protocolo(texto) {
   const norm = normalizar(texto);
   const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
 
-  const esAfirmativo = texto.length < 40 && match(KEYWORDS_AFIRMATIVO);
-  if (esAfirmativo) {
-    state.current_step = "s7";
-    return await _iniciarAgenda();
-  }
+  // ORDEN de matching IMPORTANTE — primero keywords específicas, afirmativo al final
 
+  // 1. Precio por perro
   if (match(KEYWORDS_PRECIO_POR_PERRO)) {
     _mostrarBotonesAgendaTrasPausa();
     return FRASE_PRECIO_POR_PERRO;
   }
 
+  // 2. Pack / descuentos
   if (match(KEYWORDS_PACK)) {
     const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
     _mostrarBotonesAgendaTrasPausa();
     return FRASES_PACK[modalidad];
   }
 
+  // 3. Precio / valor
   if (match(KEYWORDS_PRECIO)) {
     let clave = "sin_modalidad";
     if (state.modalidad_final === "online")          clave = "online";
@@ -615,12 +631,14 @@ async function _procesarS6_Protocolo(texto) {
     return FRASES_PRECIO[clave];
   }
 
+  // 4. Duración / número de clases
   if (match(KEYWORDS_DURACION)) {
     _mostrarBotonesAgendaTrasPausa();
     const perro = state.perro.nombre ?? null;
     return obtenerFrase({ tipo: "duracion", vars: { perro } });
   }
 
+  // 5. Ubicación / dónde se hacen las clases
   if (match(KEYWORDS_UBICACION)) {
     let respuesta;
     if (state.modalidad_final === "online") {
@@ -635,10 +653,25 @@ async function _procesarS6_Protocolo(texto) {
     return respuesta;
   }
 
-  _mostrarBotonesAgendaTrasPausa();
-  return "Para esa pregunta te paso directamente con el equipo de Perros de la Isla — " +
-    "pueden atenderte con más detalle por WhatsApp al 622 922 173. " +
-    "Si prefieres, también puedes seguir aquí y ver los horarios disponibles cuando quieras.";
+  // 6. Materiales / qué llevar
+  if (match(KEYWORDS_MATERIALES)) {
+    const perro = state.perro.nombre ?? "tu perro";
+    _mostrarBotonesAgendaTrasPausa();
+    return `Para la primera clase no hace falta que prepares nada especial — el adiestrador te cuenta en ese momento qué vamos a ir usando según el caso de ${perro}. Lo único que sí conviene tener a mano es su comida habitual y algunos premios que le gusten mucho (trocitos de salchicha, queso, pollo hervido, o premios comerciales que suela disfrutar). Eso es todo.`;
+  }
+
+  // 7. Afirmativo corto → agenda (AL FINAL para que no se coma "quiero los precios")
+  const esAfirmativo = texto.length < 40 && match(KEYWORDS_AFIRMATIVO);
+  if (esAfirmativo) {
+    state.current_step = "s7";
+    return await _iniciarAgenda();
+  }
+
+  // 8. Nada matcheó → pedir WhatsApp al cliente (NUNCA dar el 622 sin seña pagada)
+  _mostrarBotonPedirWhatsApp();
+  return "Para esa pregunta prefiero que alguien del equipo te contacte directamente y lo habléis con calma. " +
+    "¿Me puedes dejar tu WhatsApp? En cuanto me lo pases, nos ponemos en contacto contigo. " +
+    "Si prefieres, también puedes seguir aquí y ver los horarios disponibles.";
 }
 
 /**
@@ -709,6 +742,37 @@ function _mostrarBotonesRamificacion() {
           _mostrarCliente("Ver precios");
           _registrarTurno("cliente", "Ver precios");
           _mostrarPrecioYBotonesAgenda();
+        },
+      },
+    ]);
+  }, 4500);
+}
+
+function _mostrarBotonPedirWhatsApp() {
+  setTimeout(() => {
+    _mostrarOpciones([
+      {
+        label: "Sí, ver horarios disponibles",
+        onClick: async () => {
+          _mostrarCliente("Sí, ver horarios");
+          _registrarTurno("cliente", "Sí, ver horarios");
+          state.current_step = "s7";
+          _mostrarTyping(true);
+          setTimeout(async () => {
+            _mostrarTyping(false);
+            await _iniciarAgenda();
+            _actualizarProgreso();
+          }, TYPING_DELAY);
+        },
+      },
+      {
+        label: "Dejar mi WhatsApp para que me contacten",
+        onClick: () => {
+          _mostrarCliente("Dejar mi WhatsApp");
+          _registrarTurno("cliente", "Dejar mi WhatsApp");
+          const msg = "Genial. Escríbeme tu número de WhatsApp y el equipo de Perros de la Isla te contactará en cuanto pueda.";
+          _mostrarVictoria(msg);
+          _registrarTurno("victoria", msg);
         },
       },
     ]);
