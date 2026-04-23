@@ -108,6 +108,7 @@ function _estadoInicial() {
 export function start() {
   state = _estadoInicial();
   _conectarUI();
+  _conectarSplash();
 
   const bienvenida = "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
     "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
@@ -142,6 +143,19 @@ function _conectarUI() {
     });
     _sendEl.addEventListener("click", _enviarMensaje);
   }
+}
+
+function _conectarSplash() {
+  const splashEl = document.getElementById("splash");
+  const btnEl    = document.getElementById("splash-start-btn");
+  if (!splashEl || !btnEl) return;
+
+  btnEl.addEventListener("click", () => {
+    splashEl.classList.add("splash-fadeout");
+    setTimeout(() => {
+      splashEl.style.display = "none";
+    }, 650);
+  });
 }
 
 async function _enviarMensaje() {
@@ -644,6 +658,7 @@ async function _procesarS12_Confirmacion(_texto) {
     await _guardarCitaEnSupabase();
     await _notificarCarlos();
     state.cita_confirmada = true;
+    setTimeout(() => { _insertarCierre(); }, 3500);
 
     const perro    = state.perro.nombre ?? "tu perro";
     const slot     = state.slot_elegido;
@@ -1174,6 +1189,25 @@ function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
   return "Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla. " +
     "Puedes escribirnos por WhatsApp al 622 922 173.";
+}
+
+function _insertarCierre() {
+  if (!_chatEl || !_twEl) return;
+  // Evitar duplicados
+  if (document.getElementById("chat-cierre-inyectado")) return;
+
+  const cierre = document.createElement("div");
+  cierre.id = "chat-cierre-inyectado";
+  cierre.className = "chat-cierre";
+  cierre.innerHTML = `
+    <p class="chat-cierre-lema">Tu perro<br>merece ser feliz, hoy</p>
+    <div class="chat-cierre-botones">
+      <button class="chat-cierre-btn ig" onclick="window.open('https://www.instagram.com/perrosdelaisla/', '_blank')">Instagram</button>
+      <button class="chat-cierre-btn web" onclick="window.open('https://www.perrosdelaisla.com/', '_blank')">Web</button>
+    </div>
+  `;
+  _chatEl.insertBefore(cierre, _twEl);
+  _scrollAbajo();
 }
 
 async function _supabasePost(endpoint, body) {
