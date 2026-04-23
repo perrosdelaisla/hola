@@ -2,13 +2,14 @@
  * pagos.js
  * Perros de la Isla — Embudo Victoria
  * Gestión del pago de seña (Bizum / Transferencia)
- * Versión 1.1 · Abril 2026
+ * Versión 1.2 · Abril 2026
  *
- * Correcciones v1.1:
- * 1. HTML mal cerrado en bloque transferencia — </div> añadido.
- * 2. subirComprobante ahora comprime antes de subir (Canvas API, 1200px, 0.8).
- * 3. subirComprobante devuelve signed URL (30 días) en vez de URL pública.
- * 4. confirmarPago / confirmarPagoTransf con try/catch, retry y fallback WhatsApp.
+ * Cambios v1.2:
+ * 1. Botón único #btn-confirmar-pago (en vez de uno por método).
+ * 2. _previsualizarArchivo sin parámetro btnId.
+ * 3. confirmarPago usa errorId="pago-error" y btnId="btn-confirmar-pago".
+ * 4. Nuevos helpers _marcarBotonActivo y _actualizarBotonConfirmar.
+ * 5. Bloques HTML bizum/transf refactorizados (sin botón interno, upload-label mejorada).
  */
 
 const SUPA_URL = "https://sydzfwwiruxqaxojymdz.supabase.co";
@@ -35,7 +36,7 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
       <h3>Reserva tu cita — seña de ${precio}€</h3>
       <p class="pago-info">
         Para confirmar la cita, abona la seña de <strong>${precio}€</strong>.
-        El resto (${precio}€) se paga presencialmente el día de la sesión.
+        El resto (${precio}€) se paga presencialmente el día de la clase.
       </p>
 
       <div class="pay-opts">
@@ -47,64 +48,68 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
         <p>Envía <strong>${precio}€</strong> por Bizum al número:</p>
         <p class="pay-number">653 591 301</p>
         <p class="pay-concepto">Concepto: <em>Cita ${datosCita.nombre ?? ""}</em></p>
-        <label class="upload-label">
-          Sube la captura del Bizum:
+        <label class="upload-label" for="input-captura-bizum">
+          <span class="upload-label-text">📎 Toca aquí para subir la captura del Bizum</span>
           <input type="file" id="input-captura-bizum"
             accept="image/*" capture="environment"
             class="upload-input" />
         </label>
         <div id="preview-bizum" class="upload-preview hidden"></div>
-        <button class="pay-confirm-btn hidden" id="btn-confirmar-bizum">
-          Confirmar pago
-        </button>
-        <p id="error-bizum" class="pay-error hidden"></p>
       </div>
 
       <div id="bloque-transf" class="pay-block hidden">
         <p>Realiza una transferencia de <strong>${precio}€</strong> a:</p>
-        <p class="pay-iban">IBAN: ES27 0182 5319 7002 0055 6013</p>
+        <p class="pay-label">IBAN</p>
+        <p class="pay-iban">ES27 0182 5319 7002 0055 6013</p>
         <p class="pay-titular">Titular: Carlos Antonio Acevedo</p>
         <p class="pay-concepto">Concepto: <em>Cita ${datosCita.nombre ?? ""}</em></p>
-        <label class="upload-label">
-          Sube el justificante de transferencia:
+        <label class="upload-label" for="input-captura-transf">
+          <span class="upload-label-text">📎 Toca aquí para subir el justificante</span>
           <input type="file" id="input-captura-transf"
             accept="image/*,application/pdf" capture="environment"
             class="upload-input" />
         </label>
         <div id="preview-transf" class="upload-preview hidden"></div>
-        <button class="pay-confirm-btn hidden" id="btn-confirmar-transf">
-          Confirmar pago
-        </button>
-        <p id="error-transf" class="pay-error hidden"></p>
       </div>
+
+      <button class="pay-confirm-btn hidden" id="btn-confirmar-pago">
+        Confirmar pago
+      </button>
+      <p id="pago-error" class="pay-error hidden"></p>
 
       <button class="back-btn" id="btn-volver-pago">← Volver</button>
     </div>
   `;
 
+  // Estado interno del widget
+  let metodoElegido = null;
+
   // Eventos
   contenedor.querySelector("#btn-bizum").addEventListener("click", () => {
+    metodoElegido = "bizum";
     _mostrarBloque("bloque-bizum", "bloque-transf", contenedor);
+    _marcarBotonActivo("btn-bizum", "btn-transf", contenedor);
+    _actualizarBotonConfirmar(contenedor, metodoElegido);
   });
 
   contenedor.querySelector("#btn-transf").addEventListener("click", () => {
+    metodoElegido = "transf";
     _mostrarBloque("bloque-transf", "bloque-bizum", contenedor);
+    _marcarBotonActivo("btn-transf", "btn-bizum", contenedor);
+    _actualizarBotonConfirmar(contenedor, metodoElegido);
   });
 
   contenedor.querySelector("#input-captura-bizum").addEventListener("change", (e) => {
-    _previsualizarArchivo(e.target.files[0], "preview-bizum", "btn-confirmar-bizum", contenedor);
+    _previsualizarArchivo(e.target.files[0], "preview-bizum", contenedor);
   });
 
   contenedor.querySelector("#input-captura-transf").addEventListener("change", (e) => {
-    _previsualizarArchivo(e.target.files[0], "preview-transf", "btn-confirmar-transf", contenedor);
+    _previsualizarArchivo(e.target.files[0], "preview-transf", contenedor);
   });
 
-  contenedor.querySelector("#btn-confirmar-bizum").addEventListener("click", () => {
-    confirmarPago("bizum", datosCita, contenedor, onPagoConfirmado);
-  });
-
-  contenedor.querySelector("#btn-confirmar-transf").addEventListener("click", () => {
-    confirmarPago("transf", datosCita, contenedor, onPagoConfirmado);
+  contenedor.querySelector("#btn-confirmar-pago").addEventListener("click", () => {
+    if (!metodoElegido) return;
+    confirmarPago(metodoElegido, datosCita, contenedor, onPagoConfirmado);
   });
 
   contenedor.querySelector("#btn-volver-pago").addEventListener("click", onVolver);
@@ -126,8 +131,8 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
  */
 export async function confirmarPago(metodo, datosCita, contenedor, onPagoConfirmado) {
   const inputId   = metodo === "bizum" ? "input-captura-bizum" : "input-captura-transf";
-  const errorId   = metodo === "bizum" ? "error-bizum" : "error-transf";
-  const btnId     = metodo === "bizum" ? "btn-confirmar-bizum" : "btn-confirmar-transf";
+  const errorId   = "pago-error";
+  const btnId     = "btn-confirmar-pago";
 
   const input   = contenedor.querySelector(`#${inputId}`);
   const errorEl = contenedor.querySelector(`#${errorId}`);
@@ -152,7 +157,7 @@ export async function confirmarPago(metodo, datosCita, contenedor, onPagoConfirm
     } catch (err) {
       intentos++;
       if (intentos >= 2) {
-        // Fallback a WhatsApp — Fix 4
+        // Fallback a WhatsApp
         _mostrarError(errorEl,
           "Ha habido un problema al subir la captura. Envíala por WhatsApp al 622 922 173 " +
           "y Carlos verificará el pago manualmente."
@@ -175,7 +180,7 @@ export async function confirmarPago(metodo, datosCita, contenedor, onPagoConfirm
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SUBIR COMPROBANTE — compresión + signed URL (Fixes 2 y 3)
+// SUBIR COMPROBANTE — compresión + signed URL
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -187,7 +192,6 @@ export async function confirmarPago(metodo, datosCita, contenedor, onPagoConfirm
  * @returns {Promise<string>} signed URL
  */
 export async function subirComprobante(file, datosCita) {
-  // Fix 2: comprimir antes de subir
   const esImagen = file.type.startsWith("image/");
   const blob = esImagen
     ? await _comprimirImagen(file, 1200, 0.8)
@@ -215,7 +219,7 @@ export async function subirComprobante(file, datosCita) {
     throw new Error(`Error al subir comprobante: ${uploadRes.status}`);
   }
 
-  // Fix 3: signed URL con 30 días de expiración
+  // Signed URL con 30 días de expiración
   const signRes = await fetch(
     `${SUPA_URL}/storage/v1/object/sign/${BUCKET}/${nombre}`,
     {
@@ -243,8 +247,7 @@ export async function subirComprobante(file, datosCita) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Fix 2: Comprime una imagen con Canvas API nativo.
- * Sin dependencias externas.
+ * Comprime una imagen con Canvas API nativo.
  *
  * @param {File} file
  * @param {number} maxWidth — ancho máximo en px
@@ -306,23 +309,35 @@ function _mostrarBloque(mostrarId, ocultarId, contenedor) {
   contenedor.querySelector(`#${ocultarId}`)?.classList.add("hidden");
 }
 
-/** Previsualiza el archivo seleccionado y muestra el botón de confirmar */
-function _previsualizarArchivo(file, previewId, btnId, contenedor) {
+/** Marca visualmente el botón de método activo */
+function _marcarBotonActivo(activoId, inactivoId, contenedor) {
+  contenedor.querySelector(`#${activoId}`)?.classList.add("on");
+  contenedor.querySelector(`#${inactivoId}`)?.classList.remove("on");
+}
+
+/** Muestra el botón único de confirmar con texto según el método elegido */
+function _actualizarBotonConfirmar(contenedor, metodo) {
+  const btn = contenedor.querySelector("#btn-confirmar-pago");
+  if (!btn) return;
+  btn.textContent = metodo === "bizum"
+    ? "Confirmar pago por Bizum"
+    : "Confirmar pago por transferencia";
+  btn.classList.remove("hidden");
+}
+
+/** Previsualiza el archivo seleccionado */
+function _previsualizarArchivo(file, previewId, contenedor) {
   if (!file) return;
   const preview = contenedor.querySelector(`#${previewId}`);
-  const btn     = contenedor.querySelector(`#${btnId}`);
-  if (!preview || !btn) return;
+  if (!preview) return;
 
   if (file.type.startsWith("image/")) {
     const url = URL.createObjectURL(file);
     preview.innerHTML = `<img src="${url}" alt="Vista previa" class="upload-thumb" />`;
-    preview.classList.remove("hidden");
   } else {
     preview.innerHTML = `<p class="upload-file-name">📎 ${file.name}</p>`;
-    preview.classList.remove("hidden");
   }
-
-  btn.classList.remove("hidden");
+  preview.classList.remove("hidden");
 }
 
 function _mostrarError(el, msg) {
