@@ -616,6 +616,13 @@ function _procesarS9_DatosCliente(texto) {
   if (email) state.cliente.email = email;
 
   state.current_step = "s10";
+  // Programar el widget de pago para que aparezca tras el mensaje explicativo.
+  // Usamos setTimeout para que el widget se pinte DESPUÉS de que Victoria
+  // termine de "escribir" la respuesta (el delay de typing se calcula en
+  // _enviarMensaje según la longitud del texto).
+  setTimeout(() => {
+    _iniciarPago();
+  }, 2500);
   return _explicarPago();
 }
 
@@ -792,14 +799,8 @@ function _mostrarPrecioYBotonesAgenda() {
 }
 
 function _explicarPago() {
-  const sena      = 45;
-  const modalidad = state.modalidad_final === "online"
-    ? "online (75€ la clase)"
-    : "presencial (90€ la clase)";
-  return `Para confirmar la cita en modalidad ${modalidad}, necesito una seña de ${sena}€. ` +
-    "Puedes pagarla por Bizum al 653 591 301 o por transferencia al IBAN " +
-    "ES27 0182 5319 7002 0055 6013 (titular: Carlos Antonio Acevedo). " +
-    "Cuando hayas hecho el pago, súbeme la captura y lo confirmo enseguida.";
+  return "Perfecto, vamos a confirmar la cita. La seña es de 45€ por Bizum o transferencia " +
+    "y se descuenta del total. Ahora te paso las opciones de pago.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -930,6 +931,18 @@ async function _guardarCitaEnSupabase() {
   });
 }
 
+// Mapa cuadro interno → nombre humano + duración estimada
+// Separación y generalizada comparten nombre comercial "Gestión de ansiedad"
+const PROTOCOLO_HUMANO = {
+  separacion:   "Gestión de ansiedad · 8-12 clases",
+  generalizada: "Gestión de ansiedad · 8-12 clases",
+  miedos:       "Miedos/fobias · 8-12 clases",
+  reactividad:  "Reactividad · 4-12 clases",
+  posesion:     "Posesión de recursos · 4-8 clases",
+  basica:       "Educación básica · 4 clases",
+  cachorros:    "Educación de cachorros · 4 clases",
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // NOTIFICACIÓN A CARLOS (ntfy.sh)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -953,6 +966,18 @@ async function _notificarCarlos() {
   if (state.pago_pendiente_verificar) flags.push("⚠️ Comprobante no subido — verificar pago manualmente");
   const flagsTexto = flags.length ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
 
+  // Nombre humano del protocolo recomendado (usa el primer cuadro detectado)
+  const cuadroPrincipal = cuadros[0] ?? null;
+  const protocoloHumano = cuadroPrincipal && PROTOCOLO_HUMANO[cuadroPrincipal]
+    ? PROTOCOLO_HUMANO[cuadroPrincipal]
+    : "No identificado";
+
+  // Resumen del problema reportado: primeros 2 mensajes de s4+s5 del cliente,
+  // truncado para que la notificación no sea gigante
+  const mensajesCliente = state.mensajes_diagnostico ?? [];
+  const reportadoTexto = mensajesCliente.slice(0, 2).join(" · ").slice(0, 400) ||
+    "Sin texto del cliente";
+
   const mensaje = [
     "[NUEVA CITA CONFIRMADA 🐾]",
     "",
@@ -962,8 +987,12 @@ async function _notificarCarlos() {
     `🐕 Perro: ${p.nombre ?? "—"} · ${p.raza ?? "—"} · ${edadTexto} · ${p.peso_kg ?? "—"}kg`,
     `📍 Zona: ${state.zona?.zonaDetectada ?? "—"} · Modalidad: ${state.modalidad_final ?? "—"}`,
     "",
-    `🧠 Cuadro(s): ${cuadros.join(" + ")}`,
+    `🧠 Protocolo: ${protocoloHumano}`,
+    `   Cuadro(s) internos: ${cuadros.join(" + ")}`,
     `   Flags:\n${flagsTexto}`,
+    "",
+    `📝 Reportado por el cliente:`,
+    `   "${reportadoTexto}"`,
     "",
     `📅 Slot: ${slot?.label ?? "—"}`,
     `💰 Seña: 45€ ${state.pago_pendiente_verificar ? "PENDIENTE DE VERIFICAR" : "confirmada"}`,
