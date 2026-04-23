@@ -1,18 +1,20 @@
 /**
  * victoria-phrases.js
  * Perros de la Isla — Embudo Victoria
- * Banco completo de frases — texto exacto de la especificación v1.0
- * Versión 1.0 · Abril 2026
+ * Versión 2.0 · Abril 2026
  *
- * IMPORTANTE: estas frases son el texto final redactado en la spec.
- * No modificar sin revisar con Carlos. Las variables entre llaves
- * ({nombre_perro}, {cuadro_1}, etc.) se sustituyen en victoria.js
- * antes de enviar al cliente.
+ * CAMBIOS v2.0:
+ * - Añadidas constantes de mensaje unificado (FRASE_MENSAJE_PRINCIPAL,
+ *   FRASE_RAMIFICACION, FRASE_COMO_TRABAJAMOS_*, FRASE_CIERRE_METODOLOGIA,
+ *   FRASE_DURACION_UNIFICADA).
+ * - Eliminado FRASES_DURACION (mapa por cuadro) → sustituido por FRASE_DURACION_UNIFICADA.
+ * - obtenerFrase reconoce los nuevos tipos.
  */
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. FRASES DE CUADROS — PRESENCIAL
+// (Conservadas para compatibilidad — ya no las usa el matching principal)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_PRESENCIAL = {
@@ -34,8 +36,7 @@ export const FRASES_PRESENCIAL = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 2. FRASES DE CUADROS — ONLINE (Google Meet)
-// Solo para cuadros compatibles: separacion, generalizada, basica, cachorros
+// 2. FRASES DE CUADROS — ONLINE
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_ONLINE = {
@@ -56,25 +57,20 @@ export const FRASES_ONLINE = {
 
 export const FRASES_ETOLOGO = {
 
-  // Frase principal — siempre
   principal: `Gracias por escribirme con tanto detalle. Por lo que describes, lo que tu perro necesita en este momento va más allá de un protocolo de adiestramiento — sería importante empezar por una valoración con un etólogo veterinario. Los etólogos tienen formación clínica en comportamiento canino y pueden valorar si hay algún componente médico o neurológico detrás del cuadro, además de definir un plan individualizado. No es un "no" a trabajar con vosotros — es que el orden importa, y empezar por ahí es lo que mejor le va a ir a tu perro. Si en un futuro, una vez hecha esa evaluación, quieres plantearte un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Gracias de nuevo por la confianza.`,
 
-  // Solo si el cliente pregunta explícitamente por recomendación de nombre
   complementaria: `En Mallorca hay varios profesionales. El más conocido es Tomás Camps, aunque te recomendaría mirar también qué perfil te queda más cerca de zona y con quién te sientes cómodo — es una decisión personal y es importante que el encaje sea bueno.`,
 
-  // Mordida con víctima humana o animal vulnerable + perro >10kg (paso 1b)
   mordida_personas: `Gracias por contármelo con tanta claridad. Por lo que describes, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento — cuando hay mordida a personas, es imprescindible una evaluación clínica para garantizar la seguridad de todos, incluido tu perro. En Perros de la Isla no aceptamos casos así sin esa valoración previa, es un criterio firme que mantenemos por responsabilidad profesional. Te recomiendo buscar un etólogo veterinario colegiado en tu zona. Si en un futuro, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
 };
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. DERIVACIÓN POR ZONA (fuera de cobertura + cuadro NO compatible con online)
-// La variable {cuadro} se sustituye por "reactividad" / "posesión" / "los miedos"
+// 4. DERIVACIÓN POR ZONA
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASE_DERIVACION_ZONA = `Gracias por escribirme. Por lo que me cuentas, el cuadro de tu perro es de los que trabajamos únicamente en modalidad presencial — {cuadro} necesita observación directa del perro en su contexto real para evaluar bien el caso y aplicar el protocolo con criterio. Por videollamada no daríamos el nivel de trabajo que el caso merece. Como estás fuera de nuestra zona de cobertura, te recomendaría buscar un profesional cerca de ti con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros. Si en algún momento te planteas desplazarte a Mallorca o cambias de zona, aquí seguimos.`;
 
-// Etiquetas para sustituir {cuadro} según el cuadro detectado
 export const ETIQUETAS_CUADRO_ZONA = {
   reactividad: "la reactividad",
   posesion: "la posesión de recursos",
@@ -83,7 +79,7 @@ export const ETIQUETAS_CUADRO_ZONA = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. EXCEPCIÓN SON GOTLEU (política interna)
+// 5. SON GOTLEU
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_SON_GOTLEU = {
@@ -106,7 +102,7 @@ export const FRASES_DIAGNOSTICO_SIN_MODALIDAD = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. CASO MIXTO
+// 6. CASO MIXTO (conservado para compatibilidad)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_MIXTO = {
@@ -171,30 +167,39 @@ export const FRASES_APOYO = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8.5 DURACIÓN DE PROTOCOLOS
+// 9. NUEVAS CONSTANTES — mensaje principal unificado (v2.0)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const FRASES_DURACION = {
+export const FRASE_MENSAJE_PRINCIPAL = `Lo que me cuentas sobre {perro} está dentro de lo que trabajamos. En Perros de la Isla tenemos protocolos específicos para educación básica, cachorros, reactividad, miedos, ansiedad y posesión de recursos. El adiestrador concreta el protocolo exacto en la primera clase, tras conocer a {perro} en su contexto real. Así la primera clase no es una más: es donde se afina el plan según lo que realmente necesite tu perro.`;
 
-  separacion: `Para un caso de ansiedad por separación, el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
 
-  generalizada: `Para un caso de ansiedad generalizada, el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `El adiestrador se desplaza a tu domicilio — donde {perro} vive su día a día, que es donde mejor se observa su comportamiento real. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-  miedos: `En miedos el protocolo suele durar entre 8 y 12 sesiones. En casos más complejos puede extenderse hasta 14. Es un cuadro que a veces se combina con otros (reactividad, ansiedad), y eso también se valora en la primera sesión. El adiestrador ajusta el plan según lo que observe.`,
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
 
-  reactividad: `En reactividad el número de sesiones depende mucho del caso. En casos leves pueden bastar 4 sesiones, y en los más graves se llega a 12 — en casos muy complejos hasta 14. En la primera sesión el adiestrador valora el nivel de activación y ajusta el plan.`,
+export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — solo necesitas un móvil o un ordenador con cámara, y que {perro} esté contigo en casa para que el adiestrador pueda verlo durante la sesión. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-  posesion: `En posesión de recursos el protocolo suele durar entre 4 y 8 sesiones. En casos más graves puede llegar a 12. En la primera sesión el adiestrador valora el caso en directo y ajusta el número según lo que vea.`,
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
 
-  basica: `La educación básica es un protocolo corto: 4 sesiones. Si durante el trabajo el tutor quiere profundizar en algo concreto o necesita apoyo extra, se puede ampliar sin problema.`,
+export const FRASE_CIERRE_METODOLOGIA = `Genial. ¿Te paso la información de precios y los horarios disponibles?`;
 
-  cachorros: `El protocolo de cachorros es corto: 4 sesiones. Si queréis trabajar algo más en concreto o necesitáis apoyo extra, se puede ampliar sin problema.`,
-};
+export const FRASE_DURACION_UNIFICADA = `La duración depende del protocolo:
+
+• Educación básica: 4 clases (ampliables si quieres seguir avanzando tras terminar).
+• Cachorros: 4 clases (ampliables si más adelante quieres trabajar alguna cosa más o necesitas apoyo en algún área puntual).
+• Posesión de recursos: 4-8 clases.
+• Reactividad: 4-12 clases según severidad (ampliables hasta 14 en casos muy graves).
+• Miedos y fobias: 8-12 clases (ampliables hasta 14 en casos muy graves).
+• Gestión de ansiedad (separación o generalizada): 8-12 clases (ampliables hasta 14 en casos muy graves).
+
+En la primera clase el adiestrador te dice el rango concreto para {perro} tras evaluarlo.`;
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FRASES DE PRECIO / VALOR
 // ─────────────────────────────────────────────────────────────────────────────
+
 export const FRASES_PRECIO = {
   presencial:
     "El valor de la clase presencial es de 90€. También tenemos un pack de 4 clases por 300€ (ahorras 60€). " +
@@ -208,9 +213,6 @@ export const FRASES_PRECIO = {
     "Si seguimos, ahora mismo miramos cuál de las dos modalidades encaja mejor con el caso de tu perro.",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FRASES DE PACK / DESCUENTO
-// ─────────────────────────────────────────────────────────────────────────────
 export const FRASES_PACK = {
   presencial:
     "El pack son 4 clases por 300€ en vez de 360€ (90€ × 4). Te ahorras 60€ y además aseguras la continuidad " +
@@ -221,25 +223,67 @@ export const FRASES_PACK = {
     "Decides pack o clase suelta en la primera sesión, sin compromiso.",
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FRASE PRECIO POR PERRO
-// ─────────────────────────────────────────────────────────────────────────────
 export const FRASE_PRECIO_POR_PERRO =
   "El valor es por clase, no por perro. Si tienes más de un perro trabajamos con ellos en la misma clase — " +
   "muchas veces los casos van ligados entre sí y da mejores resultados abordarlos juntos.";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. UTILIDAD — obtenerFrase()
+// UTILIDAD — obtenerFrase()
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Devuelve la frase correcta según cuadro, modalidad y contexto.
+ * Devuelve la frase correcta según tipo y parámetros.
+ * Sustituye variables ({perro}, {cuadro_1}, etc.) si se pasan en vars.
  */
 export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
   let frase = null;
 
   switch (tipo) {
+
+    // ── Nuevos tipos v2.0 ──────────────────────────────────────────────────
+
+    case "mensaje_principal":
+      frase = FRASE_MENSAJE_PRINCIPAL;
+      if (vars.perro) {
+        frase = frase.replace(/\{perro\}/g, vars.perro);
+      } else {
+        frase = frase.replace(/\{perro\}/g, "tu perro");
+      }
+      break;
+
+    case "ramificacion":
+      frase = FRASE_RAMIFICACION;
+      break;
+
+    case "como_trabajamos":
+      if (vars.modalidad === "online") {
+        frase = FRASE_COMO_TRABAJAMOS_ONLINE;
+      } else {
+        frase = FRASE_COMO_TRABAJAMOS_PRESENCIAL;
+      }
+      if (vars.perro) {
+        frase = frase.replace(/\{perro\}/g, vars.perro);
+      } else {
+        frase = frase.replace(/\{perro\}/g, "tu perro");
+      }
+      break;
+
+    case "cierre_metodologia":
+      frase = FRASE_CIERRE_METODOLOGIA;
+      break;
+
+    case "duracion":
+      frase = FRASE_DURACION_UNIFICADA;
+      if (vars.perro) {
+        frase = frase.replace(/\{perro\}/g, vars.perro);
+      } else {
+        frase = frase.replace(/\{perro\}/g, "tu perro");
+      }
+      break;
+
+    // ── Tipos existentes ───────────────────────────────────────────────────
+
     case "cuadro":
       if (modalidad === "online") {
         frase = FRASES_ONLINE[cuadro] ?? null;
@@ -265,7 +309,7 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
       break;
 
     case "son_gotleu":
-      frase = FRASES_SON_GOTLEU[subtipo] ?? null;
+      frase = FRASES_SON_GOTLEU[subtipo ?? "no_compatible_online"] ?? null;
       if (subtipo === "compatible_online" && cuadro && FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro]) {
         frase = frase + " " + FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro];
       }
@@ -283,10 +327,6 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
           frase = frase.replace("{cuadro_2}", ETIQUETAS_MIXTO[vars.cuadro_2] ?? vars.cuadro_2);
         }
       }
-      break;
-
-    case "duracion":
-      frase = FRASES_DURACION[cuadro] ?? null;
       break;
 
     case "apoyo":
@@ -314,13 +354,6 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
 
     default:
       frase = null;
-  }
-
-  if (frase && vars.nombre_perro) {
-    frase = frase.replace(
-      /^(Lo que me cuentas|Eso que describes|Lo que describes)/,
-      (match) => `${match} sobre ${vars.nombre_perro}`
-    );
   }
 
   return frase;
