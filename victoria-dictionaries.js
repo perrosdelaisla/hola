@@ -2,7 +2,7 @@
  * victoria-dictionaries.js
  * Perros de la Isla — Embudo Victoria
  * Los 7 diccionarios de detección de cuadros + función detectarCuadros()
- * Versión 1.0 · Abril 2026
+ * Versión 1.1 · Abril 2026
  */
 
 import { normalizar, filtrarHits } from "./victoria-utils.js";
@@ -102,11 +102,9 @@ export const DICT_SEPARACION = {
     "rasca la puerta",
     "araña la puerta",
     "intenta salir",
-    // Singular
     "me sigue a todas partes",
     "no se separa de mí",
     "siempre pegado",
-    // Plural
     "nos sigue a todas partes",
     "no se separa de nosotros",
     "siempre pegado a nosotros",
@@ -356,14 +354,25 @@ export const DICT_REACTIVIDAD = {
     "se lanza",
     "se tira",
     "se abalanza",
+    // Tirones de correa — variantes con adverbios intercalados
     "tira de la correa",
+    "tira mucho de la correa",
+    "tira muchísimo de la correa",
+    "tira como loco de la correa",
+    "tira todo el rato",
+    "tira todo el tiempo",
+    "tira siempre",
+    "tira sin parar",
     "da tirones",
+    "da muchos tirones",
     "me arrastra",
     "me lleva",
     "nos arrastra",
     "nos lleva",
+    // Ladridos fuera de casa
     "ladra como loco",
     "ladra sin parar",
+    // Persecución
     "persigue bicicletas",
     "persigue motos",
     "persigue corredores",
@@ -548,7 +557,7 @@ export const DICT_BASICA = {
     "empezar bien",
     "desde cero",
     "empezar con buen pie",
-    // Variantes con pronombre que faltaban — evita fallo del caso real
+    // Variantes con pronombre
     "no me escucha",
     "no me escuchas",
     "no nos escucha",
@@ -558,11 +567,21 @@ export const DICT_BASICA = {
     "no nos hace ni caso",
     "pasa de mí",
     "pasa de nosotros",
-    // Pica — comer basura, cosas del suelo, cacas (muy frecuente en consultas)
+    // Llamada — N1 porque es conducta muy específica
+    "no viene cuando lo llamo",
+    "no viene cuando le llamo",
+    "no viene cuando la llamo",
+    "no me viene",
+    "no viene al llamarlo",
+    "no responde a la llamada",
+    "no responde cuando lo llamo",
+    "no acude",
+    // Pica
     "come del suelo",
     "come todo del suelo",
     "come basura",
     "come cacas",
+    "come cosas del suelo",
     "come cosas de la calle",
     "come lo que encuentra",
     "come todo lo que encuentra",
@@ -578,15 +597,13 @@ export const DICT_BASICA = {
   ],
 
   n2: [
-    // Paseo
-    "tira de la correa",
+    // Paseo sin contexto reactivo
     "no sabe pasear",
     "no camina bien",
-    // Llamada
-    "no viene",
-    "no responde a la llamada",
-    "se escapa",
-    "no regresa",
+    "camina estirando",
+    "camina tirando",
+    "me saca a pasear",
+    "me saca él a pasear",
     // Casa
     "salta a visitas",
     "salta encima",
@@ -603,30 +620,23 @@ export const DICT_BASICA = {
     // Objetos (sin contexto de separación)
     "muerde zapatos",
     "destroza cosas",
-    // Variantes plurales frecuentes
+    // Variantes plurales
     "no nos hace caso",
     "no me hace caso",
     "no nos obedece",
     "salta a nosotros",
-    // Llamada — variantes con pronombre
-    "no me viene",
-    "no me vuelve",
-    "no viene cuando lo llamo",
-    "no viene cuando le llamo",
-    "no acude",
-    "no responde si lo llamo",
-    // Paseo con correa — variantes que faltaban
-    "tira muchísimo",
-    "tira como un loco",
-    "no sabe ir con correa",
-    "me saca a pasear él",
+    // Llamada — variantes cortas que refuerzan
+    "no viene",
+    "se escapa",
+    "no regresa",
+    "se distrae con todo",
+    "se distrae con todos",
     // Robo de comida
     "me roba la comida",
     "nos roba la comida",
     "coge comida de la mesa",
     "se sube a la mesa a comer",
     "quita comida de la mano",
-    "le robo la comida",
     // Saltos / manejo casa
     "salta a todo el mundo",
     "se sube encima",
@@ -652,7 +662,7 @@ export const DICT_BASICA = {
     "nuevo hogar",
     "primer perro",
     "nunca hemos tenido perro",
-    // Contextos típicos de pica y paseo sin control
+    // Contextos típicos
     "en el suelo",
     "cosas del suelo",
     "en la calle",
@@ -759,10 +769,6 @@ export const TODOS_LOS_DICCIONARIOS = [
 // FUNCIÓN PRINCIPAL — detectarCuadros(mensaje)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Analiza el mensaje del cliente y devuelve los cuadros detectados
- * con su nivel de confianza y los hits por nivel.
- */
 export function detectarCuadros(mensaje) {
   const textoNorm = normalizar(mensaje);
 
@@ -850,37 +856,6 @@ function _evaluarCompoundRules(textoNorm, compound_rules) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CASOS DE PRUEBA (solo para desarrollo — eliminar en producción)
-// Para correr en consola del navegador o Node:
-// import { detectarCuadros } from "./victoria-dictionaries.js";
-//
-// CASO 1: Separación clara
-// detectarCuadros("mi perro llora cuando me voy, los vecinos se quejan")
-// Esperado: separacion → confianza alta (n1: "cuando me voy", n2: "llora", n3: "vecinos")
-//
-// CASO 2: Separación excluida por co-ocurrencia
-// detectarCuadros("está nervioso todo el día, incluso cuando estamos con él en casa, y también cuando nos vamos")
-// Esperado: separacion → exclusion_textual=true; generalizada → confianza media/alta
-//
-// CASO 3: Reactividad clara
-// detectarCuadros("se lanza a todos los perros que ve en el paseo, no puedo pasearlo")
-// Esperado: reactividad → confianza alta (n1: "se lanza", "no puedo pasearlo")
-//
-// CASO 4: Miedos con detonante
-// detectarCuadros("le tienen pánico las tormentas, se esconde debajo de la cama")
-// Esperado: miedos → confianza alta, compound_hits: ["detonante_con_evitacion"]
-//
-// CASO 5: Ambiguo — pedir aclaración
-// detectarCuadros("quiero mejorar la convivencia con mi perro")
-// Esperado: basica → confianza baja, requiere_aclaracion: true
-//
-// CASO 6 (nuevo): Pica
-// detectarCuadros("come todo lo que encuentra en la calle, basura, cacas, no me escucha")
-// Esperado: basica → confianza alta (n1: "come todo lo que encuentra", "no me escucha")
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-// ─────────────────────────────────────────────────────────────────────────────
 // DETECCIÓN DE SERVICIOS LATERALES
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -907,10 +882,6 @@ export const DICT_LATERALES = {
   ],
 };
 
-/**
- * Detecta si el texto del cliente corresponde principalmente a un servicio lateral.
- * Devuelve el id del lateral o null.
- */
 export function detectarLateral(texto) {
   const norm = normalizar(texto);
   for (const [id, keywords] of Object.entries(DICT_LATERALES)) {
