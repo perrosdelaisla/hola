@@ -1,0 +1,549 @@
+/* ═══════════════════════════════════════════
+   PERROS DE LA ISLA · Panel Admin
+   ═══════════════════════════════════════════ */
+
+:root {
+  --rojo: #c53030;
+  --oliva: #9cb64b;
+  --bg-0: #0a0a0a;
+  --bg-1: #141414;
+  --bg-2: #1f1f1f;
+  --bg-3: #2a2a2a;
+  --t1: #ffffff;
+  --t2: rgba(255, 255, 255, 0.7);
+  --t3: rgba(255, 255, 255, 0.4);
+  --border: rgba(255, 255, 255, 0.08);
+  --r12: 12px;
+  --r8: 8px;
+  --fn: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --fn-head: 'Bebas Neue', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%);
+  color: var(--t1);
+  font-family: var(--fn);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hidden { display: none !important; }
+
+/* ─────────── LOGIN ─────────── */
+
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.login-box {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 32px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+
+.login-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+
+.login-title {
+  font-family: var(--fn-head);
+  font-size: 22px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.login-subtitle {
+  color: var(--t3);
+  font-family: var(--fn-head);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 28px;
+}
+
+.login-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r8);
+  color: var(--t1);
+  font-family: var(--fn);
+  font-size: 15px;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.login-input:focus { border-color: var(--rojo); }
+
+.login-btn {
+  width: 100%;
+  padding: 14px;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: var(--r8);
+  font-family: var(--fn-head);
+  font-size: 14px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.login-btn:active { transform: scale(0.98); }
+
+.login-error {
+  color: var(--rojo);
+  font-size: 13px;
+  margin: 14px 0 0;
+  min-height: 18px;
+}
+
+/* ─────────── HEADER ─────────── */
+
+.panel-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+.panel-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  background: rgba(10, 10, 10, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.panel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.panel-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+}
+
+.panel-brand-name {
+  font-family: var(--fn-head);
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.panel-brand-sub {
+  color: var(--rojo);
+  font-family: var(--fn-head);
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.logout-btn {
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--t2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r8);
+  font-family: var(--fn-head);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  color: var(--t1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ─────────── TABS ─────────── */
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin: 20px 0 24px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.tab {
+  padding: 12px 18px;
+  background: transparent;
+  color: var(--t3);
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--fn-head);
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab:hover { color: var(--t2); }
+
+.tab.active {
+  color: var(--t1);
+  border-bottom-color: var(--rojo);
+}
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─────────── SECCIONES ─────────── */
+
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  font-family: var(--fn-head);
+  font-size: 18px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.section-desc {
+  color: var(--t3);
+  font-size: 13px;
+  margin: 0;
+}
+
+.section-actions {
+  margin-top: 20px;
+}
+
+/* ─────────── BOTONES ─────────── */
+
+.btn-primary {
+  padding: 12px 20px;
+  background: var(--rojo);
+  color: white;
+  border: none;
+  border-radius: var(--r8);
+  font-family: var(--fn-head);
+  font-size: 12px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.btn-primary:hover { opacity: 0.92; }
+.btn-primary:active { transform: scale(0.98); }
+
+.btn-secondary {
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--t2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r8);
+  font-family: var(--fn-head);
+  font-size: 12px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover { color: var(--t1); border-color: rgba(255,255,255,0.25); }
+
+.btn-small {
+  padding: 6px 10px;
+  background: transparent;
+  color: var(--t2);
+  border: 0.5px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--fn);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-small.danger { color: var(--rojo); }
+.btn-small:hover { background: rgba(255,255,255,0.04); }
+
+/* ─────────── INPUTS ─────────── */
+
+.input-admin {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r8);
+  color: var(--t1);
+  font-family: var(--fn);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input-admin:focus { border-color: var(--rojo); }
+
+label {
+  display: block;
+  color: var(--t2);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+label .input-admin { margin-top: 6px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 500px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+/* ─────────── PLANTILLA (rejilla) ─────────── */
+
+.plantilla-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plantilla-day {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r12);
+  padding: 14px 16px;
+}
+
+.plantilla-day-name {
+  font-family: var(--fn-head);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--t2);
+  margin-bottom: 10px;
+}
+
+.plantilla-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.plantilla-slot {
+  padding: 8px 14px;
+  background: var(--bg-3);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r8);
+  color: var(--t2);
+  font-family: var(--fn);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plantilla-slot.activo {
+  background: var(--oliva);
+  color: #1a1a1a;
+  border-color: var(--oliva);
+  font-weight: 500;
+}
+
+.plantilla-slot:hover { transform: translateY(-1px); }
+
+.plantilla-slot .del {
+  color: rgba(255,255,255,0.4);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.plantilla-slot.activo .del { color: rgba(26,26,26,0.5); }
+
+.plantilla-slot .del:hover { color: var(--rojo); }
+
+.plantilla-empty {
+  color: var(--t3);
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* ─────────── FORM BLOQUEOS ─────────── */
+
+.form-bloqueo {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r12);
+  padding: 20px;
+}
+
+/* ─────────── LISTA BLOQUEOS ─────────── */
+
+.bloqueos-list,
+.citas-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bloqueo-item {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-left: 3px solid var(--rojo);
+  border-radius: var(--r8);
+  padding: 14px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.bloqueo-info { flex: 1; min-width: 0; }
+.bloqueo-fecha {
+  font-family: var(--fn-head);
+  font-size: 15px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.bloqueo-motivo {
+  color: var(--t3);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+/* ─────────── LISTA CITAS ─────────── */
+
+.cita-item {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r12);
+  padding: 16px;
+}
+
+.cita-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cita-fecha {
+  font-family: var(--fn-head);
+  font-size: 16px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.cita-estado {
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-family: var(--fn-head);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.cita-estado.confirmada {
+  background: var(--oliva);
+  color: #1a1a1a;
+}
+
+.cita-estado.pendiente {
+  background: rgba(197, 48, 48, 0.15);
+  color: var(--rojo);
+  border: 0.5px solid var(--rojo);
+}
+
+.cita-estado.cancelada {
+  background: transparent;
+  color: var(--t3);
+  border: 0.5px solid var(--border);
+}
+
+.cita-cliente {
+  font-weight: 500;
+  font-size: 14px;
+  margin-bottom: 2px;
+}
+
+.cita-perro,
+.cita-zona {
+  color: var(--t2);
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.cita-protocolo {
+  color: var(--oliva);
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+
+.cita-reportado {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-1);
+  border-left: 2px solid var(--rojo);
+  border-radius: 4px;
+  color: var(--t2);
+  font-size: 13px;
+  line-height: 1.45;
+  font-style: italic;
+}
+
+.cita-reportado-label {
+  font-family: var(--fn-head);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  font-style: normal;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.cita-actions {
