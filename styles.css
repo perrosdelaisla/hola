@@ -1093,6 +1093,13 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   border: 1.5px solid rgba(255,255,255,0.25);
 }
 
+.splash-logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
 .splash-brand-name {
   color: white;
   font-family: 'Bebas Neue', sans-serif;
@@ -1201,17 +1208,89 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   text-transform: uppercase;
 }
 
-/* Desktop: limitar ancho del contenido del splash */
+/* Desktop: layout editorial premium — texto izquierda, foto derecha */
 @media (min-width: 768px) {
-  .splash-header,
+  .splash-bg {
+    /* Foto a la derecha, ocupando 60% del ancho */
+    left: 40%;
+    background-position: center 15%;
+  }
+
+  .splash-overlay-dark {
+    /* El gradiente oscuro se concentra en la izquierda donde va el texto */
+    background: linear-gradient(90deg,
+      rgba(10,10,10,0.98) 0%,
+      rgba(10,10,10,0.92) 40%,
+      rgba(10,10,10,0.25) 60%,
+      rgba(10,10,10,0.10) 80%,
+      rgba(10,10,10,0.35) 100%);
+  }
+
+  .splash-overlay-brand {
+    background: linear-gradient(135deg,
+      rgba(197, 48, 48, 0.12) 0%,
+      transparent 60%,
+      rgba(156, 182, 75, 0.08) 100%);
+  }
+
+  /* Header (logo + marca) — esquina superior izquierda, no centrado */
+  .splash-header {
+    top: 40px;
+    left: 48px;
+    right: auto;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  /* Footer (lema + CTA) — centrado vertical en el lado izquierdo */
   .splash-footer {
-    max-width: 500px;
-    margin-left: auto;
-    margin-right: auto;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    left: 48px;
+    right: auto;
+    padding: 0;
+    max-width: 460px;
+  }
+
+  .splash-lema {
+    font-size: 64px;
+    margin-bottom: 40px;
+  }
+
+  .splash-cta {
+    max-width: 340px;
+  }
+
+  .splash-sub {
+    text-align: left;
+    max-width: 340px;
+  }
+
+  /* Etiqueta de Carlos — esquina inferior izquierda de la FOTO (lado derecho) */
+  .splash-carlos-tag {
+    left: auto;
+    right: 48px;
+    top: auto;
+    bottom: 48px;
+    transform: none;
+  }
+}
+
+/* Desktop grande: aumentar padding lateral */
+@media (min-width: 1200px) {
+  .splash-header {
+    left: 80px;
+  }
+  .splash-footer {
+    left: 80px;
   }
   .splash-carlos-tag {
-    left: 50%;
-    transform: translate(-50%, -10%);
+    right: 80px;
+    bottom: 64px;
+  }
+  .splash-lema {
+    font-size: 76px;
   }
 }
 
@@ -1250,6 +1329,13 @@ body {
   font-family: 'Bebas Neue', sans-serif;
   font-size: 14px;
   letter-spacing: 0.5px;
+}
+
+.chat-mini-logo-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .chat-mini-info {
