@@ -7,28 +7,63 @@
   <title>Perros de la Isla · Hola</title>
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="https://i.ibb.co/Q7Ssr8XM/icon.png">
+  <!-- Bebas Neue -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
   <!-- Estilos -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- ── HEADER ── -->
-  <div class="hd">
-    <div class="logo-wrap">
-      <img src="https://i.ibb.co/Q7Ssr8XM/icon.png" alt="Perros de la Isla" width="26" height="22" style="object-fit:contain">
-    </div>
-    <div class="hinfo">
-      <div class="hname">Perros de la Isla</div>
-      <div class="hrole">
-        <div class="dot"></div>
-        <span>Victoria · Coordinadora</span>
+
+  <!-- ── SPLASH DE BIENVENIDA ── -->
+  <div id="splash" class="splash-wrap">
+    <div class="splash-bg"></div>
+    <div class="splash-overlay-dark"></div>
+    <div class="splash-overlay-brand"></div>
+
+    <div class="splash-header">
+      <div class="splash-logo-row">
+        <div class="splash-logo-circle">P</div>
+        <span class="splash-brand-name">Perros de la Isla</span>
       </div>
+      <span class="splash-brand-tagline">Adiestramiento canino · Mallorca</span>
     </div>
-    <div class="hbrand">@perrosdelaisla<br>Mallorca</div>
+
+    <div class="splash-carlos-tag">
+      <p>
+        Carlos Acevedo<br>
+        <span>Instructor canino profesional</span>
+      </p>
+    </div>
+
+    <div class="splash-footer">
+      <div class="splash-accent-line"></div>
+      <p class="splash-lema">Tu perro<br>merece ser<br>feliz, hoy</p>
+      <button id="splash-start-btn" class="splash-cta">
+        Hablar con Victoria
+        <span class="splash-cta-arrow">→</span>
+      </button>
+      <p class="splash-sub">Consulta en 2 minutos</p>
+    </div>
   </div>
+
+  <!-- ── MINI-HEADER STICKY ── -->
+  <div class="chat-mini-header">
+    <div class="chat-mini-logo">P</div>
+    <div class="chat-mini-info">
+      <span class="chat-mini-name">Victoria</span>
+      <span class="chat-mini-status">
+        <span class="chat-mini-dot"></span> En línea · Coordinadora
+      </span>
+    </div>
+  </div>
+
   <!-- ── BARRA DE PROGRESO ── -->
   <div class="prog-bar">
     <div class="prog-fill" id="pf"></div>
   </div>
+
   <!-- ── CHAT ── -->
   <div class="chat" id="chat">
     <!-- Typing indicator (siempre al final del chat) -->
@@ -43,6 +78,7 @@
       </div>
     </div>
   </div>
+
   <!-- ── INPUT DE TEXTO (fixed abajo) ── -->
   <div class="input-wrap" id="victoria-input-wrap">
     <div class="irow">
@@ -66,9 +102,10 @@
       </button>
     </div>
   </div>
+
   <!-- ── SCRIPTS (módulos ES6) ── -->
   <script type="module">
-    import { start } from './victoria.js?v=17';
+    import { start } from './victoria.js?v=18';
     start();
   </script>
 </body>
