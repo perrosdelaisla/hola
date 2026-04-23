@@ -616,13 +616,17 @@ function _procesarS9_DatosCliente(texto) {
   if (email) state.cliente.email = email;
 
   state.current_step = "s10";
-  // Programar el widget de pago para que aparezca tras el mensaje explicativo.
-  // Usamos setTimeout para que el widget se pinte DESPUÉS de que Victoria
-  // termine de "escribir" la respuesta (el delay de typing se calcula en
-  // _enviarMensaje según la longitud del texto).
+  // Programar el widget de pago para que aparezca DESPUÉS del mensaje explicativo.
+  // Secuencia: mensaje Victoria → pausa con typing → widget de pago.
+  // El delay de 4500ms asegura que el mensaje se ha pintado completamente
+  // antes de empezar a mostrar el typing indicator del widget.
   setTimeout(() => {
-    _iniciarPago();
-  }, 2500);
+    _mostrarTyping(true);
+    setTimeout(() => {
+      _mostrarTyping(false);
+      _iniciarPago();
+    }, 1000);
+  }, 3500);
   return _explicarPago();
 }
 
