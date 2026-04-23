@@ -1,26 +1,149 @@
-{
-  "name": "Perros de la Isla · Admin",
-  "short_name": "PDLI Admin",
-  "description": "Panel de administración de Perros de la Isla",
-  "start_url": "/hola/admin/",
-  "scope": "/hola/admin/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0a0a0a",
-  "theme_color": "#c53030",
-  "lang": "es",
-  "icons": [
-    {
-      "src": "https://i.ibb.co/FkCVpG1j/icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "https://i.ibb.co/FkCVpG1j/icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ]
-}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>PDLI · Admin</title>
+  <link rel="icon" type="image/png" href="https://i.ibb.co/S7xtkV5T/logo.png">
+  <!-- Bebas Neue + DM Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="admin.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#c53030">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PDLI Admin">
+  <link rel="apple-touch-icon" href="https://i.ibb.co/S7xtkV5T/logo.png">
+</head>
+<body>
+
+  <!-- ── LOGIN ── -->
+  <div id="login-screen" class="login-wrap">
+    <div class="login-box">
+      <img class="login-logo" src="https://i.ibb.co/FkCVpG1j/icon.png" alt="PDLI">
+      <h1 class="login-title">Perros de la Isla</h1>
+      <p class="login-subtitle">Panel de administración</p>
+      <input type="password" id="login-input" class="login-input" placeholder="Contraseña" autocomplete="off">
+      <button id="login-btn" class="login-btn">Entrar</button>
+      <p id="login-error" class="login-error"></p>
+    </div>
+  </div>
+
+  <!-- ── PANEL ── -->
+  <div id="panel" class="panel-wrap hidden">
+
+    <!-- Header -->
+    <header class="panel-header">
+      <div class="panel-header-left">
+        <img class="panel-logo" src="https://i.ibb.co/FkCVpG1j/icon.png" alt="PDLI">
+        <div class="panel-brand">
+          <span class="panel-brand-name">Perros de la Isla</span>
+          <span class="panel-brand-sub">Admin</span>
+        </div>
+      </div>
+      <button id="logout-btn" class="logout-btn">Cerrar sesión</button>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="plantilla">Plantilla</button>
+      <button class="tab" data-tab="bloqueos">Bloqueos</button>
+      <button class="tab" data-tab="citas">Citas</button>
+    </nav>
+
+    <!-- Tab content -->
+    <main class="tab-content">
+
+      <!-- PLANTILLA -->
+      <section id="tab-plantilla" class="tab-panel active">
+        <div class="section-header">
+          <h2>Horario semanal base</h2>
+          <p class="section-desc">Toca una casilla para añadir o quitar un slot. Los slots inactivos se pueden recuperar sin perder datos.</p>
+        </div>
+        <div id="plantilla-grid" class="plantilla-grid">
+          <!-- Rejilla generada por JS -->
+        </div>
+        <div class="section-actions">
+          <button id="btn-add-hora" class="btn-primary">+ Añadir hora nueva</button>
+        </div>
+      </section>
+
+      <!-- BLOQUEOS -->
+      <section id="tab-bloqueos" class="tab-panel">
+        <div class="section-header">
+          <h2>Bloqueos puntuales</h2>
+          <p class="section-desc">Vacaciones, imprevistos, cualquier día u hora que no quieras ofrecer.</p>
+        </div>
+
+        <div class="form-bloqueo">
+          <div class="form-row">
+            <label>Fecha
+              <input type="date" id="bloq-fecha" class="input-admin">
+            </label>
+            <label>Hora (opcional)
+              <select id="bloq-hora" class="input-admin">
+                <option value="">Todo el día</option>
+              </select>
+            </label>
+          </div>
+          <label>Motivo (opcional)
+            <input type="text" id="bloq-motivo" class="input-admin" placeholder="Vacaciones, cita médica, etc.">
+          </label>
+          <button id="btn-bloquear" class="btn-primary">Bloquear</button>
+        </div>
+
+        <div class="section-header" style="margin-top:32px">
+          <h2>Bloqueos activos</h2>
+        </div>
+        <ul id="bloqueos-list" class="bloqueos-list">
+          <!-- Lista generada por JS -->
+        </ul>
+      </section>
+
+      <!-- CITAS -->
+      <section id="tab-citas" class="tab-panel">
+        <div class="section-header">
+          <h2>Próximas citas</h2>
+          <p class="section-desc">Confirma o cancela. Incluye el texto de lo que el cliente reportó.</p>
+        </div>
+        <ul id="citas-list" class="citas-list">
+          <!-- Lista generada por JS -->
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal añadir hora -->
+  <div id="modal-add-hora" class="modal hidden">
+    <div class="modal-box">
+      <h3>Añadir hora nueva</h3>
+      <label>Día de la semana
+        <select id="modal-dia" class="input-admin">
+          <option value="1">Lunes</option>
+          <option value="2">Martes</option>
+          <option value="3">Miércoles</option>
+          <option value="4">Jueves</option>
+          <option value="5">Viernes</option>
+          <option value="6">Sábado</option>
+          <option value="0">Domingo</option>
+        </select>
+      </label>
+      <label>Hora (HH:MM)
+        <input type="time" id="modal-hora" class="input-admin">
+      </label>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn-secondary">Cancelar</button>
+        <button id="modal-save" class="btn-primary">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./admin.js?v=1"></script>
+</body>
+</html>
