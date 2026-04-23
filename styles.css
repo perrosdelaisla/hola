@@ -1094,8 +1094,8 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 }
 
 .splash-logo-img {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
@@ -1240,6 +1240,11 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
     right: auto;
     align-items: flex-start;
     gap: 8px;
+  }
+
+  .splash-logo-img {
+    width: 56px;
+    height: 56px;
   }
 
   /* Footer (lema + CTA) — centrado vertical en el lado izquierdo */
