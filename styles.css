@@ -1011,3 +1011,389 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
     font-size: 18px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   SPLASH DE BIENVENIDA
+   ═══════════════════════════════════════════ */
+
+.splash-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  overflow: hidden;
+  background: #0a0a0a;
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+
+.splash-wrap.splash-fadeout {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('https://i.ibb.co/v4rVVPsR/IMG-20200802-WA0004-2.jpg');
+  background-size: cover;
+  background-position: center 20%;
+}
+
+.splash-overlay-dark {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(10,10,10,0.45) 0%,
+    rgba(10,10,10,0.15) 35%,
+    rgba(10,10,10,0.78) 78%,
+    rgba(10,10,10,0.96) 100%);
+  pointer-events: none;
+}
+
+.splash-overlay-brand {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg,
+    rgba(197, 48, 48, 0.18) 0%,
+    transparent 50%,
+    rgba(156, 182, 75, 0.15) 100%);
+  pointer-events: none;
+}
+
+.splash-header {
+  position: absolute;
+  top: 32px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 3;
+}
+
+.splash-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.splash-logo-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #c53030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+  border: 1.5px solid rgba(255,255,255,0.25);
+}
+
+.splash-brand-name {
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.splash-brand-tagline {
+  color: rgba(255,255,255,0.6);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+.splash-carlos-tag {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-10%);
+  z-index: 3;
+  background: rgba(10,10,10,0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 8px 12px;
+  border-left: 2px solid #c53030;
+  border-radius: 2px;
+}
+
+.splash-carlos-tag p {
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  margin: 0;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+.splash-carlos-tag span {
+  color: rgba(255,255,255,0.65);
+  font-size: 11px;
+}
+
+.splash-footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0 28px 40px;
+  z-index: 3;
+}
+
+.splash-accent-line {
+  width: 36px;
+  height: 2px;
+  background: #c53030;
+  margin-bottom: 20px;
+}
+
+.splash-lema {
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 42px;
+  line-height: 0.95;
+  margin: 0 0 32px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.splash-cta {
+  width: 100%;
+  padding: 18px;
+  background: white;
+  color: #0a0a0a;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.splash-cta:active {
+  transform: scale(0.98);
+}
+
+.splash-cta-arrow {
+  font-size: 16px;
+}
+
+.splash-sub {
+  color: rgba(255,255,255,0.4);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 11px;
+  text-align: center;
+  margin: 18px 0 0;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* Desktop: limitar ancho del contenido del splash */
+@media (min-width: 768px) {
+  .splash-header,
+  .splash-footer {
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .splash-carlos-tag {
+    left: 50%;
+    transform: translate(-50%, -10%);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CHAT REDISEÑADO — estética premium
+   ═══════════════════════════════════════════ */
+
+body {
+  background: linear-gradient(180deg, #141414 0%, #0a0a0a 100%) !important;
+  letter-spacing: 0.3px;
+}
+
+.chat-mini-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(10, 10, 10, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 0.5px solid rgba(255, 255, 255, 0.08);
+}
+
+.chat-mini-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #c53030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+}
+
+.chat-mini-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-mini-name {
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 15px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.chat-mini-status {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chat-mini-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9cb64b;
+}
+
+/* Burbujas rediseñadas */
+.msg {
+  margin-bottom: 14px;
+}
+
+.msg.bot .bub {
+  background: #2a2a2a !important;
+  color: white !important;
+  border-radius: 16px 16px 16px 4px !important;
+  padding: 12px 16px !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.06);
+  font-family: var(--fn);
+  font-size: 14.5px;
+  line-height: 1.6;
+  letter-spacing: 0.1px;
+  max-width: 80%;
+}
+
+.msg.usr .bub {
+  background: #9cb64b !important;
+  color: #1a1a1a !important;
+  border-radius: 16px 16px 4px 16px !important;
+  padding: 12px 16px !important;
+  font-family: var(--fn);
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.6;
+  letter-spacing: 0.1px;
+  max-width: 80%;
+}
+
+/* Avatares */
+.msg.bot .av {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.msg.bot .av img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* Botones de opciones inline */
+.opt-btn-inline {
+  background: transparent !important;
+  color: white !important;
+  border: 0.5px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 10px !important;
+  padding: 12px 16px !important;
+  font-family: 'Bebas Neue', sans-serif !important;
+  font-size: 13px !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.opt-btn-inline:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Tarjeta de cierre tras mensaje final */
+.chat-cierre {
+  margin: 24px 16px;
+  padding: 24px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.chat-cierre-lema {
+  color: white;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  line-height: 1.0;
+  margin: 0 0 18px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.chat-cierre-botones {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-cierre-btn {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.chat-cierre-btn:active {
+  transform: scale(0.97);
+}
+
+.chat-cierre-btn.ig {
+  background: #c53030;
+  color: white;
+}
+
+.chat-cierre-btn.web {
+  background: #9cb64b;
+  color: #1a1a1a;
+}
