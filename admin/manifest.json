@@ -1,0 +1,26 @@
+{
+  "name": "Perros de la Isla · Admin",
+  "short_name": "PDLI Admin",
+  "description": "Panel de administración de Perros de la Isla",
+  "start_url": "/hola/admin/",
+  "scope": "/hola/admin/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#c53030",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/FkCVpG1j/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://i.ibb.co/FkCVpG1j/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
