@@ -413,8 +413,22 @@ function _procesarS2_NombrePerro(texto) {
     .trim();
 
   state.perro.nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
-  state.current_step = "s3";
 
+  // Si el prescan ya llenó todos los datos del perro, saltar s3 y ir directo a s4.
+  // Esto evita preguntar edad/raza/peso cuando el cliente ya los dio en el
+  // primer mensaje.
+  const yaTieneEdad = state.perro.edad_meses !== null;
+  const yaTienePeso = state.perro.peso_kg !== null;
+  const yaTieneRaza = state.perro.raza !== null;
+
+  if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
+    state.current_step = "s4";
+    return `¡Qué nombre más bonito! Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+      "Descríbeme la situación con tus propias palabras.";
+  }
+
+  // Flujo normal: falta algún dato, pedirlo en s3
+  state.current_step = "s3";
   return `¡Qué nombre más bonito! Cuéntame un poco más sobre ${state.perro.nombre}: ` +
     "¿qué edad tiene, qué raza es y cuánto pesa aproximadamente?";
 }
