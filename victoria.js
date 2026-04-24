@@ -101,6 +101,9 @@ function _estadoInicial() {
     mostrar_ramificacion_tras_protocolo: false,
 
     historial_turnos: [],
+    // ── ADICIÓN 1: campos de tracking ──
+    sesion_id: null,
+    sesion_inicio_ts: null,
     log_matching_final: null,
   };
 }
@@ -134,6 +137,8 @@ export function start() {
   _mostrarVictoria(bienvenida);
   state.current_step = "s1";
   _actualizarProgreso();
+  // ── ADICIÓN 2: crear sesión de tracking (async, no bloquea) ──
+  _crearSesionTracking();
 }
 
 /**
@@ -512,6 +517,17 @@ function _procesarS4_Problema(texto) {
 
   const lateral = detectarLateral(texto);
   if (lateral) state.lateral_detectado = lateral;
+
+  // ── ADICIÓN 4: tracking s4 ──
+  _actualizarSesion({
+    paso_actual:           "s4",
+    paso_maximo_alcanzado: "s4",
+    zona:                  state.zona?.zonaDetectada,
+    modalidad:             state.zona?.modalidad,
+    raza_perro:            state.perro.raza,
+    peso_kg:               state.perro.peso_kg,
+    edad_meses:            state.perro.edad_meses,
+  });
 
   return _evaluarYResponder(texto);
 }
@@ -1050,6 +1066,13 @@ async function _procesarS12_Confirmacion(_texto) {
     await _guardarCitaEnSupabase();
     await _notificarCarlos();
     state.cita_confirmada = true;
+    // ── ADICIÓN 11: tracking conversión ──
+    _actualizarSesion({
+      paso_actual:           "s12",
+      paso_maximo_alcanzado: "s12",
+      cita_confirmada:       true,
+      cita_id:               state.cita_id,
+    });
     setTimeout(() => { _insertarCierre(); }, 3500);
 
     const perro    = state.perro.nombre ?? "tu perro";
@@ -1074,6 +1097,12 @@ async function _procesarS12_Confirmacion(_texto) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _iniciarAgenda() {
+  // ── ADICIÓN 8: tracking agenda ──
+  _actualizarSesion({
+    paso_actual:           "s7",
+    paso_maximo_alcanzado: "s7",
+    abrio_agenda:          true,
+  });
   const contenedor = _insertarContenedorEnChat("victoria-agenda-slot", "agenda-widget");
   if (!contenedor) {
     return "Ahora te muestro los horarios disponibles — " +
@@ -1088,6 +1117,12 @@ async function _iniciarAgenda() {
 
       state.slot_elegido = slotElegido;
       state.current_step = "s8";
+      // ── ADICIÓN 9: tracking slot elegido ──
+      _actualizarSesion({
+        paso_actual:           "s8",
+        paso_maximo_alcanzado: "s8",
+        eligio_slot:           true,
+      });
 
       _mostrarTyping(true);
       setTimeout(() => {
@@ -1112,6 +1147,12 @@ async function _iniciarAgenda() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _iniciarPago() {
+  // ── ADICIÓN 10: tracking pago ──
+  _actualizarSesion({
+    paso_actual:           "s10",
+    paso_maximo_alcanzado: "s10",
+    llego_a_pago:          true,
+  });
   const contenedor = _insertarContenedorEnChat("victoria-pago-slot", "pago-widget");
   if (!contenedor) return _explicarPago();
 
@@ -1168,6 +1209,8 @@ function _mensajePrecio() {
 }
 
 function _mostrarPrecioYBotonesAgenda() {
+  // ── ADICIÓN 7: tracking precio ──
+  _actualizarSesion({ vio_precio: true });
   setTimeout(() => {
     _mostrarTyping(true);
 
@@ -1247,6 +1290,13 @@ function _evaluarYResponder(textoActual) {
       if (decision.frase_params.tipo === "mensaje_principal") {
         state.protocolo_ya_presentado = true;
         state.current_step = "s6";
+        // ── ADICIÓN 5: tracking mensaje principal ──
+        _actualizarSesion({
+          paso_actual:           "s6",
+          paso_maximo_alcanzado: "s6",
+          vio_mensaje_principal: true,
+          modalidad:             state.modalidad_final,
+        });
         // Flag: _enviarMensaje mostrará botones de ramificación DESPUÉS del mensaje
         state.mostrar_ramificacion_tras_protocolo = true;
         return frase;
@@ -1258,6 +1308,12 @@ function _evaluarYResponder(textoActual) {
     case "derivar": {
       const frase = obtenerFrase(decision.frase_params);
       if (!frase) return _fallbackHumano("frase null: " + JSON.stringify(decision.frase_params));
+      // ── ADICIÓN 6: tracking derivaciones ──
+      if (decision.frase_params?.tipo === "etologo") {
+        _actualizarSesion({ derivado_etologo: true });
+      } else if (decision.frase_params?.tipo === "zona") {
+        _actualizarSesion({ derivado_zona: true });
+      }
       return frase;
     }
 
@@ -1638,6 +1694,16 @@ function _prescanPrimerMensaje(texto) {
   // Problema: si el mensaje es descriptivo, guardarlo para el matcher
   // (se añadirá como contexto cuando evaluemos en s4)
   state.prescan_mensaje_inicial = texto;
+
+  // ── ADICIÓN 3: tracking prescan ──
+  _actualizarSesion({
+    zona:        state.zona?.zonaDetectada,
+    modalidad:   state.zona?.modalidad,
+    raza_perro:  state.perro.raza,
+    peso_kg:     state.perro.peso_kg,
+    edad_meses:  state.perro.edad_meses,
+    es_ppp:      state.perro.es_ppp,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1762,6 +1828,70 @@ function _insertarCierrePostDerivacion() {
   // necesitamos: pinta el bloque, bloquea input y botón de enviar
   _insertarCierre();
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TRACKING DE EMBUDO — tabla sesiones en Supabase
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Crea una fila nueva en la tabla sesiones cuando el cliente abre Victoria.
+ * Guarda el id devuelto en state.sesion_id para poder actualizar después.
+ * No bloquea el flujo si falla — Victoria sigue funcionando igual.
+ */
+async function _crearSesionTracking() {
+  try {
+    const ahora = Date.now();
+    state.sesion_inicio_ts = ahora;
+
+    const res = await _supabasePost("/rest/v1/sesiones", {
+      paso_actual:           "s0",
+      paso_maximo_alcanzado: "s0",
+      tema_preseleccionado:  state.tema_preseleccionado,
+      dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
+    });
+
+    if (res?.id) {
+      state.sesion_id = res.id;
+    }
+  } catch (err) {
+    console.warn("Tracking: fallo al crear sesión (continúo sin tracking):", err);
+  }
+}
+
+/**
+ * Actualiza la fila de la sesión en Supabase con datos nuevos. Acepta un
+ * objeto parcial — solo se actualizan las columnas que se pasan.
+ * Se ejecuta "fire and forget" — no bloquea el flujo principal si falla.
+ */
+function _actualizarSesion(cambios) {
+  if (!state.sesion_id) return;
+
+  const payload = {
+    ...cambios,
+    ultima_actualizacion: new Date().toISOString(),
+  };
+
+  if (state.sesion_inicio_ts) {
+    payload.duracion_segundos = Math.round((Date.now() - state.sesion_inicio_ts) / 1000);
+  }
+
+  fetch(`${SUPA_URL}/rest/v1/sesiones?id=eq.${state.sesion_id}`, {
+    method: "PATCH",
+    headers: {
+      "apikey":        SUPA_KEY,
+      "Authorization": `Bearer ${SUPA_KEY}`,
+      "Content-Type":  "application/json",
+      "Prefer":        "return=minimal",
+    },
+    body: JSON.stringify(payload),
+  }).catch(err => {
+    console.warn("Tracking: fallo al actualizar sesión:", err);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUPABASE — helper genérico
+// ─────────────────────────────────────────────────────────────────────────────
 
 async function _supabasePost(endpoint, body) {
   try {
