@@ -1433,10 +1433,15 @@ async function _notificarCarlos() {
     "Perros de la Isla 🐾",
   ].join("\n");
 
-  const mensaje = [
-    "[NUEVA CITA CONFIRMADA 🐾]",
+  // ─── NOTIFICACIÓN 1: Interna (resumen de la cita + teléfono destacado) ───
+  const mensajeInterno = [
+    "━━━━━━━━━━━━━━━━━━━━━━━",
+    "📞 TELÉFONO (guardar en agenda):",
     "",
-    `👤 Cliente: ${c.nombre ?? "—"} · ${c.telefono ?? "—"}`,
+    `    ➡️  ${c.telefono ?? "—"}  ⬅️`,
+    `    👤  ${c.nombre ?? "—"}`,
+    "━━━━━━━━━━━━━━━━━━━━━━━",
+    "",
     `📧 Email: ${c.email ?? (state.modalidad_final === "online" ? "⚠️ FALTA" : "no requerido")}`,
     "",
     `🐕 Perro: ${p.nombre ?? "—"} · ${p.raza ?? "—"} · ${edadTexto} · ${p.peso_kg ?? "—"}kg`,
@@ -1454,26 +1459,32 @@ async function _notificarCarlos() {
     state.comprobante_url ? `📎 Comprobante: ${state.comprobante_url}` : "📎 Comprobante: no subido",
     "",
     `[Paso ${d?.log?.paso ?? "?"} | ${d?.log?.notas ?? ""}]`,
-    "",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "📱 MENSAJE PARA EL CLIENTE (copiar y enviar por WhatsApp):",
-    "━━━━━━━━━━━━━━━━━━━━━━━━━",
-    "",
-    mensajeCliente,
   ].join("\n");
 
+  // ─── Notificación 1: alta prioridad, suena (para tener teléfono y resumen) ───
   await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
     method: "POST",
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Title": "Nueva cita Perros de la Isla",
+      "Title": `🐾 Nueva cita · ${primerNombre}`,
       "Priority": "high",
       "Tags": "dog,calendar",
     },
-    body: mensaje,
+    body: mensajeInterno,
+  });
+
+  // ─── Notificación 2: prioridad baja (no vuelve a sonar) — mensaje listo para WhatsApp ───
+  await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Title": `📱 Mensaje para ${primerNombre} (copiar y enviar por WhatsApp)`,
+      "Priority": "low",
+      "Tags": "speech_balloon",
+    },
+    body: mensajeCliente,
   });
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // BARRA DE PROGRESO
 // ─────────────────────────────────────────────────────────────────────────────
