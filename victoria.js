@@ -75,6 +75,7 @@ function _estadoInicial() {
     s3_intentos: 0,
     s5_intentos: 0,
     protocolo_ya_presentado: false,
+    tema_preseleccionado: null,  // viene de ?tema=X en la URL
 
     perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
@@ -116,14 +117,49 @@ export function start() {
   _conectarUI();
   _conectarSplash();
 
-  const bienvenida = "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
-    "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
-    "Para empezar, ¿en qué zona de Mallorca estás?";
+  // Leer el parámetro ?tema=X de la URL — permite que Victoria sepa desde qué
+  // botón de la app de paseos vino el cliente, y personalice el saludo inicial.
+  // Valores válidos: basica, reactividad, cachorros, ansiedad. Otros se ignoran.
+  const params = new URLSearchParams(window.location.search);
+  const temaRaw = (params.get("tema") || "").toLowerCase().trim();
+  const TEMAS_VALIDOS = ["basica", "reactividad", "cachorros", "ansiedad"];
+  if (TEMAS_VALIDOS.includes(temaRaw)) {
+    state.tema_preseleccionado = temaRaw;
+  }
+
+  const bienvenida = _construirSaludoBienvenida();
 
   _registrarTurno("victoria", bienvenida);
   _mostrarVictoria(bienvenida);
   state.current_step = "s1";
   _actualizarProgreso();
+}
+
+/**
+ * Construye el mensaje de bienvenida. Si hay tema_preseleccionado (viene de la
+ * app de paseos con ?tema=X), personaliza el saludo para que el cliente se
+ * sienta reconocido. Si no, saludo estándar.
+ */
+function _construirSaludoBienvenida() {
+  const tema = state.tema_preseleccionado;
+
+  const intros = {
+    basica: "Veo que vienes interesado en la educación básica de tu perro — paseos, convivencia, llamada, modales en casa. Es uno de los servicios que más trabajamos.",
+    reactividad: "Veo que vienes por un tema de reactividad — perros que reaccionan ante otros perros, personas o estímulos. Es de los casos que mejor resultado dan cuando se trabaja bien.",
+    cachorros: "Veo que vienes por tu cachorro — socialización, mordida, higiene, rutinas. Una etapa clave donde marcar las bases bien te evita mil cosas después.",
+    ansiedad: "Veo que vienes por un tema de ansiedad o miedos — ansiedad por separación, ruidos, tormentas, inseguridades. Lo trabajamos a menudo con buenos resultados.",
+  };
+
+  if (tema && intros[tema]) {
+    return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
+      intros[tema] + " " +
+      "Para orientarte bien, cuéntame primero: ¿en qué zona de Mallorca estás?";
+  }
+
+  // Saludo estándar (sin parámetro o con tema inválido)
+  return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
+    "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
+    "Para empezar, ¿en qué zona de Mallorca estás?";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1254,6 +1290,7 @@ async function _notificarCarlos() {
   if (d?.mixto_degradado)             flags.push(`ℹ️ Mixto degradado — detectados: ${(d.cuadros_originales ?? []).join(" + ")}`);
   if (state.cuadro_pendiente_mordida) flags.push("⚠️ Amago de mordida — cliente no precisó gravedad");
   if (state.pago_pendiente_verificar) flags.push("⚠️ Comprobante no subido — verificar pago manualmente");
+  if (state.tema_preseleccionado)     flags.push(`📲 Viene de app paseos · botón: ${state.tema_preseleccionado}`);
   const flagsTexto = flags.length ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
 
   // Nombre humano del protocolo recomendado (usa el primer cuadro detectado)
