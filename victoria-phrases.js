@@ -48,6 +48,8 @@ export const FRASES_ONLINE = {
   basica: `Lo que me cuentas entra dentro de lo que trabajamos como educación básica — más que "obediencia" al uso, es construir una buena comunicación y convivencia entre el perro y la familia: paseos tranquilos, respuesta a la llamada, manejo de las situaciones del día a día. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido. Si en la primera sesión el adiestrador detecta algo más específico (reactividad, miedos, ansiedad), lo comentaría y valoraríais juntos cómo continuar.`,
 
   cachorros: `Lo que me cuentas entra dentro de nuestro protocolo de educación de cachorros — una etapa que cubre bastante terreno: socialización, manejo de la mordida, elección del lugar adecuado para sus necesidades, pautas de descanso, gestión de la soledad, construcción de las primeras rutinas y del vínculo con vosotros. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido, porque el cachorro aprende muy rápido cuando las pautas son claras. En la primera sesión el adiestrador hace una valoración general y define el plan según lo que vea.`,
+
+  miedos: `Lo que me cuentas encaja con un cuadro de miedos. Cuando un perro vive con miedo a algo concreto, lo que más le ayuda no es confrontarlo, sino reconstruir la sensación de seguridad — y para eso el vínculo con los tutores es clave. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a vosotros, con pautas para ir exponiéndolo al estímulo de forma controlada y acompañada. Con constancia se ven cambios, aunque en miedos es especialmente importante respetar los tiempos del perro.`,
 };
 
 
@@ -172,6 +174,8 @@ export const FRASES_APOYO = {
 
 export const FRASE_MENSAJE_PRINCIPAL = `Lo que me cuentas sobre {perro} está dentro de lo que trabajamos. En Perros de la Isla tenemos protocolos específicos para educación básica, cachorros, reactividad, miedos, ansiedad y posesión de recursos. El adiestrador concreta el protocolo exacto en la primera clase, tras conocer a {perro} en su contexto real. Así la primera clase no es una más: es donde se afina el plan según lo que realmente necesite tu perro.`;
 
+export const FRASE_MENSAJE_PRINCIPAL_ONLINE = `Lo que me cuentas sobre {perro} está dentro de lo que trabajamos. En Perros de la Isla tenemos protocolos específicos para educación básica, cachorros, miedos y gestión de ansiedad, que sí trabajamos en modalidad online por Google Meet para zonas fuera de nuestra cobertura presencial. El adiestrador concreta el protocolo exacto en la primera clase, tras conocer a {perro} y ver cómo se desenvuelve contigo en su entorno real. Así la primera clase no es una más: es donde se afina el plan según lo que realmente necesite tu perro.`;
+
 export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
 
 export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `El adiestrador se desplaza a tu domicilio — donde {perro} vive su día a día, que es donde mejor se observa su comportamiento real. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
@@ -244,7 +248,12 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
     // ── Nuevos tipos v2.0 ──────────────────────────────────────────────────
 
     case "mensaje_principal":
-      frase = FRASE_MENSAJE_PRINCIPAL;
+      // Elegir variante según modalidad: online para zonas fuera, default para presencial
+      if (vars.modalidad === "online") {
+        frase = FRASE_MENSAJE_PRINCIPAL_ONLINE;
+      } else {
+        frase = FRASE_MENSAJE_PRINCIPAL;
+      }
       if (vars.perro) {
         frase = frase.replace(/\{perro\}/g, vars.perro);
       } else {
