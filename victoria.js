@@ -1438,7 +1438,8 @@ function _extraerEdad(texto) {
 
 function _extraerPeso(texto) {
   const t = _normalizarNumeros(texto);
-  const kg = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilos?|kilo)/i);
+  // Detecta: 4kg, 4 kg, 4 kilos, 4 kilo, 4 klos, 4 quilos, 4 kilogramos, 4k (como sufijo)
+  const kg = t.match(/(\d+(?:[.,]\d+)?)\s*(kg|kilogramos?|kilos?|kilo|klos|klo|quilos?|quilo|k)\b/i);
   if (kg) return parseFloat(kg[1].replace(",", "."));
   return null;
 }
