@@ -26,6 +26,28 @@ const KEYWORDS_MORDIDA = [
   "casi muerde", "amago de mordida",
 ];
 
+// Palabras que describen agresión o conducta peligrosa SIN ser mordida literal.
+// Disparan el filtro de seguridad en combinación con perros grandes o PPP.
+const KEYWORDS_AGRESION = [
+  "agresivo", "agresiva", "agresividad",
+  "ataca", "atacó", "ataque", "atacado",
+  "gruñe", "gruñido", "gruñidos", "gruñir",
+  "marca con la boca", "marca con los dientes", "marcado con la boca",
+  "enseña los dientes", "muestra los dientes",
+  "se lanza a morder", "se abalanza",
+  "se encara", "se encaró",
+  "embiste", "embistió",
+];
+
+// Palabras que indican víctima humana vulnerable (niños, bebés, ancianos).
+// Con agresión + víctima vulnerable → derivación cautelosa aunque no haya peso.
+const KEYWORDS_VICTIMA_VULNERABLE = [
+  "mi hijo", "mi hija", "mis hijos", "mis hijas",
+  "niño", "niña", "niños", "niñas",
+  "bebé", "bebe", "bebés", "bebes",
+  "anciano", "anciana", "abuelo", "abuela",
+];
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ORQUESTADOR PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,14 +61,31 @@ const KEYWORDS_MORDIDA = [
 export function decidirRespuesta(contexto) {
   const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida } = contexto;
 
-  // ── FILTRO 1: Mordida ────────────────────────────────────────────────────
+  // ── FILTRO 1: Seguridad (mordida + agresión) ─────────────────────────────
   //
-  // Se activa si el texto actual menciona mordida O si ya tenemos una gravedad
-  // definida de un turno anterior (el cliente está respondiendo a la repregunta
-  // de gravedad). Esto evita que Victoria "olvide" el filtro de seguridad entre
-  // turnos y caiga al caso general vendiendo clases para mordidas graves.
+  // Se activa si el texto menciona mordida, agresión, ataque, gruñido, o si el
+  // perro es PPP con cualquier conducta problemática. También se mantiene
+  // activo si ya hay una gravedad definida de turnos previos (el cliente está
+  // respondiendo a la repregunta). Esto evita que Victoria "olvide" el filtro
+  // de seguridad entre turnos y venda clases para casos que necesitan etólogo.
 
-  if (keywords_mordida || gravedad_mordida) {
+  const textoNorm = normalizar(contexto.mensaje ?? "");
+  const hayAgresion = KEYWORDS_AGRESION.some(kw => textoNorm.includes(normalizar(kw)));
+  const hayVictimaVulnerable = KEYWORDS_VICTIMA_VULNERABLE.some(kw => textoNorm.includes(normalizar(kw)));
+  const esGrande = (perro?.peso_kg ?? 0) > 10;
+  const esGrandota = (perro?.peso_kg ?? 0) >= 25;
+  const esPPP = perro?.es_ppp ?? false;
+
+  // Condiciones para activar el filtro de seguridad
+  const activarFiltro =
+    keywords_mordida ||                        // mordida explícita
+    gravedad_mordida ||                        // ya preguntamos antes
+    (hayAgresion && esGrande) ||               // agresión + perro >10kg
+    (hayAgresion && esPPP) ||                  // agresión + PPP (de cualquier tamaño)
+    (hayAgresion && hayVictimaVulnerable) ||   // agresión + niño/bebé/anciano
+    (esPPP && hayAgresion);                    // PPP con cualquier conducta agresiva
+
+  if (activarFiltro) {
     // Gravedad aún no definida → preguntar
     if (!gravedad_mordida) {
       return _decision({
@@ -54,13 +93,11 @@ export function decidirRespuesta(contexto) {
         frase_params: { tipo: "apoyo", subtipo: "filtro_mordida" },
         pending_next: "gravedad_mordida",
         cuadro_ganador: null,
-        log: _log(1, "preguntar gravedad mordida"),
+        log: _log(1, `filtro seguridad: mordida=${!!keywords_mordida} agresion=${hayAgresion} vulnerable=${hayVictimaVulnerable} ppp=${esPPP} peso=${perro?.peso_kg}`),
       });
     }
 
-    // Grave + perro grande o PPP → etólogo
-    const esGrande = (perro?.peso_kg ?? 0) > 10;
-    const esPPP    = perro?.es_ppp ?? false;
+    // Grave + (perro grande o PPP) → etólogo
     if (gravedad_mordida === "grave" && (esGrande || esPPP)) {
       return _decision({
         accion: "derivar",
@@ -68,6 +105,17 @@ export function decidirRespuesta(contexto) {
         pending_next: null,
         cuadro_ganador: null,
         log: _log(1, `mordida grave + peso:${perro?.peso_kg}kg ppp:${esPPP}`),
+      });
+    }
+
+    // Agresión + grandota (≥25kg) aunque no haya mordida literal → etólogo
+    if (hayAgresion && esGrandota && gravedad_mordida === "grave") {
+      return _decision({
+        accion: "derivar",
+        frase_params: { tipo: "etologo", subtipo: "mordida_personas" },
+        pending_next: null,
+        cuadro_ganador: null,
+        log: _log(1, `agresion + grandota + grave (peso:${perro?.peso_kg})`),
       });
     }
 
