@@ -642,6 +642,27 @@ const KEYWORDS_UBICACION = [
   "viene a casa",
 ];
 
+const KEYWORDS_METODOLOGIA = [
+  "como son las clases", "cómo son las clases",
+  "como son las sesiones", "cómo son las sesiones",
+  "como es la clase", "cómo es la clase",
+  "como es la sesion", "cómo es la sesión",
+  "como trabajan", "cómo trabajan",
+  "como trabajais", "cómo trabajáis",
+  "como trabaja", "cómo trabaja",
+  "como funciona", "cómo funciona",
+  "como funcionan", "cómo funcionan",
+  "que hacen en la clase", "qué hacen en la clase",
+  "que haceis", "qué hacéis",
+  "metodologia", "metodología",
+  "en que consiste", "en qué consiste",
+  "como van las clases", "cómo van las clases",
+  "que pasa en la clase", "qué pasa en la clase",
+  "como es una clase", "cómo es una clase",
+  "como se desarrolla", "cómo se desarrolla",
+  "como se hace", "cómo se hace",
+];
+
 const KEYWORDS_PRECIO = [
   "cuanto cuesta", "cuánto cuesta",
   "cuanto vale", "cuánto vale",
@@ -749,6 +770,12 @@ async function _procesarS6_Protocolo(texto) {
 
   // ORDEN de matching IMPORTANTE — primero keywords específicas, afirmativo al final
 
+  // 0. Metodología / cómo son las clases (prioridad máxima — es la pregunta más natural)
+  if (match(KEYWORDS_METODOLOGIA)) {
+    _mostrarMetodologiaCompleta();
+    return null;  // la metodología se muestra async, no devolver texto aquí
+  }
+
   // 1. Precio por perro
   if (match(KEYWORDS_PRECIO_POR_PERRO)) {
     _mostrarBotonesAgendaTrasPausa();
@@ -827,53 +854,7 @@ function _mostrarBotonesRamificacion() {
         onClick: () => {
           _mostrarCliente("Cómo son las clases");
           _registrarTurno("cliente", "Cómo son las clases");
-          _mostrarTyping(true);
-          setTimeout(() => {
-            _mostrarTyping(false);
-            const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
-            const perro = state.perro.nombre ?? null;
-            const frase = obtenerFrase({
-              tipo: "como_trabajamos",
-              vars: { perro, modalidad },
-            });
-            _mostrarVictoria(frase);
-            _registrarTurno("victoria", frase);
-            _actualizarProgreso();
-
-            // Tras la metodología → cierre + botones
-            setTimeout(() => {
-              _mostrarTyping(true);
-              setTimeout(() => {
-                _mostrarTyping(false);
-                const cierre = obtenerFrase({ tipo: "cierre_metodologia" });
-                _mostrarVictoria(cierre);
-                _registrarTurno("victoria", cierre);
-
-                setTimeout(() => {
-                  _mostrarOpciones([
-                    {
-                      label: "Sí, ver precios y horarios",
-                      onClick: () => {
-                        _mostrarCliente("Sí, ver precios y horarios");
-                        _registrarTurno("cliente", "Sí, ver precios y horarios");
-                        _mostrarPrecioYBotonesAgenda();
-                      },
-                    },
-                    {
-                      label: "Tengo otra pregunta",
-                      onClick: () => {
-                        _mostrarCliente("Tengo otra pregunta");
-                        _registrarTurno("cliente", "Tengo otra pregunta");
-                        const msg = "Claro, dime.";
-                        _mostrarVictoria(msg);
-                        _registrarTurno("victoria", msg);
-                      },
-                    },
-                  ]);
-                }, 200);
-              }, 1200);
-            }, 3000);
-          }, TYPING_DELAY);
+          _mostrarMetodologiaCompleta();
         },
       },
       {
@@ -886,6 +867,56 @@ function _mostrarBotonesRamificacion() {
       },
     ]);
   }, 4500);
+}
+
+function _mostrarMetodologiaCompleta() {
+  _mostrarTyping(true);
+  setTimeout(() => {
+    _mostrarTyping(false);
+    const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
+    const perro = state.perro.nombre ?? null;
+    const frase = obtenerFrase({
+      tipo: "como_trabajamos",
+      vars: { perro, modalidad },
+    });
+    _mostrarVictoria(frase);
+    _registrarTurno("victoria", frase);
+    _actualizarProgreso();
+
+    // Tras la metodología → cierre + botones
+    setTimeout(() => {
+      _mostrarTyping(true);
+      setTimeout(() => {
+        _mostrarTyping(false);
+        const cierre = obtenerFrase({ tipo: "cierre_metodologia" });
+        _mostrarVictoria(cierre);
+        _registrarTurno("victoria", cierre);
+
+        setTimeout(() => {
+          _mostrarOpciones([
+            {
+              label: "Sí, ver precios y horarios",
+              onClick: () => {
+                _mostrarCliente("Sí, ver precios y horarios");
+                _registrarTurno("cliente", "Sí, ver precios y horarios");
+                _mostrarPrecioYBotonesAgenda();
+              },
+            },
+            {
+              label: "Tengo otra pregunta",
+              onClick: () => {
+                _mostrarCliente("Tengo otra pregunta");
+                _registrarTurno("cliente", "Tengo otra pregunta");
+                const msg = "Claro, dime.";
+                _mostrarVictoria(msg);
+                _registrarTurno("victoria", msg);
+              },
+            },
+          ]);
+        }, 200);
+      }, 1200);
+    }, 3000);
+  }, TYPING_DELAY);
 }
 
 function _mostrarBotonPedirWhatsApp() {
