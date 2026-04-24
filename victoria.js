@@ -1522,7 +1522,7 @@ async function _notificarCarlos() {
     method: "POST",
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Title": `🐾 Nueva cita · ${primerNombre}`,
+      "Title": `Nueva cita - ${primerNombre}`,
       "Priority": "high",
       "Tags": "dog,calendar",
     },
@@ -1534,7 +1534,7 @@ async function _notificarCarlos() {
     method: "POST",
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Title": `📱 Mensaje para ${primerNombre} (copiar y enviar por WhatsApp)`,
+      "Title": `Mensaje para ${primerNombre} (copiar y enviar)`,
       "Priority": "low",
       "Tags": "speech_balloon",
     },
