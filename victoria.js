@@ -85,6 +85,7 @@ function _estadoInicial() {
     },
 
     mensajes_diagnostico: [],  // solo s4+s5 — alimentan el matcher
+    prescan_mensaje_inicial: null,  // texto del primer mensaje si tenía contenido
 
     cliente: { nombre: null, telefono: null, email: null },
 
@@ -382,6 +383,17 @@ async function _procesarTexto(texto) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function _procesarS1_Zona(texto) {
+  // Prescan del primer mensaje — si tiene contenido, extrae todo lo que pueda
+  // (zona, raza, edad, peso, ppp, problema) para no re-preguntar después.
+  _prescanPrimerMensaje(texto);
+
+  // Si el prescan ya detectó la zona, saltamos s1 directamente
+  if (state.zona && !state.zona.necesitaAclaracion) {
+    state.current_step = "s2";
+    return "Perfecto, gracias por el detalle. ¿Cómo se llama tu perro?";
+  }
+
+  // Si no hay zona en prescan, seguir flujo normal: detectar en este texto
   const zona = detectarZona(texto);
   state.zona = zona;
 
@@ -408,6 +420,22 @@ function _procesarS2_NombrePerro(texto) {
 }
 
 function _procesarS3_DatosPerro(texto) {
+  // Si el prescan ya llenó todos los datos, saltamos s3 completo y vamos a s4.
+  // Esto pasa cuando el cliente escribe un mini-ensayo con raza+edad+peso en
+  // el primer mensaje.
+  const yaTieneEdad = state.perro.edad_meses !== null;
+  const yaTienePeso = state.perro.peso_kg !== null;
+  const yaTieneRaza = state.perro.raza !== null;
+
+  if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
+    // Guardar este texto como parte del diagnóstico (puede describir el problema)
+    state.mensajes_diagnostico.push(texto);
+    state.current_step = "s4";
+    return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+      "Descríbeme la situación con tus propias palabras.";
+  }
+
+  // Flujo normal: extraer lo que se pueda del texto actual
   const edad = _extraerEdad(texto);
   const peso = _extraerPeso(texto);
   const raza = _extraerRaza(texto);
@@ -447,6 +475,13 @@ function _procesarS3_DatosPerro(texto) {
 }
 
 function _procesarS4_Problema(texto) {
+  // Si había mensaje inicial largo (prescan), incluirlo en el diagnóstico
+  // — una sola vez, marcándolo como ya consumido.
+  if (state.prescan_mensaje_inicial) {
+    state.mensajes_diagnostico.unshift(state.prescan_mensaje_inicial);
+    state.prescan_mensaje_inicial = null; // consumir para no duplicar
+  }
+
   state.mensajes_diagnostico.push(texto);
 
   const lateral = detectarLateral(texto);
@@ -1484,6 +1519,57 @@ function _tieneKeywordsMordida(texto) {
     "se tira a morder", "mordida", "amago"];
   const norm = normalizar(texto);
   return MORDIDA.some((kw) => norm.includes(normalizar(kw)));
+}
+
+/**
+ * Prescan del primer mensaje del cliente. Se ejecuta una única vez cuando el
+ * mensaje tiene suficiente contenido como para que valga la pena escanearlo
+ * (>60 caracteres). Intenta extraer todo lo que ya pueda saberse del mensaje
+ * inicial, para que Victoria no pregunte datos que el cliente ya dio.
+ *
+ * Rellena el state con lo que encuentre. NO avanza el paso — eso lo hace cada
+ * procesador al ver que ya tiene su dato.
+ *
+ * Lo que intenta extraer:
+ * - Zona (usando detectarZona)
+ * - Raza (usando _extraerRaza)
+ * - Edad en meses (usando _extraerEdad)
+ * - Peso en kg (usando _extraerPeso)
+ * - Flag es_ppp (usando esPPP)
+ * - Problema descriptivo: si el mensaje tiene >60 chars, se considera que
+ *   contiene descripción del problema y se guarda en mensajes_diagnostico
+ *   para que el matcher lo evalúe.
+ *
+ * Lo que NO extrae:
+ * - Nombre del perro (ambiguo, mejor pedirlo siempre).
+ */
+function _prescanPrimerMensaje(texto) {
+  if (!texto || texto.length < 60) return;
+
+  // Zona
+  const zonaDetectada = detectarZona(texto);
+  if (zonaDetectada && !zonaDetectada.necesitaAclaracion) {
+    state.zona = zonaDetectada;
+  }
+
+  // Raza
+  const raza = _extraerRaza(texto);
+  if (raza !== null) state.perro.raza = raza;
+
+  // Edad
+  const edad = _extraerEdad(texto);
+  if (edad !== null) state.perro.edad_meses = edad;
+
+  // Peso
+  const peso = _extraerPeso(texto);
+  if (peso !== null) state.perro.peso_kg = peso;
+
+  // PPP
+  state.perro.es_ppp = esPPP(texto);
+
+  // Problema: si el mensaje es descriptivo, guardarlo para el matcher
+  // (se añadirá como contexto cuando evaluemos en s4)
+  state.prescan_mensaje_inicial = texto;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
