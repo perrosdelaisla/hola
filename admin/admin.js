@@ -409,6 +409,7 @@ async function cargarCitas() {
 // Instancias Chart.js — se destruyen antes de re-renderizar
 let _chartTema      = null;
 let _chartModalidad = null;
+let _chartCanal     = null;
 
 // Período activo: "mes" o "ano"
 let _statsPeriodo = 'mes';
@@ -464,6 +465,7 @@ async function _cargarDatosStats() {
     renderizarEmbudo(sesiones);
     renderizarDesgloseTema(sesiones);
     renderizarDesgloseModalidad(sesiones);
+    renderizarDesgloseCanal(sesiones);
     renderizarMetricasFinales(sesiones);
   } catch (err) {
     console.error('Error al cargar estadísticas:', err);
@@ -617,6 +619,30 @@ function renderizarDesgloseModalidad(sesiones) {
 
   _chartModalidad = _renderDoughnut('chart-modalidad', _chartModalidad, datos, COLORES);
   _renderTablaDesglose('tabla-modalidad', datos, COLORES);
+}
+
+/**
+ * Renderiza doughnut + tabla de desglose por canal de origen.
+ */
+function renderizarDesgloseCanal(sesiones) {
+  const CANALES = [
+    { key: 'whatsapp',  label: 'WhatsApp'      },
+    { key: 'instagram', label: 'Instagram'      },
+    { key: 'mail',      label: 'Mail'           },
+    { key: 'paseos',    label: 'App de Paseos'  },
+    { key: null,        label: 'Directo'        },
+  ];
+  const COLORES = ['#25D366', '#c53030', '#9cb64b', '#d97706', '#555555'];
+
+  const datos = CANALES.map(c => {
+    const grupo = sesiones.filter(s =>
+      c.key === null ? !s.origen : s.origen === c.key
+    );
+    return { label: c.label, total: grupo.length, citas: grupo.filter(s => s.cita_confirmada).length };
+  });
+
+  _chartCanal = _renderDoughnut('chart-canal', _chartCanal, datos, COLORES);
+  _renderTablaDesglose('tabla-canal', datos, COLORES);
 }
 
 /**
