@@ -333,3 +333,23 @@ export async function confirmarCita(citaId) {
 export async function cancelarCita(citaId) {
   await supa(`citas?id=eq.${citaId}`, 'PATCH', { estado: 'cancelada' });
 }
+
+/* ════════════════════════════════════════════
+   ADMIN — ESTADÍSTICAS
+   ════════════════════════════════════════════ */
+
+/**
+ * Devuelve todas las filas de la tabla `sesiones` cuyo created_at
+ * está entre las fechas indicadas (formato ISO 8601).
+ * Usado por la pestaña Estadísticas del admin para calcular embudo.
+ */
+export async function obtenerSesionesParaStats(desde, hasta) {
+  try {
+    return await supa(
+      `sesiones?created_at=gte.${desde}&created_at=lte.${hasta}&order=created_at.desc`
+    );
+  } catch (err) {
+    console.error('Error al obtener sesiones para stats:', err);
+    return [];
+  }
+}
