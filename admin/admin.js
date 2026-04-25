@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════
    PERROS DE LA ISLA · Panel Admin
-   admin.js — Lógica de las 3 pestañas
+   admin.js — Lógica de las 4 pestañas
    ═══════════════════════════════════════════ */
 
 import {
@@ -14,6 +14,7 @@ import {
   obtenerCitasAdminConReportado,
   confirmarCita,
   cancelarCita,
+  obtenerSesionesParaStats,
 } from '../supabase.js';
 
 /* ── CONFIG ── */
@@ -83,9 +84,10 @@ function configurarTabs() {
 
 function cargarPestañaActiva() {
   const tabActiva = document.querySelector('.tab.active')?.dataset.tab || 'plantilla';
-  if (tabActiva === 'plantilla') cargarPlantilla();
-  if (tabActiva === 'bloqueos')  cargarBloqueos();
-  if (tabActiva === 'citas')     cargarCitas();
+  if (tabActiva === 'plantilla')     cargarPlantilla();
+  if (tabActiva === 'bloqueos')      cargarBloqueos();
+  if (tabActiva === 'citas')         cargarCitas();
+  if (tabActiva === 'estadisticas')  cargarEstadisticas();
 }
 
 /* ── PLANTILLA ── */
@@ -330,7 +332,6 @@ async function cargarCitas() {
       clienteDiv.textContent = `${c.clientes?.nombre ?? '—'} · ${c.clientes?.telefono ?? '—'}`;
       li.appendChild(clienteDiv);
 
-      // Los perros vienen anidados dentro de clientes (perro pertenece a cliente, no a cita)
       const perrosArr = c.clientes?.perros ?? [];
       const perroTxt = (perrosArr.length > 0)
         ? `${perrosArr[0].nombre} (${perrosArr[0].raza || '—'})`
@@ -399,6 +400,323 @@ async function cargarCitas() {
     console.error(err);
     lista.innerHTML = '<li class="empty-state">Error al cargar. Revisa la consola.</li>';
   }
+}
+
+/* ═══════════════════════════════════════════
+   ESTADÍSTICAS
+   ═══════════════════════════════════════════ */
+
+// Instancias Chart.js — se destruyen antes de re-renderizar
+let _chartTema      = null;
+let _chartModalidad = null;
+
+// Período activo: "mes" o "ano"
+let _statsPeriodo = 'mes';
+
+// Guard: los listeners de sub-pestañas solo se conectan una vez
+let _statsIniciado = false;
+
+/**
+ * Punto de entrada — se llama al activar la pestaña Estadísticas.
+ */
+async function cargarEstadisticas() {
+  // Conectar sub-pestañas solo la primera vez
+  if (!_statsIniciado) {
+    _statsIniciado = true;
+    document.querySelectorAll('.stats-periodo-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.stats-periodo-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _statsPeriodo = btn.dataset.periodo;
+        _cargarDatosStats();
+      });
+    });
+  }
+
+  await _cargarDatosStats();
+}
+
+/**
+ * Calcula el rango de fechas y carga las sesiones de Supabase.
+ */
+async function _cargarDatosStats() {
+  const ahora = new Date();
+  let desde;
+
+  if (_statsPeriodo === 'mes') {
+    desde = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString();
+  } else {
+    desde = new Date(ahora.getFullYear(), 0, 1).toISOString();
+  }
+  const hasta = ahora.toISOString();
+
+  // Estado de carga en KPIs
+  ['kpi-sesiones', 'kpi-precios', 'kpi-citas', 'kpi-tasa'].forEach(id => {
+    const el = $(id);
+    if (el) el.textContent = '…';
+  });
+  const embudo = $('stats-embudo');
+  if (embudo) embudo.innerHTML = '<p class="stats-vacio">Cargando datos…</p>';
+
+  try {
+    const sesiones = await obtenerSesionesParaStats(desde, hasta);
+    renderizarKPIs(sesiones);
+    renderizarEmbudo(sesiones);
+    renderizarDesgloseTema(sesiones);
+    renderizarDesgloseModalidad(sesiones);
+    renderizarMetricasFinales(sesiones);
+  } catch (err) {
+    console.error('Error al cargar estadísticas:', err);
+    if (embudo) embudo.innerHTML = '<p class="stats-vacio">Error al cargar datos. Revisa la consola.</p>';
+  }
+}
+
+/**
+ * Renderiza los 4 KPIs superiores.
+ */
+function renderizarKPIs(sesiones) {
+  const total   = sesiones.length;
+  const precios = sesiones.filter(s => s.vio_precio).length;
+  const citas   = sesiones.filter(s => s.cita_confirmada).length;
+  const tasa    = total > 0 ? ((citas / total) * 100).toFixed(1) + '%' : '—';
+
+  const set = (id, val) => { const el = $(id); if (el) el.textContent = val; };
+  set('kpi-sesiones', total   || '0');
+  set('kpi-precios',  precios || '0');
+  set('kpi-citas',    citas   || '0');
+  set('kpi-tasa',     tasa);
+}
+
+/**
+ * Renderiza el embudo de 7 pasos con barras horizontales.
+ */
+function renderizarEmbudo(sesiones) {
+  const contenedor = $('stats-embudo');
+  if (!contenedor) return;
+
+  // Pasos s4 en adelante = el cliente llegó a describir el problema
+  const PASOS_S4 = ['s4','s5','s6','s7','s8','s9','s10','s11','s12'];
+
+  const pasos = [
+    { label: 'Iniciaron conversación',  n: sesiones.length },
+    { label: 'Dieron datos del perro',  n: sesiones.filter(s => PASOS_S4.includes(s.paso_maximo_alcanzado)).length },
+    { label: 'Vieron mensaje clave',    n: sesiones.filter(s => s.vio_mensaje_principal).length },
+    { label: 'Vieron precios',          n: sesiones.filter(s => s.vio_precio).length },
+    { label: 'Abrieron agenda',         n: sesiones.filter(s => s.abrio_agenda).length },
+    { label: 'Eligieron horario',       n: sesiones.filter(s => s.eligio_slot).length },
+    { label: 'Confirmaron cita',        n: sesiones.filter(s => s.cita_confirmada).length },
+  ];
+
+  if (pasos[0].n === 0) {
+    contenedor.innerHTML = '<p class="stats-vacio">Aún no hay datos en este período.</p>';
+    return;
+  }
+
+  const base = pasos[0].n;
+
+  // Retención respecto al paso anterior
+  const retenciones = pasos.map((p, i) => {
+    if (i === 0) return null;
+    const prev = pasos[i - 1].n;
+    return prev > 0 ? Math.round((p.n / prev) * 100) : 0;
+  });
+
+  // Detectar mayor caída relativa (menor retención, excluyendo paso 0)
+  let minRet = 101;
+  let idxCaida = -1;
+  retenciones.forEach((r, i) => {
+    if (r === null) return;
+    if (r < minRet) { minRet = r; idxCaida = i; }
+  });
+
+  contenedor.innerHTML = '';
+
+  pasos.forEach((paso, i) => {
+    const pct   = base > 0 ? Math.round((paso.n / base) * 100) : 0;
+    const ancho = base > 0 ? (paso.n / base) * 100 : 0;
+    const esCaida = i === idxCaida && idxCaida !== -1 && pasos[0].n > 0;
+    const retTxt = retenciones[i] !== null ? `↓ ${retenciones[i]}% del paso anterior` : '';
+
+    const row = document.createElement('div');
+    row.className = 'embudo-row' + (esCaida ? ' mayor-caida' : '');
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'embudo-label';
+    labelEl.textContent = (esCaida ? '⚠ ' : '') + paso.label;
+    row.appendChild(labelEl);
+
+    const barraWrap = document.createElement('div');
+    barraWrap.className = 'embudo-barra-wrap';
+    const barra = document.createElement('div');
+    barra.className = 'embudo-barra';
+    barra.style.width = '0%';
+    barraWrap.appendChild(barra);
+    row.appendChild(barraWrap);
+
+    const numEl = document.createElement('span');
+    numEl.className = 'embudo-num';
+    numEl.innerHTML = `${paso.n} <small style="color:var(--t3)">(${pct}%)</small>`;
+    row.appendChild(numEl);
+
+    const retEl = document.createElement('span');
+    retEl.className = 'embudo-retencion';
+    retEl.textContent = retTxt;
+    row.appendChild(retEl);
+
+    contenedor.appendChild(row);
+
+    // Animar barra con pequeño delay para que se vea la transición CSS
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { barra.style.width = ancho + '%'; });
+    });
+  });
+}
+
+/**
+ * Renderiza doughnut + tabla de desglose por tema/origen.
+ */
+function renderizarDesgloseTema(sesiones) {
+  const TEMAS = [
+    { key: 'basica',      label: 'Educación básica' },
+    { key: 'reactividad', label: 'Reactividad'       },
+    { key: 'cachorros',   label: 'Cachorros'         },
+    { key: 'ansiedad',    label: 'Ansiedad/miedos'   },
+    { key: null,          label: 'Sin tema'           },
+  ];
+  const COLORES = ['#c53030', '#9cb64b', '#d97706', '#78350f', '#555555'];
+
+  const datos = TEMAS.map(t => {
+    const grupo = sesiones.filter(s =>
+      t.key === null ? !s.tema_preseleccionado : s.tema_preseleccionado === t.key
+    );
+    return { label: t.label, total: grupo.length, citas: grupo.filter(s => s.cita_confirmada).length };
+  });
+
+  _chartTema = _renderDoughnut('chart-tema', _chartTema, datos, COLORES);
+  _renderTablaDesglose('tabla-tema', datos, COLORES);
+}
+
+/**
+ * Renderiza doughnut + tabla de desglose por modalidad.
+ */
+function renderizarDesgloseModalidad(sesiones) {
+  const MODALIDADES = [
+    { key: 'presencial', label: 'Presencial'           },
+    { key: 'online',     label: 'Online'                },
+    { key: 'fuera',      label: 'Fuera de cobertura'   },
+    { key: 'otro',       label: 'Derivar / sin definir' },
+  ];
+  const COLORES = ['#c53030', '#9cb64b', '#d97706', '#555555'];
+
+  const datos = MODALIDADES.map((m, i) => {
+    const grupo = i === 3
+      ? sesiones.filter(s => !s.modalidad || s.modalidad === 'derivar' || s.modalidad === 'desconocida')
+      : sesiones.filter(s => s.modalidad === m.key);
+    return { label: m.label, total: grupo.length, citas: grupo.filter(s => s.cita_confirmada).length };
+  });
+
+  _chartModalidad = _renderDoughnut('chart-modalidad', _chartModalidad, datos, COLORES);
+  _renderTablaDesglose('tabla-modalidad', datos, COLORES);
+}
+
+/**
+ * Helper: crea o re-crea un gráfico doughnut Chart.js.
+ * Devuelve la nueva instancia.
+ */
+function _renderDoughnut(canvasId, instanciaPrevia, datos, colores) {
+  if (instanciaPrevia) instanciaPrevia.destroy();
+
+  const canvas = $(canvasId);
+  if (!canvas) return null;
+
+  return new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels:   datos.map(d => d.label),
+      datasets: [{
+        data:            datos.map(d => d.total),
+        backgroundColor: colores,
+        borderColor:     'rgba(0,0,0,0)',
+        borderWidth:     0,
+        hoverOffset:     6,
+      }],
+    },
+    options: {
+      cutout: '68%',
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: (ctx) => ` ${ctx.parsed} sesiones` },
+        },
+      },
+      animation: { animateRotate: true, duration: 500 },
+    },
+  });
+}
+
+/**
+ * Helper: renderiza la tabla de desglose (nombre · n · tasa conversión).
+ */
+function _renderTablaDesglose(contenedorId, datos, colores) {
+  const cont = $(contenedorId);
+  if (!cont) return;
+
+  cont.innerHTML = '';
+
+  const visibles = datos.filter(d => d.total > 0);
+  if (visibles.length === 0) {
+    cont.innerHTML = '<p class="stats-vacio" style="text-align:left;padding:0">Sin datos aún.</p>';
+    return;
+  }
+
+  datos.forEach((d, i) => {
+    if (d.total === 0) return;
+    const tasa = ((d.citas / d.total) * 100).toFixed(1) + '%';
+
+    const row = document.createElement('div');
+    row.className = 'desglose-row';
+    row.innerHTML = `
+      <span class="desglose-dot" style="background:${colores[i]}"></span>
+      <span class="desglose-nombre">${d.label}</span>
+      <span class="desglose-num">${d.total}</span>
+      <span class="desglose-tasa">${tasa} conv.</span>
+    `;
+    cont.appendChild(row);
+  });
+}
+
+/**
+ * Renderiza las 4 métricas pequeñas al final.
+ */
+function renderizarMetricasFinales(sesiones) {
+  const cont = $('stats-mini');
+  if (!cont) return;
+
+  const total   = sesiones.length;
+  const etologo = sesiones.filter(s => s.derivado_etologo).length;
+  const zona    = sesiones.filter(s => s.derivado_zona).length;
+  const movil   = sesiones.filter(s => s.dispositivo === 'movil').length;
+  const pctMov  = total > 0 ? Math.round((movil / total) * 100) : 0;
+  const pctDesk = total > 0 ? 100 - pctMov : 0;
+
+  cont.innerHTML = `
+    <div class="stats-mini-item">
+      <span class="stats-mini-val">${etologo}</span>
+      <span class="stats-mini-etiqueta">Deriv. etólogo</span>
+    </div>
+    <div class="stats-mini-item">
+      <span class="stats-mini-val">${zona}</span>
+      <span class="stats-mini-etiqueta">Deriv. por zona</span>
+    </div>
+    <div class="stats-mini-item">
+      <span class="stats-mini-val">${pctMov}%</span>
+      <span class="stats-mini-etiqueta">Móvil</span>
+    </div>
+    <div class="stats-mini-item">
+      <span class="stats-mini-val">${pctDesk}%</span>
+      <span class="stats-mini-etiqueta">Desktop</span>
+    </div>
+  `;
 }
 
 /* ── UTILS ── */
