@@ -76,6 +76,7 @@ function _estadoInicial() {
     s5_intentos: 0,
     protocolo_ya_presentado: false,
     tema_preseleccionado: null,  // viene de ?tema=X en la URL
+    origen: null,                // viene de ?origen=X en la URL (whatsapp/instagram/mail/paseos)
 
     perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
@@ -129,6 +130,14 @@ export function start() {
   const TEMAS_VALIDOS = ["basica", "reactividad", "cachorros", "ansiedad"];
   if (TEMAS_VALIDOS.includes(temaRaw)) {
     state.tema_preseleccionado = temaRaw;
+  }
+
+  // Leer ?origen=X — tracking de canal de captación
+  // Valores válidos: whatsapp, instagram, mail, paseos. Otros → null (= Directo)
+  const origenRaw = (params.get("origen") || "").toLowerCase().trim();
+  const ORIGENES_VALIDOS = ["whatsapp", "instagram", "mail", "paseos"];
+  if (ORIGENES_VALIDOS.includes(origenRaw)) {
+    state.origen = origenRaw;
   }
 
   const bienvenida = _construirSaludoBienvenida();
@@ -1439,6 +1448,7 @@ async function _notificarCarlos() {
   if (state.cuadro_pendiente_mordida) flags.push("⚠️ Amago de mordida — cliente no precisó gravedad");
   if (state.pago_pendiente_verificar) flags.push("⚠️ Comprobante no subido — verificar pago manualmente");
   if (state.tema_preseleccionado)     flags.push(`📲 Viene de app paseos · botón: ${state.tema_preseleccionado}`);
+  if (state.origen)                   flags.push(`🔗 Canal de origen: ${state.origen}`);
   const flagsTexto = flags.length ? flags.map((f) => `   ${f}`).join("\n") : "   Sin flags";
 
   // Nombre humano del protocolo recomendado (usa el primer cuadro detectado)
@@ -1847,6 +1857,7 @@ async function _crearSesionTracking() {
       paso_actual:           "s0",
       paso_maximo_alcanzado: "s0",
       tema_preseleccionado:  state.tema_preseleccionado,
+      origen:                state.origen,
       dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
     });
 
