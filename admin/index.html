@@ -18,7 +18,10 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PDLI Admin">
-  <link rel="apple-touch-icon" href="https://i.ibb.co/S7xtkV5T/logo.png">
+  <link rel="apple-touch-icon" href="https://i.ibb.co/FkCVpG1j/icon.png">
+
+  <!-- Chart.js para la pestaña Estadísticas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -54,6 +57,7 @@
       <button class="tab active" data-tab="plantilla">Plantilla</button>
       <button class="tab" data-tab="bloqueos">Bloqueos</button>
       <button class="tab" data-tab="citas">Citas</button>
+      <button class="tab" data-tab="estadisticas">Estadísticas</button>
     </nav>
 
     <!-- Tab content -->
@@ -116,6 +120,70 @@
         </ul>
       </section>
 
+      <!-- ESTADÍSTICAS -->
+      <section id="tab-estadisticas" class="tab-panel">
+
+        <!-- Sub-pestañas de período -->
+        <div class="stats-periodo">
+          <button class="stats-periodo-btn active" data-periodo="mes">Este mes</button>
+          <button class="stats-periodo-btn" data-periodo="ano">Este año</button>
+        </div>
+
+        <!-- Fila de KPIs -->
+        <div class="stats-kpis">
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpi-sesiones">—</span>
+            <span class="kpi-label">Sesiones totales</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpi-precios">—</span>
+            <span class="kpi-label">Vieron precios</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpi-citas">—</span>
+            <span class="kpi-label">Citas confirmadas</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-num kpi-conversion" id="kpi-tasa">—</span>
+            <span class="kpi-label">Tasa de conversión</span>
+          </div>
+        </div>
+
+        <!-- Embudo principal -->
+        <div class="stats-bloque">
+          <h2 class="stats-titulo">Embudo de conversión</h2>
+          <div id="stats-embudo">
+            <p class="stats-vacio">Cargando datos…</p>
+          </div>
+        </div>
+
+        <!-- Desglose por origen/tema -->
+        <div class="stats-bloque stats-doble">
+          <div class="stats-doble-chart">
+            <h2 class="stats-titulo">Por origen</h2>
+            <div class="doughnut-wrap">
+              <canvas id="chart-tema"></canvas>
+            </div>
+          </div>
+          <div class="stats-doble-tabla" id="tabla-tema"></div>
+        </div>
+
+        <!-- Desglose por modalidad -->
+        <div class="stats-bloque stats-doble">
+          <div class="stats-doble-chart">
+            <h2 class="stats-titulo">Por modalidad</h2>
+            <div class="doughnut-wrap">
+              <canvas id="chart-modalidad"></canvas>
+            </div>
+          </div>
+          <div class="stats-doble-tabla" id="tabla-modalidad"></div>
+        </div>
+
+        <!-- Métricas pequeñas al final -->
+        <div class="stats-bloque stats-mini-row" id="stats-mini"></div>
+
+      </section>
+
     </main>
   </div>
 
@@ -144,6 +212,6 @@
     </div>
   </div>
 
-  <script type="module" src="./admin.js?v=1"></script>
+  <script type="module" src="./admin.js?v=2"></script>
 </body>
 </html>
