@@ -547,3 +547,364 @@ label .input-admin { margin-top: 6px; }
 }
 
 .cita-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* ─────────── MODAL ─────────── */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modal-box {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+}
+
+.modal-box h3 {
+  font-family: var(--fn-head);
+  font-size: 16px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin: 0 0 20px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* ─────────── ESTADOS VACÍOS / CARGA ─────────── */
+
+.loading,
+.empty-state {
+  color: var(--t3);
+  font-size: 13px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   ESTADÍSTICAS — pestaña de embudo y gráficos
+   ───────────────────────────────────────────────────────────────── */
+
+/* ── Sub-pestañas de período ── */
+.stats-periodo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.stats-periodo-btn {
+  font-family: var(--fn-head);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  padding: 8px 22px;
+  border-radius: var(--r8);
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--t2);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.stats-periodo-btn::after {
+  content: '';
+  display: block;
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%) scaleX(0);
+  width: 60%;
+  height: 2px;
+  background: var(--rojo);
+  border-radius: 2px;
+  transition: transform 0.2s;
+}
+
+.stats-periodo-btn.active {
+  color: var(--t1);
+  border-color: var(--rojo);
+}
+
+.stats-periodo-btn.active::after {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* ── KPIs ── */
+.stats-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.kpi-card {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r12);
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kpi-num {
+  font-family: var(--fn-head);
+  font-size: 38px;
+  color: var(--t1);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.kpi-num.kpi-conversion {
+  color: var(--oliva);
+}
+
+.kpi-label {
+  font-family: var(--fn);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--t3);
+}
+
+/* ── Bloques generales ── */
+.stats-bloque {
+  background: var(--bg-2);
+  border: 0.5px solid var(--border);
+  border-radius: var(--r12);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.stats-titulo {
+  font-family: var(--fn-head);
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  color: var(--t1);
+  margin: 0 0 18px 0;
+  text-transform: uppercase;
+}
+
+.stats-vacio {
+  color: var(--t3);
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 0;
+  margin: 0;
+}
+
+/* ── Embudo ── */
+.embudo-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.embudo-label {
+  font-family: var(--fn);
+  font-size: 12px;
+  color: var(--t2);
+  min-width: 180px;
+  flex-shrink: 0;
+}
+
+.embudo-barra-wrap {
+  flex: 1;
+  background: var(--bg-3);
+  border-radius: 4px;
+  height: 20px;
+  overflow: hidden;
+}
+
+.embudo-barra {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--rojo), var(--oliva));
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+
+.embudo-num {
+  font-family: var(--fn);
+  font-size: 12px;
+  color: var(--t2);
+  min-width: 90px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.embudo-retencion {
+  font-family: var(--fn);
+  font-size: 11px;
+  color: var(--t3);
+  min-width: 110px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.embudo-row.mayor-caida .embudo-label {
+  color: var(--rojo);
+}
+
+.embudo-row.mayor-caida .embudo-retencion {
+  color: var(--rojo);
+}
+
+/* ── Doble (chart + tabla) ── */
+.stats-doble {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.stats-doble-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stats-doble-chart .stats-titulo {
+  width: 100%;
+}
+
+.doughnut-wrap {
+  width: 160px;
+  height: 160px;
+}
+
+.stats-doble-tabla {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.desglose-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--t2);
+}
+
+.desglose-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.desglose-nombre {
+  flex: 1;
+}
+
+.desglose-num {
+  font-family: var(--fn-head);
+  font-size: 15px;
+  color: var(--t1);
+  min-width: 28px;
+  text-align: right;
+}
+
+.desglose-tasa {
+  font-size: 11px;
+  color: var(--oliva);
+  min-width: 70px;
+  text-align: right;
+}
+
+/* ── Métricas mini al final ── */
+.stats-mini-row {
+  display: flex;
+  gap: 0;
+  padding: 16px 20px;
+}
+
+.stats-mini-item {
+  flex: 1;
+  text-align: center;
+  border-right: 0.5px solid var(--border);
+  padding: 0 12px;
+}
+
+.stats-mini-item:last-child {
+  border-right: none;
+}
+
+.stats-mini-val {
+  font-family: var(--fn-head);
+  font-size: 24px;
+  color: var(--t1);
+  display: block;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stats-mini-etiqueta {
+  font-size: 11px;
+  color: var(--t3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .stats-kpis {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-doble {
+    grid-template-columns: 1fr;
+  }
+
+  .doughnut-wrap {
+    width: 140px;
+    height: 140px;
+  }
+
+  .embudo-label {
+    min-width: 110px;
+    font-size: 11px;
+  }
+
+  .embudo-num,
+  .embudo-retencion {
+    display: none;
+  }
+
+  .stats-mini-row {
+    flex-wrap: wrap;
+  }
+
+  .stats-mini-item {
+    flex: 1 1 50%;
+    border-right: none;
+    border-bottom: 0.5px solid var(--border);
+    padding: 10px 0;
+  }
+
+  .stats-mini-item:nth-child(odd) {
+    border-right: 0.5px solid var(--border);
+  }
+
+  .stats-mini-item:nth-last-child(-n+2) {
+    border-bottom: none;
+  }
+}
