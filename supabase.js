@@ -274,7 +274,7 @@ export async function cancelarCita(citaId) {
 export async function obtenerSesionesParaStats(desde, hasta) {
   try {
     return await supa(
-      `sesiones?inicio=gte.${desde}&inicio=lte.${hasta}&order=inicio.desc`
+      `sesiones?inicio=gte.${desde}&inicio=lte.${hasta}&es_prueba=eq.false&order=inicio.desc`
     );
   } catch (err) {
     console.error('Error al obtener sesiones para stats:', err);
