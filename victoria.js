@@ -77,6 +77,7 @@ function _estadoInicial() {
     protocolo_ya_presentado: false,
     tema_preseleccionado: null,  // viene de ?tema=X en la URL
     origen: null,                // viene de ?origen=X en la URL (whatsapp/instagram/mail/paseos)
+    prueba: false,               // viene de ?prueba=1 en la URL — marca la sesión como es_prueba=true
 
     perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
@@ -138,6 +139,13 @@ export function start() {
   const ORIGENES_VALIDOS = ["whatsapp", "instagram", "mail", "paseos"];
   if (ORIGENES_VALIDOS.includes(origenRaw)) {
     state.origen = origenRaw;
+  }
+
+  // Leer ?prueba=1 — marca esta sesión como prueba para que NO cuente en stats
+  // Útil para testear el flujo sin contaminar las métricas de conversión.
+  const pruebaRaw = (params.get("prueba") || "").trim();
+  if (pruebaRaw === "1") {
+    state.prueba = true;
   }
 
   const bienvenida = _construirSaludoBienvenida();
@@ -1858,6 +1866,7 @@ async function _crearSesionTracking() {
       paso_maximo_alcanzado: "s0",
       tema_preseleccionado:  state.tema_preseleccionado,
       origen:                state.origen,
+      es_prueba:             state.prueba,
       dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
     });
 
