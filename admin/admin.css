@@ -222,8 +222,39 @@ body {
   border-bottom-color: var(--rojo);
 }
 
+/* En escritorio: comportamiento clásico — solo se ve el .active */
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+
+/* En móvil/tablet: los 4 paneles en una fila horizontal con swipe */
+@media (max-width: 768px) {
+  .tab-content {
+    overflow: hidden;
+    position: relative;
+    touch-action: pan-y;
+  }
+
+  .tab-content-track {
+    display: flex;
+    width: 400%;
+    transition: transform 0.3s cubic-bezier(.25,.8,.25,1);
+    will-change: transform;
+  }
+
+  .tab-content-track.dragging {
+    transition: none;
+  }
+
+  .tab-panel {
+    display: block !important;
+    width: 25%;
+    flex-shrink: 0;
+  }
+
+  .tab-panel:not(.swipe-active) {
+    pointer-events: none;
+  }
+}
 
 /* ─────────── SECCIONES ─────────── */
 
