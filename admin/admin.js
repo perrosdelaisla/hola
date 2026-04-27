@@ -83,6 +83,11 @@ function configurarTabs() {
 }
 
 function cargarPestañaActiva() {
+  // Inicializar swipe la primera vez (idempotente: el guard _swipeIniciado evita doble init)
+  if (!_swipeIniciado) {
+    inicializarSwipe();
+    hookClicksTabsParaSwipe();
+  }
   const tabActiva = document.querySelector('.tab.active')?.dataset.tab || 'plantilla';
   if (tabActiva === 'plantilla')     cargarPlantilla();
   if (tabActiva === 'bloqueos')      cargarBloqueos();
@@ -772,6 +777,164 @@ function init() {
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+/* ═══════════════════════════════════════════
+   SWIPE ENTRE PESTAÑAS (solo móvil/tablet)
+   ═══════════════════════════════════════════ */
+
+const TABS_ORDER = ['plantilla', 'bloqueos', 'citas', 'estadisticas'];
+
+let _swipeIniciado = false;
+let _trackEl = null;
+
+function inicializarSwipe() {
+  if (_swipeIniciado) return;
+
+  const esTactil = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  if (!esTactil) return;
+  if (window.innerWidth > 768) return;
+
+  const tabContent = document.querySelector('.tab-content');
+  if (!tabContent) return;
+
+  const panels = Array.from(tabContent.querySelectorAll('.tab-panel'));
+  if (panels.length === 0) return;
+
+  const track = document.createElement('div');
+  track.className = 'tab-content-track';
+  panels.forEach(p => track.appendChild(p));
+  tabContent.appendChild(track);
+  _trackEl = track;
+
+  const tabActiva = document.querySelector('.tab.active')?.dataset.tab || 'plantilla';
+  const idxActivo = TABS_ORDER.indexOf(tabActiva);
+  posicionarTrack(idxActivo, false);
+  marcarPanelActivo(idxActivo);
+
+  let startX = 0;
+  let startY = 0;
+  let currentX = 0;
+  let dragging = false;
+  let bloquearSwipe = false;
+  const ANCHO_PANTALLA = window.innerWidth;
+  const UMBRAL_CAMBIO = ANCHO_PANTALLA * 0.25;
+
+  track.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    currentX = 0;
+    dragging = false;
+    bloquearSwipe = false;
+  }, { passive: true });
+
+  track.addEventListener('touchmove', (e) => {
+    if (e.touches.length !== 1) return;
+    if (bloquearSwipe) return;
+
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+
+    if (!dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        bloquearSwipe = true;
+        return;
+      }
+      dragging = true;
+      track.classList.add('dragging');
+    }
+
+    currentX = dx;
+
+    const tabActual = document.querySelector('.tab.active')?.dataset.tab || 'plantilla';
+    const idxActual = TABS_ORDER.indexOf(tabActual);
+    let dxAplicado = dx;
+
+    if (idxActual === 0 && dx > 0) {
+      dxAplicado = dx * 0.3;
+    } else if (idxActual === TABS_ORDER.length - 1 && dx < 0) {
+      dxAplicado = dx * 0.3;
+    }
+
+    const offsetBase = -idxActual * 25;
+    const offsetDrag = (dxAplicado / ANCHO_PANTALLA) * 25;
+    track.style.transform = `translateX(${offsetBase + offsetDrag}%)`;
+  }, { passive: true });
+
+  track.addEventListener('touchend', () => {
+    if (!dragging) {
+      bloquearSwipe = false;
+      return;
+    }
+    dragging = false;
+    track.classList.remove('dragging');
+
+    const tabActual = document.querySelector('.tab.active')?.dataset.tab || 'plantilla';
+    let idxActual = TABS_ORDER.indexOf(tabActual);
+    let idxNuevo = idxActual;
+
+    if (currentX < -UMBRAL_CAMBIO && idxActual < TABS_ORDER.length - 1) {
+      idxNuevo = idxActual + 1;
+    } else if (currentX > UMBRAL_CAMBIO && idxActual > 0) {
+      idxNuevo = idxActual - 1;
+    }
+
+    if (idxNuevo !== idxActual) {
+      cambiarPestana(idxNuevo);
+    } else {
+      posicionarTrack(idxActual, true);
+    }
+  }, { passive: true });
+
+  _swipeIniciado = true;
+}
+
+function posicionarTrack(idx, animar) {
+  if (!_trackEl) return;
+  const offset = -idx * 25;
+  _trackEl.style.transition = animar ? '' : 'none';
+  _trackEl.style.transform = `translateX(${offset}%)`;
+  if (!animar) {
+    _trackEl.offsetHeight;
+    _trackEl.style.transition = '';
+  }
+}
+
+function marcarPanelActivo(idx) {
+  document.querySelectorAll('.tab-panel').forEach((p, i) => {
+    p.classList.toggle('swipe-active', i === idx);
+  });
+}
+
+function cambiarPestana(idxNuevo) {
+  const tabId = TABS_ORDER[idxNuevo];
+
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tabId}"]`)?.classList.add('active');
+
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`tab-${tabId}`)?.classList.add('active');
+
+  posicionarTrack(idxNuevo, true);
+  marcarPanelActivo(idxNuevo);
+
+  cargarPestañaActiva();
+}
+
+function hookClicksTabsParaSwipe() {
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!_swipeIniciado || !_trackEl) return;
+      const tabId = btn.dataset.tab;
+      const idx = TABS_ORDER.indexOf(tabId);
+      if (idx >= 0) {
+        posicionarTrack(idx, true);
+        marcarPanelActivo(idx);
+      }
+    });
+  });
+}
 
 /* ── PWA: registrar service worker ── */
 
