@@ -1074,6 +1074,13 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   animation: none;
 }
 
+/* Letterbox: foto entera con bordes negros arriba/abajo, sin paneo */
+.splash-bg.pan-letterbox {
+  background-size: contain !important;
+  background-color: #000;
+  background-position: center center !important;
+}
+
 .splash-overlay-dark {
   position: absolute;
   inset: 0;
@@ -1249,7 +1256,7 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
     /* Foto a la derecha, ocupando 60% del ancho */
     left: 40%;
   }
-  .splash-bg:not(.pan-horizontal):not(.pan-vertical) {
+  .splash-bg:not(.pan-horizontal):not(.pan-vertical):not(.pan-letterbox) {
     background-position: center 15%;
   }
 
