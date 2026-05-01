@@ -1034,9 +1034,15 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 .splash-bg {
   position: absolute;
   inset: 0;
-  background-image: url('https://i.ibb.co/v4rVVPsR/IMG-20200802-WA0004-2.jpg');
   background-size: cover;
   background-position: center 20%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+
+.splash-bg.splash-bg-active {
+  opacity: 1;
 }
 
 .splash-overlay-dark {
