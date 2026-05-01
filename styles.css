@@ -1050,22 +1050,22 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 
 /* Paneo horizontal: para fotos apaisadas (Parc de la Mar) */
 @keyframes splash-pan-horizontal {
-  0%   { background-position: left center; }
-  100% { background-position: right center; }
+  0%   { background-position: 15% center; }
+  100% { background-position: 85% center; }
 }
 
 /* Paneo vertical: para fotos cuadradas (Catedral) */
 @keyframes splash-pan-vertical {
-  0%   { background-position: center top; }
-  100% { background-position: center bottom; }
+  0%   { background-position: center 15%; }
+  100% { background-position: center 85%; }
 }
 
 .splash-bg.pan-horizontal.splash-bg-active {
-  animation: splash-pan-horizontal 6s linear forwards;
+  animation: splash-pan-horizontal 6s ease-out forwards;
 }
 
 .splash-bg.pan-vertical.splash-bg-active {
-  animation: splash-pan-vertical 6s linear forwards;
+  animation: splash-pan-vertical 6s ease-out forwards;
 }
 
 /* Cuando deja de estar activa, la animación se reinicia para la próxima vez */
