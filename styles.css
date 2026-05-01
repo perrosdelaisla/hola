@@ -1061,11 +1061,11 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 }
 
 .splash-bg.pan-horizontal.splash-bg-active {
-  animation: splash-pan-horizontal 4s linear forwards;
+  animation: splash-pan-horizontal 6s linear forwards;
 }
 
 .splash-bg.pan-vertical.splash-bg-active {
-  animation: splash-pan-vertical 4s linear forwards;
+  animation: splash-pan-vertical 6s linear forwards;
 }
 
 /* Cuando deja de estar activa, la animación se reinicia para la próxima vez */
@@ -1248,6 +1248,8 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   .splash-bg {
     /* Foto a la derecha, ocupando 60% del ancho */
     left: 40%;
+  }
+  .splash-bg:not(.pan-horizontal):not(.pan-vertical) {
     background-position: center 15%;
   }
 
