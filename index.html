@@ -125,10 +125,10 @@
   <script>
     (function () {
       var FOTOS = [
-        'https://i.ibb.co/v4rVVPsR/IMG-20200802-WA0004-2.jpg',
-        'https://i.ibb.co/cS769W4z/PDLI-splash-foto-catedral.jpg',
-        'https://i.ibb.co/gb2qRvtC/PDLI-splash-foto-parc-de-la-mar.jpg',
-        'https://i.ibb.co/SX5dk5Wp/PDLI-splash-foto-senderismo.jpg'
+        { url: 'https://i.ibb.co/v4rVVPsR/IMG-20200802-WA0004-2.jpg', pan: null },
+        { url: 'https://i.ibb.co/cS769W4z/PDLI-splash-foto-catedral.jpg', pan: 'pan-vertical' },
+        { url: 'https://i.ibb.co/gb2qRvtC/PDLI-splash-foto-parc-de-la-mar.jpg', pan: 'pan-horizontal' },
+        { url: 'https://i.ibb.co/SX5dk5Wp/PDLI-splash-foto-senderismo.jpg', pan: null }
       ];
       var INTERVALO_MS = 4000;
       var orden = FOTOS.slice();
@@ -139,7 +139,11 @@
       var capas = document.querySelectorAll('.splash-bg');
       if (capas.length === 0) return;
       for (var k = 0; k < capas.length && k < orden.length; k++) {
-        capas[k].style.backgroundImage = "url('" + orden[k] + "')";
+        var foto = orden[k];
+        capas[k].style.backgroundImage = "url('" + foto.url + "')";
+        if (foto.pan) {
+          capas[k].classList.add(foto.pan);
+        }
       }
       var idxActivo = 0;
       capas[idxActivo].classList.add('splash-bg-active');

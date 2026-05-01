@@ -1045,6 +1045,35 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   opacity: 1;
 }
 
+/* Paneo Ken Burns — solo se aplica a fotos apaisadas/cuadradas */
+/* La animación se ejecuta cuando la capa está activa (visible) */
+
+/* Paneo horizontal: para fotos apaisadas (Parc de la Mar) */
+@keyframes splash-pan-horizontal {
+  0%   { background-position: left center; }
+  100% { background-position: right center; }
+}
+
+/* Paneo vertical: para fotos cuadradas (Catedral) */
+@keyframes splash-pan-vertical {
+  0%   { background-position: center top; }
+  100% { background-position: center bottom; }
+}
+
+.splash-bg.pan-horizontal.splash-bg-active {
+  animation: splash-pan-horizontal 4s linear forwards;
+}
+
+.splash-bg.pan-vertical.splash-bg-active {
+  animation: splash-pan-vertical 4s linear forwards;
+}
+
+/* Cuando deja de estar activa, la animación se reinicia para la próxima vez */
+.splash-bg.pan-horizontal:not(.splash-bg-active),
+.splash-bg.pan-vertical:not(.splash-bg-active) {
+  animation: none;
+}
+
 .splash-overlay-dark {
   position: absolute;
   inset: 0;
