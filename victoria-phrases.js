@@ -173,19 +173,19 @@ export const FRASES_APOYO = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASE_MENSAJE_PRINCIPAL = [
-  `Entiendo. La primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y arma el plan contigo según lo que de verdad necesite.`,
+  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. La primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y arma el plan contigo según lo que de verdad necesite.`,
 
-  `Te escucho. Cada perro es un mundo y cada caso pide algo distinto, por eso la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
+  `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Cada perro es un mundo, por eso la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
 
-  `Vale. La primera clase es donde el adiestrador conoce a {perro} de verdad y diseña el plan contigo. Es lo que nos diferencia.`,
+  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. La primera clase es donde el adiestrador conoce a {perro} de verdad y diseña el plan contigo. Es lo que nos diferencia.`,
 ];
 
 export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
-  `Entiendo. Para tu zona trabajamos online, y la primera clase es justo para esto: el adiestrador conoce a {perro} y arma el plan contigo según lo que de verdad necesite.`,
+  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Para tu zona lo hacemos online, y la primera clase es justo para esto: el adiestrador conoce a {perro} y arma el plan contigo según lo que de verdad necesite.`,
 
-  `Te escucho. Cada perro es un mundo, por eso aunque trabajemos online la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
+  `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Trabajamos contigo online y, aunque sea por videollamada, la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
 
-  `Vale. Trabajamos contigo online, y la primera clase es donde el adiestrador conoce a {perro} y diseña el plan. Es lo que nos diferencia.`,
+  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Trabajamos contigo online, y la primera clase es donde el adiestrador conoce a {perro} y diseña el plan. Es lo que nos diferencia.`,
 ];
 
 export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
