@@ -110,56 +110,6 @@ function formatearFecha(fecha) {
 }
 
 /* ════════════════════════════════════════════
-   GUARDAR RESERVA COMPLETA
-   ════════════════════════════════════════════ */
-
-export async function guardarReserva({ cliente, perros, cita }) {
-  const [clienteCreado] = await supa('clientes', 'POST', {
-    nombre:    cliente.nombre,
-    telefono:  cliente.telefono,
-    email:     cliente.email || null,
-    direccion: cliente.direccion || null,
-    zona:      cliente.zona || null,
-  });
-
-  const clienteId = clienteCreado.id;
-
-  for (const perro of perros) {
-    await supa('perros', 'POST', {
-      cliente_id:   clienteId,
-      nombre:       perro.nombre,
-      raza:         perro.raza || null,
-      edad:         perro.edad || null,
-      problematica: perro.problematica || null,
-      descripcion:  perro.descripcion || null,
-      metodo_previo: perro.metodoPrevio || null,
-    });
-  }
-
-  const [citaCreada] = await supa('citas', 'POST', {
-    cliente_id:    clienteId,
-    fecha:         cita.fecha,
-    hora:          cita.hora + ':00',
-    estado:        'pendiente',
-    sena_pagada:   false,
-    metodo_pago:   cita.metodoPago || null,
-    protocolo:     cita.protocolo || null,
-    notas:         cita.notas || null,
-  });
-
-  return { citaId: citaCreada.id, clienteId };
-}
-
-export async function confirmarSena(citaId, metodoPago, comprobanteUrl = null) {
-  await supa(`citas?id=eq.${citaId}`, 'PATCH', {
-    sena_pagada:     true,
-    metodo_pago:     metodoPago,
-    comprobante_url: comprobanteUrl,
-    estado:          'pendiente',
-  });
-}
-
-/* ════════════════════════════════════════════
    ADMIN — PLANTILLA DE SLOTS
    ════════════════════════════════════════════ */
 

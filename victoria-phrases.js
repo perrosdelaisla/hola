@@ -13,47 +13,6 @@
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 1. FRASES DE CUADROS — PRESENCIAL
-// (Conservadas para compatibilidad — ya no las usa el matching principal)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const FRASES_PRESENCIAL = {
-
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Contamos con un protocolo específico, con sesiones en el domicilio y pautas concretas que se trabajan entre semana — con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
-
-  generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Es un cuadro que trabajamos con un protocolo específico: sesiones en el domicilio, junto a los tutores, trabajando tanto la rutina del perro como el vínculo y las pautas de convivencia. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
-
-  miedos: `Lo que me cuentas encaja con un cuadro de miedos. Cuando un perro vive con miedo a algo concreto, lo que más le ayuda no es confrontarlo, sino reconstruir la sensación de seguridad — y para eso el vínculo con los tutores es clave. Trabajamos con un protocolo específico, en el domicilio y junto a vosotros, con pautas para ir exponiéndolo al estímulo de forma controlada y acompañada. Con constancia se ven cambios, aunque en miedos es especialmente importante respetar los tiempos del perro.`,
-
-  reactividad: `Eso que describes encaja con un cuadro de reactividad — el perro entra en activación alta ante ciertos estímulos (otros perros, bicicletas, personas) y descarga con ladridos, tirones o lanzándose. Y sé lo que supone en el día a día: dejar de disfrutar los paseos, cruzar de acera, volver tenso a casa. Pero más allá del desgaste, un perro reactivo también lo pasa mal — vive el paseo en tensión constante. Es uno de los motivos más frecuentes por los que nos escriben. Trabajamos con un protocolo específico, en el domicilio y en paseo, junto a los tutores, con pautas para ir regulando la respuesta emocional y reconstruir un paseo donde ambos puedan estar tranquilos. Con constancia se ven cambios, aunque en reactividad es especialmente importante trabajar de forma gradual.`,
-
-  posesion: `Eso que describes encaja con un cuadro de posesión de recursos — el perro protege comida, espacio u objetos con señales de tensión (gruñido, mostrar dientes, cuerpo rígido). Lo que hay debajo no es "mal carácter" ni rebeldía, sino inseguridad: el perro teme perder algo que valora y defiende desde el miedo, no desde la agresividad gratuita. Para orientarte bien necesito saber una cosa: ¿ha llegado a morder a alguien, o el comportamiento se queda en el aviso? En función de eso valoramos el abordaje. Si el caso entra dentro de lo que trabajamos, es con sesiones en el domicilio, junto a los tutores, con pautas concretas para reconstruir la seguridad emocional del perro alrededor de los recursos.`,
-
-  basica: `Lo que me cuentas entra dentro de lo que trabajamos como educación básica — más que "obediencia" al uso, es construir una buena comunicación y convivencia entre el perro y la familia: paseos tranquilos, respuesta a la llamada, manejo de las situaciones del día a día. Contamos con un protocolo específico, con sesiones en el domicilio, junto a los tutores, y pautas concretas entre semana. Con constancia se ven cambios rápido. Si en la primera sesión el adiestrador detecta algo más específico (reactividad, miedos, ansiedad), lo comentaría y se adaptaría el protocolo.`,
-
-  cachorros: `Lo que me cuentas entra dentro de nuestro protocolo de educación de cachorros — una etapa que cubre bastante terreno: socialización, manejo de la mordida, elección del lugar adecuado para sus necesidades, pautas de descanso, gestión de la soledad, construcción de las primeras rutinas y del vínculo con vosotros. Son sesiones en el domicilio, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido, porque el cachorro aprende muy rápido cuando las pautas son claras. En la primera sesión el adiestrador hace una valoración general y define el plan según lo que vea.`,
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 2. FRASES DE CUADROS — ONLINE
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const FRASES_ONLINE = {
-
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas que se trabajan entre semana. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
-
-  generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Es un cuadro que trabajamos con un protocolo específico. Como estás fuera de nuestra zona de cobertura presencial, te propongo hacerlo en modalidad online: sesiones por Google Meet, junto a los tutores, trabajando tanto la rutina del perro como el vínculo y las pautas de convivencia. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
-
-  basica: `Lo que me cuentas entra dentro de lo que trabajamos como educación básica — más que "obediencia" al uso, es construir una buena comunicación y convivencia entre el perro y la familia: paseos tranquilos, respuesta a la llamada, manejo de las situaciones del día a día. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido. Si en la primera sesión el adiestrador detecta algo más específico (reactividad, miedos, ansiedad), lo comentaría y valoraríais juntos cómo continuar.`,
-
-  cachorros: `Lo que me cuentas entra dentro de nuestro protocolo de educación de cachorros — una etapa que cubre bastante terreno: socialización, manejo de la mordida, elección del lugar adecuado para sus necesidades, pautas de descanso, gestión de la soledad, construcción de las primeras rutinas y del vínculo con vosotros. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido, porque el cachorro aprende muy rápido cuando las pautas son claras. En la primera sesión el adiestrador hace una valoración general y define el plan según lo que vea.`,
-
-  miedos: `Lo que me cuentas encaja con un cuadro de miedos. Cuando un perro vive con miedo a algo concreto, lo que más le ayuda no es confrontarlo, sino reconstruir la sensación de seguridad — y para eso el vínculo con los tutores es clave. Como estás fuera de nuestra zona de cobertura presencial, te propongo trabajarlo en modalidad online: sesiones por Google Meet, junto a vosotros, con pautas para ir exponiéndolo al estímulo de forma controlada y acompañada. Con constancia se ven cambios, aunque en miedos es especialmente importante respetar los tiempos del perro.`,
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 3. DERIVACIÓN AL ETÓLOGO
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -68,19 +27,6 @@ export const FRASES_ETOLOGO = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. DERIVACIÓN POR ZONA
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const FRASE_DERIVACION_ZONA = `Gracias por escribirme. Por lo que me cuentas, el cuadro de tu perro es de los que trabajamos únicamente en modalidad presencial — {cuadro} necesita observación directa del perro en su contexto real para evaluar bien el caso y aplicar el protocolo con criterio. Por videollamada no daríamos el nivel de trabajo que el caso merece. Como estás fuera de nuestra zona de cobertura, te recomendaría buscar un profesional cerca de ti con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros. Si en algún momento te planteas desplazarte a Mallorca o cambias de zona, aquí seguimos.`;
-
-export const ETIQUETAS_CUADRO_ZONA = {
-  reactividad: "la reactividad",
-  posesion: "la posesión de recursos",
-  miedos: "el cuadro de miedos",
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
 // 5. SON GOTLEU
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -90,39 +36,6 @@ export const FRASES_SON_GOTLEU = {
 
   no_compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo, y este tipo de caso solo lo trabajamos presencialmente porque necesita observación directa del perro en su contexto. Te recomendaría buscar un profesional cerca de tu zona con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros.`,
 };
-
-export const FRASES_DIAGNOSTICO_SIN_MODALIDAD = {
-
-  separacion: `Lo que me cuentas encaja con ansiedad por separación, y sé lo que supone en el día a día: no poder salir tranquilo, la tensión al volver a casa, a veces incluso quejas de los vecinos. Es de los casos que más trabajamos. Con constancia se ven cambios rápido. No es magia, pero sí es un proceso estructurado que funciona.`,
-
-  generalizada: `Lo que describes encaja con ansiedad generalizada — no es que reaccione a algo puntual, es que no consigue estar tranquilo. Y un perro que no descansa bien emocionalmente acaba afectando también al ambiente de casa. Con constancia se ven cambios — no es magia, pero tampoco es un proceso eterno.`,
-
-  basica: `Lo que me cuentas entra dentro de lo que trabajamos como educación básica — más que "obediencia" al uso, es construir una buena comunicación y convivencia entre el perro y la familia: paseos tranquilos, respuesta a la llamada, manejo de las situaciones del día a día. Con constancia se ven cambios rápido. Si en la primera sesión el adiestrador detecta algo más específico (reactividad, miedos, ansiedad), lo comentaría y valoraríais juntos cómo continuar.`,
-
-  cachorros: `Lo que me cuentas entra dentro de nuestro protocolo de educación de cachorros — una etapa que cubre bastante terreno: socialización, manejo de la mordida, elección del lugar adecuado para sus necesidades, pautas de descanso, gestión de la soledad, construcción de las primeras rutinas y del vínculo con vosotros. Con constancia se ven cambios rápido, porque el cachorro aprende muy rápido cuando las pautas son claras. En la primera sesión el adiestrador hace una valoración general y define el plan según lo que vea.`,
-};
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 6. CASO MIXTO (conservado para compatibilidad)
-// ─────────────────────────────────────────────────────────────────────────────
-
-export const FRASES_MIXTO = {
-
-  plantilla: `Por lo que me cuentas parece haber dos componentes en lo que describes: por un lado, {cuadro_1}; por otro, {cuadro_2}. Son dos capas que se pueden trabajar en paralelo, con pautas diferenciadas — a veces se refuerzan entre ellas y abordarlas juntas da mejores resultados que tratar solo una. En la primera sesión el adiestrador valora en directo cuál prima y cómo priorizar el trabajo. Sesiones en el domicilio, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios rápido.`,
-
-  separacion_generalizada: `Por lo que me cuentas, hay un cuadro de ansiedad que se manifiesta tanto cuando estás con él como cuando se queda solo — un estado de tensión de base que se agrava en la soledad. Es una combinación frecuente y se trabaja con un protocolo integrado. Sesiones en el domicilio, junto a los tutores, con pautas concretas entre semana. Con constancia se ven cambios.`,
-};
-
-export const ETIQUETAS_MIXTO = {
-  separacion: "ansiedad por separación",
-  generalizada: "ansiedad generalizada de fondo",
-  miedos: "un cuadro de miedos",
-  reactividad: "reactividad ante estímulos externos",
-  posesion: "posesión de recursos",
-  cachorros: "la gestión propia de la etapa de cachorro",
-};
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. SERVICIOS LATERALES
@@ -303,14 +216,6 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
 
     // ── Tipos existentes ───────────────────────────────────────────────────
 
-    case "cuadro":
-      if (modalidad === "online") {
-        frase = FRASES_ONLINE[cuadro] ?? null;
-      } else {
-        frase = FRASES_PRESENCIAL[cuadro] ?? null;
-      }
-      break;
-
     case "lateral":
       frase = FRASES_LATERALES[subtipo] ?? null;
       break;
@@ -319,33 +224,8 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
       frase = FRASES_ETOLOGO[subtipo ?? "principal"] ?? null;
       break;
 
-    case "zona":
-      frase = FRASE_DERIVACION_ZONA;
-      if (vars.cuadro) {
-        const etiqueta = ETIQUETAS_CUADRO_ZONA[vars.cuadro] ?? vars.cuadro;
-        frase = frase.replace("{cuadro}", etiqueta);
-      }
-      break;
-
     case "son_gotleu":
       frase = FRASES_SON_GOTLEU[subtipo ?? "no_compatible_online"] ?? null;
-      if (subtipo === "compatible_online" && cuadro && FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro]) {
-        frase = frase + " " + FRASES_DIAGNOSTICO_SIN_MODALIDAD[cuadro];
-      }
-      break;
-
-    case "mixto":
-      if (subtipo === "separacion_generalizada") {
-        frase = FRASES_MIXTO.separacion_generalizada;
-      } else {
-        frase = FRASES_MIXTO.plantilla;
-        if (vars.cuadro_1) {
-          frase = frase.replace("{cuadro_1}", ETIQUETAS_MIXTO[vars.cuadro_1] ?? vars.cuadro_1);
-        }
-        if (vars.cuadro_2) {
-          frase = frase.replace("{cuadro_2}", ETIQUETAS_MIXTO[vars.cuadro_2] ?? vars.cuadro_2);
-        }
-      }
       break;
 
     case "apoyo":

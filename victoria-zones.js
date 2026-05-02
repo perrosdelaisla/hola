@@ -248,26 +248,3 @@ function _zonaDesconocida() {
     necesitaAclaracion: true,
   };
 }
-
-// ─────────────────────────────────────────────
-// UTILIDAD — pregunta de aclaración de zona
-// ─────────────────────────────────────────────
-
-/**
- * Devuelve la pregunta estándar de Victoria cuando no se detecta zona.
- */
-export function preguntaZona() {
-  return "¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.";
-}
-
-/**
- * Determina si una modalidad 'online' puede ofrecer el cuadro dado.
- * Cuadros NO compatibles con online: reactividad, posesión, miedos.
- *
- * @param {string} cuadro — identificador del cuadro detectado
- * @returns {boolean}
- */
-export function esCompatibleOnline(cuadro) {
-  const NO_ONLINE = ["reactividad", "posesion", "miedos"];
-  return !NO_ONLINE.includes(cuadro);
-}
