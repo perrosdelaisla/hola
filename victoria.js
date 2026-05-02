@@ -1425,6 +1425,13 @@ function _construirContexto(textoActual) {
     lateral_detectado:   state.lateral_detectado,
     gravedad_mordida:    state.gravedad_mordida,
     cuadro_pendiente_mordida: state.cuadro_pendiente_mordida,
+
+    // Estado del fallback IA — usado por la regla de continuidad en
+    // decidirRespuesta. Aquí se pasan en plano para que el matcher quede
+    // desacoplado de IA_FALLBACK_CONFIG.
+    turnos_ia:           state.turnos_ia,
+    max_turnos_ia:       IA_FALLBACK_CONFIG.maxTurnos,
+    fallback_ia_cerrado: state.fallback_ia_cerrado,
   };
 }
 

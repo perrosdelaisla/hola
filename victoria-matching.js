@@ -4,10 +4,17 @@
  * Versión 2.0 · Abril 2026
  *
  * ARQUITECTURA SIMPLIFICADA:
- * decidirRespuesta evalúa 5 filtros en orden y devuelve una Decision.
- * Ya no hay diagnóstico de cuadros, exclusiones ni pasos de afinado.
+ * decidirRespuesta aplica una regla de continuidad y luego evalúa 5 filtros
+ * en orden. Devuelve una Decision. Ya no hay diagnóstico de cuadros,
+ * exclusiones ni pasos de afinado.
  *
- * FILTROS (en orden):
+ * REGLA DE CONTINUIDAD IA (short-circuit previo a los filtros):
+ *   Si la IA ya inició conversación y no ha cerrado, todos los turnos
+ *   siguientes van directos a fallback IA (la IA controla los N turnos
+ *   completos como conversación continua). Excepción: filtro 1
+ *   (seguridad/mordida) tiene prioridad sobre la continuidad.
+ *
+ * FILTROS (en orden, solo si la regla de continuidad no aplica):
  *   1. Mordida grave (→ preguntar gravedad o derivar al etólogo)
  *   2. Lateral (guardería, peluquería, etc)
  *   3. Zona (Son Gotleu, fuera de cobertura)
@@ -87,6 +94,40 @@ const _VOCABULARIO_CANINO = (() => {
  */
 export function decidirRespuesta(contexto) {
   const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida } = contexto;
+
+  // ── REGLA DE CONTINUIDAD IA ──────────────────────────────────────────────
+  //
+  // Si la IA ya tomó al menos un turno en esta sesión y aún no ha llegado
+  // al cierre (ni por tope ni forzado), TODOS los turnos siguientes pasan
+  // por la IA sin filtrar. La IA gestiona la conversación reconduciendo al
+  // cliente durante sus N turnos como una conversación continua. Sin esto,
+  // charla casual del cliente ("vale, no estoy seguro") devolvería el
+  // control al árbol y rompería la continuidad de la conversación IA.
+  //
+  // EXCEPCIÓN — filtro 1 (seguridad/mordida) tiene prioridad sobre la
+  // continuidad. Si el cliente menciona mordida durante la conversación IA,
+  // el árbol retoma el control para activar la derivación al etólogo. Es
+  // regla de seguridad clínica, no de UX.
+  //
+  // Salida del modo IA: se produce en _fallbackInteligente cuando alcanza
+  // maxTurnos (cierre por tope) o cualquier path que setee fallback_ia_cerrado.
+
+  const enConversacionIA =
+    contexto.turnos_ia >= 1 &&
+    contexto.turnos_ia < contexto.max_turnos_ia &&
+    !contexto.fallback_ia_cerrado;
+
+  const inputDisparaFiltroSeguridad = keywords_mordida || gravedad_mordida;
+
+  if (enConversacionIA && !inputDisparaFiltroSeguridad) {
+    return _decision({
+      accion: "fallback",
+      frase_params: null,
+      pending_next: null,
+      cuadro_ganador: null,
+      log: _log(0, `continuidad IA · turnos:${contexto.turnos_ia}/${contexto.max_turnos_ia}`),
+    });
+  }
 
   // ── FILTRO 1: Seguridad (mordida + agresión) ─────────────────────────────
   //
