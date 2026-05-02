@@ -35,10 +35,10 @@ El UI público es un chat de un solo "viewport": splash de bienvenida → barra 
 - **[victoria-zones.js](victoria-zones.js)** · cobertura geográfica. Tres listas: `ZONA_PRESENCIAL` (triángulo Palma–Inca–Llucmajor–Calvià), `ZONA_FUERA` (resto de la isla → online o derivar) y la excepción interna `EXCEPCION_INTERNA = ["son gotleu"]`. `detectarZona()` devuelve `{zonaDetectada, modalidad, esSonGotleu, necesitaAclaracion}`.
 - **[victoria-breeds.js](victoria-breeds.js)** · lista oficial de razas PPP (RD 287/2002), `clasificarTamano(peso_kg)`, `requiereEtologo({es_ppp, peso_kg, hay_senal_conductual, gravedad_mordida, descripcion_agresion})`.
 - **[victoria-dictionaries.js](victoria-dictionaries.js)** · los 7 diccionarios de cuadros con niveles `n1` (alta confianza, dispara solo), `n2` (corroboradores) y `n3` (contexto): `separacion`, `generalizada`, `miedos`, `reactividad`, `posesion`, `basica`, `cachorros`. También `DICT_LATERALES` (paseos grupales, adopciones, guardería, peluquería, veterinaria) y `detectarLateral()`.
-- **[victoria-matching.js](victoria-matching.js)** · `decidirRespuesta(contexto)`. Arquitectura simplificada v2.0: 4 filtros en orden — (1) seguridad/mordida, (2) lateral, (3) zona, (4) mensaje principal unificado. Devuelve una `Decision` con `accion: "responder"|"derivar"|"preguntar"|"fallback"`.
+- **[victoria-matching.js](victoria-matching.js)** · `decidirRespuesta(contexto)`. Arquitectura simplificada v2.0: regla de continuidad IA (short-circuit previo) + 5 filtros — seguridad/mordida, lateral, zona, vocabulario canino (gate de IA), caso general (catch-all → mensaje principal). Devuelve una `Decision` con `accion: "responder" | "derivar" | "preguntar" | "fallback"`. (Nota: en el código los comentarios son `FILTRO 1..5`; el `FILTRO 5` se evalúa antes del `FILTRO 4` por orden de añadidos histórico).
 
 ### Frases
-- **[victoria-phrases.js](victoria-phrases.js)** · todas las frases hardcoded en español. Bloques: `FRASES_PRESENCIAL`, `FRASES_ONLINE`, `FRASES_ETOLOGO`, `FRASE_DERIVACION_ZONA`, `FRASES_SON_GOTLEU`, `FRASES_LATERALES`, `FRASES_APOYO`, y las constantes v2.0 `FRASE_MENSAJE_PRINCIPAL`, `FRASE_RAMIFICACION`, `FRASE_COMO_TRABAJAMOS_*`, `FRASE_CIERRE_METODOLOGIA`, `FRASE_DURACION_UNIFICADA`. La función `obtenerFrase({tipo, vars})` resuelve plantillas con sustitución de `{perro}`, `{cuadro}`, etc.
+- **[victoria-phrases.js](victoria-phrases.js)** · todas las frases hardcoded en español. Bloques: `FRASES_ETOLOGO`, `FRASES_SON_GOTLEU`, `FRASES_LATERALES`, `FRASES_APOYO`, `FRASE_MENSAJE_PRINCIPAL` (array con 3 variantes rotadas), `FRASE_MENSAJE_PRINCIPAL_ONLINE`, `FRASE_RAMIFICACION`, `FRASE_COMO_TRABAJAMOS_PRESENCIAL`/`_ONLINE`, `FRASE_CIERRE_METODOLOGIA`, `FRASE_DURACION_UNIFICADA`, `FRASES_PRECIO`, `FRASES_PACK`, `FRASE_PRECIO_POR_PERRO`. La función `obtenerFrase({tipo, vars})` resuelve plantillas con sustitución de `{perro}`.
 
 ### Widgets que se insertan en el chat
 - **[agenda.js](agenda.js)** · `renderAgenda(contenedor, onSeleccion, onVolver)`. Lee slots disponibles desde Supabase, filtra primer día visible a hoy+5, agrupa por fecha, renderiza grid clicable. Fallback de WhatsApp si Supabase falla.
@@ -122,7 +122,7 @@ Cuando edites strings o añadas frases nuevas, escríbelas en el mismo registro:
   - Miedos / fobias · 8-12 clases (hasta 14)
   - Gestión de ansiedad (separación o generalizada) · 8-12 clases (hasta 14)
   - Posesión de recursos · 4-8 clases
-- **Modalidad online**: solo válida para básica, cachorros, miedos y ansiedad. Reactividad, posesión y miedos severos requieren presencial. Ver `esCompatibleOnline()` en [victoria-zones.js](victoria-zones.js).
+- **Modalidad online**: se ofrece a todos los cuadros para clientes en zonas lejanas. El adiestrador evalúa en la primera clase si el caso requiere presencial. Excepciones que se filtran de oficio: agresión documentada en perros grandes (>10kg) o PPP, servicios laterales (peluquería, veterinaria, guardería, adopciones, paseos grupales).
 - **Cobertura presencial**: triángulo Palma–Inca–Llucmajor–Calvià + barrios. Fuera de esa zona → online (si el cuadro lo permite) o derivar.
 - **Excepción Son Gotleu**: política interna — no se ofrece desplazamiento presencial allí ahora mismo. Si el cuadro es compatible online, se ofrece online; si no, se deriva.
 

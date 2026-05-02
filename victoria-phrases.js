@@ -1,19 +1,24 @@
 /**
  * victoria-phrases.js
  * Perros de la Isla — Embudo Victoria
- * Versión 2.0 · Abril 2026
+ * Versión 2.1 · Mayo 2026
  *
- * CAMBIOS v2.0:
- * - Añadidas constantes de mensaje unificado (FRASE_MENSAJE_PRINCIPAL,
- *   FRASE_RAMIFICACION, FRASE_COMO_TRABAJAMOS_*, FRASE_CIERRE_METODOLOGIA,
- *   FRASE_DURACION_UNIFICADA).
- * - Eliminado FRASES_DURACION (mapa por cuadro) → sustituido por FRASE_DURACION_UNIFICADA.
- * - obtenerFrase reconoce los nuevos tipos.
+ * Frases hardcoded en español que renderiza Victoria al cliente. Cada frase
+ * se obtiene mediante obtenerFrase({tipo, vars}), que resuelve plantillas
+ * con sustitución de {perro} según el contexto.
+ *
+ * Limpieza post-v2.0 (mayo 2026):
+ * - Eliminadas constantes legacy del v1.0 que ya no invocaba el flujo:
+ *   FRASES_PRESENCIAL, FRASES_ONLINE, FRASE_DERIVACION_ZONA,
+ *   ETIQUETAS_CUADRO_ZONA, FRASES_DIAGNOSTICO_SIN_MODALIDAD,
+ *   FRASES_MIXTO, ETIQUETAS_MIXTO.
+ * - Eliminados los cases muertos del switch obtenerFrase: "cuadro",
+ *   "zona", "mixto", y la rama "compatible_online" del case "son_gotleu".
  */
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. DERIVACIÓN AL ETÓLOGO
+// 1. DERIVACIÓN AL ETÓLOGO
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_ETOLOGO = {
@@ -27,7 +32,7 @@ export const FRASES_ETOLOGO = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 5. SON GOTLEU
+// 2. SON GOTLEU
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_SON_GOTLEU = {
@@ -38,7 +43,7 @@ export const FRASES_SON_GOTLEU = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 7. SERVICIOS LATERALES
+// 3. SERVICIOS LATERALES
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_LATERALES = {
@@ -56,7 +61,7 @@ export const FRASES_LATERALES = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8. FRASES DE APOYO — flujo conversacional
+// 4. FRASES DE APOYO — flujo conversacional
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_APOYO = {
@@ -82,7 +87,7 @@ export const FRASES_APOYO = {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 9. NUEVAS CONSTANTES — mensaje principal unificado (v2.0)
+// 5. FLUJO PRINCIPAL — mensaje principal y metodología
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASE_MENSAJE_PRINCIPAL = [
@@ -126,7 +131,7 @@ En la primera clase el adiestrador te dice el rango concreto para {perro} tras e
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FRASES DE PRECIO / VALOR
+// 6. FRASES DE PRECIO / VALOR
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASES_PRECIO = {
