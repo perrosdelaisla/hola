@@ -172,9 +172,21 @@ export const FRASES_APOYO = {
 // 9. NUEVAS CONSTANTES — mensaje principal unificado (v2.0)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const FRASE_MENSAJE_PRINCIPAL = `Lo que me cuentas sobre {perro} está dentro de lo que trabajamos. En Perros de la Isla tenemos protocolos específicos para educación básica, cachorros, reactividad, miedos, ansiedad y posesión de recursos. El adiestrador concreta el protocolo exacto en la primera clase, tras conocer a {perro} en su contexto real. Así la primera clase no es una más: es donde se afina el plan según lo que realmente necesite tu perro.`;
+export const FRASE_MENSAJE_PRINCIPAL = [
+  `Entiendo. La primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y arma el plan contigo según lo que de verdad necesite.`,
 
-export const FRASE_MENSAJE_PRINCIPAL_ONLINE = `Lo que me cuentas sobre {perro} está dentro de lo que trabajamos. En Perros de la Isla tenemos protocolos específicos para educación básica, cachorros, miedos y gestión de ansiedad, que sí trabajamos en modalidad online por Google Meet para zonas fuera de nuestra cobertura presencial. El adiestrador concreta el protocolo exacto en la primera clase, tras conocer a {perro} y ver cómo se desenvuelve contigo en su entorno real. Así la primera clase no es una más: es donde se afina el plan según lo que realmente necesite tu perro.`;
+  `Te escucho. Cada perro es un mundo y cada caso pide algo distinto, por eso la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
+
+  `Vale. La primera clase es donde el adiestrador conoce a {perro} de verdad y diseña el plan contigo. Es lo que nos diferencia.`,
+];
+
+export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
+  `Entiendo. Para tu zona trabajamos online, y la primera clase es justo para esto: el adiestrador conoce a {perro} y arma el plan contigo según lo que de verdad necesite.`,
+
+  `Te escucho. Cada perro es un mundo, por eso aunque trabajemos online la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y ahí se decide cómo seguir.`,
+
+  `Vale. Trabajamos contigo online, y la primera clase es donde el adiestrador conoce a {perro} y diseña el plan. Es lo que nos diferencia.`,
+];
 
 export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
 
@@ -247,19 +259,17 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
 
     // ── Nuevos tipos v2.0 ──────────────────────────────────────────────────
 
-    case "mensaje_principal":
-      // Elegir variante según modalidad: online para zonas fuera, default para presencial
-      if (vars.modalidad === "online") {
-        frase = FRASE_MENSAJE_PRINCIPAL_ONLINE;
-      } else {
-        frase = FRASE_MENSAJE_PRINCIPAL;
-      }
-      if (vars.perro) {
-        frase = frase.replace(/\{perro\}/g, vars.perro);
-      } else {
-        frase = frase.replace(/\{perro\}/g, "tu perro");
-      }
+    case "mensaje_principal": {
+      // Selección por modalidad + rotación aleatoria entre las 3 variantes.
+      // Las constantes son arrays de strings; Math.random elige una en cada
+      // turno para que la apertura no suene rutinaria.
+      const variantes = vars.modalidad === "online"
+        ? FRASE_MENSAJE_PRINCIPAL_ONLINE
+        : FRASE_MENSAJE_PRINCIPAL;
+      frase = variantes[Math.floor(Math.random() * variantes.length)];
+      frase = frase.replace(/\{perro\}/g, vars.perro || "tu perro");
       break;
+    }
 
     case "ramificacion":
       frase = FRASE_RAMIFICACION;
