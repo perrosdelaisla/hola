@@ -40,6 +40,7 @@ import { esPPP }                             from "./victoria-breeds.js";
 import { decidirRespuesta }                  from "./victoria-matching.js";
 import { renderAgenda }                      from "./agenda.js";
 import { renderPago }                        from "./pagos.js";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -107,6 +108,11 @@ function _estadoInicial() {
     sesion_id: null,
     sesion_inicio_ts: null,
     log_matching_final: null,
+
+    // ── Fallback IA: tracking de turnos y guardado de historial ──
+    turnos_ia: 0,
+    historial_ia: [],           // array de {role:"user"|"assistant", content:string}
+    fallback_ia_cerrado: false, // true tras alcanzar maxTurnos — no reentrar
   };
 }
 
@@ -365,7 +371,7 @@ async function _procesarTexto(texto) {
   // el cuadro con el contexto actualizado. La gente exagera al describir al
   // principio — hay que permitir corregir.
   if (_esDesescaladaTrasDerivacion(texto)) {
-    return _recalcularTrasDesescalada(texto);
+    return await _recalcularTrasDesescalada(texto);
   }
 
   // ── INTERCEPTOR: cierre elegante tras derivación al etólogo ──
@@ -522,7 +528,7 @@ function _procesarS3_DatosPerro(texto) {
     "Descríbeme la situación con tus propias palabras.";
 }
 
-function _procesarS4_Problema(texto) {
+async function _procesarS4_Problema(texto) {
   // Si había mensaje inicial largo (prescan), incluirlo en el diagnóstico
   // — una sola vez, marcándolo como ya consumido.
   if (state.prescan_mensaje_inicial) {
@@ -546,10 +552,10 @@ function _procesarS4_Problema(texto) {
     edad_meses:            state.perro.edad_meses,
   });
 
-  return _evaluarYResponder(texto);
+  return await _evaluarYResponder(texto);
 }
 
-function _procesarGravedadMordida(texto) {
+async function _procesarGravedadMordida(texto) {
   state.mensajes_diagnostico.push(texto);
   state.s5_intentos++;
 
@@ -598,7 +604,7 @@ function _procesarGravedadMordida(texto) {
   }
 
   state.pending = null;
-  return _evaluarYResponder(texto);
+  return await _evaluarYResponder(texto);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1278,7 +1284,7 @@ function _explicarPago() {
 // NÚCLEO MATCHING
 // ─────────────────────────────────────────────────────────────────────────────
 
-function _evaluarYResponder(textoActual) {
+async function _evaluarYResponder(textoActual) {
   const contexto = _construirContexto(textoActual);
   const decision = decidirRespuesta(contexto);
 
@@ -1342,7 +1348,7 @@ function _evaluarYResponder(textoActual) {
     }
 
     case "fallback":
-      return _fallbackHumano(decision.log?.notas ?? "fallback");
+      return await _fallbackInteligente(textoActual);
 
     default:
       return _fallbackHumano("acción desconocida: " + decision.accion);
@@ -1732,6 +1738,83 @@ function _registrarTurno(rol, texto) {
   state.historial_turnos.push({ rol, texto, timestamp: new Date().toISOString() });
 }
 
+async function _fallbackInteligente(textoUsuario) {
+  // 1. Kill-switch global
+  if (!IA_FALLBACK_CONFIG.activa) {
+    return _fallbackHumano("ia_desactivada");
+  }
+
+  // 2. Modo prueba: solo URL con ?prueba=1
+  if (IA_FALLBACK_CONFIG.soloPrueba && !state.prueba) {
+    return _fallbackHumano("ia_solo_prueba");
+  }
+
+  // 3. Cierre ya forzado en turno previo: no reentrar
+  if (state.fallback_ia_cerrado) {
+    return _fallbackHumano("ia_ya_cerrada");
+  }
+
+  // 4. Tope de turnos alcanzado: forzar cierre con frase fija
+  if (state.turnos_ia >= IA_FALLBACK_CONFIG.maxTurnos) {
+    state.fallback_ia_cerrado = true;
+    return "Para darle la mejor orientación, ¿podría dejarnos su WhatsApp? El adiestrador le contacta personalmente y le explica con detalle. También puede escribir al 622 922 173 si lo prefiere.";
+  }
+
+  // 5. Construir messages con historial + turno actual
+  const messages = [
+    ...state.historial_ia,
+    { role: "user", content: textoUsuario },
+  ];
+
+  // 6. fetch al proxy con AbortController + timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), IA_FALLBACK_CONFIG.timeoutMs);
+
+  try {
+    const res = await fetch(IA_FALLBACK_CONFIG.proxyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      console.warn(`Victoria IA fallback: proxy respondió ${res.status}`);
+      return _fallbackHumano(`ia_proxy_${res.status}`);
+    }
+
+    const data = await res.json();
+    if (typeof data?.reply !== "string" || !data.reply.trim()) {
+      console.warn("Victoria IA fallback: reply vacío o inválido", data);
+      return _fallbackHumano("ia_reply_vacio");
+    }
+
+    // 7. Sanitizar markdown que la IA pueda haber introducido pese al system prompt
+    const replyLimpio = data.reply
+      .replace(/\*\*(.*?)\*\*/g, '$1')   // negrita: **texto** → texto
+      .replace(/\*(.*?)\*/g, '$1')       // cursiva: *texto* → texto
+      .replace(/__(.*?)__/g, '$1')       // negrita alt: __texto__ → texto
+      .replace(/_(.*?)_/g, '$1')         // cursiva alt: _texto_ → texto
+      .replace(/`(.*?)`/g, '$1');        // backticks: `código` → código
+
+    // 8. Persistir historial + incrementar turnos
+    state.historial_ia.push({ role: "user", content: textoUsuario });
+    state.historial_ia.push({ role: "assistant", content: replyLimpio });
+    state.turnos_ia += 1;
+    return replyLimpio;
+
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err?.name === "AbortError") {
+      console.warn("Victoria IA fallback: timeout");
+      return _fallbackHumano("ia_timeout");
+    }
+    console.warn("Victoria IA fallback: error de red:", err);
+    return _fallbackHumano("ia_error_red");
+  }
+}
+
 function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
   return "Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla. " +
@@ -1797,7 +1880,7 @@ function _esDesescaladaTrasDerivacion(texto) {
  * sigue sin haber cuadro claro, pide al cliente su WhatsApp para que el equipo
  * le contacte (NUNCA dar el WhatsApp de PDLI en fallback).
  */
-function _recalcularTrasDesescalada(texto) {
+async function _recalcularTrasDesescalada(texto) {
   // Añadir el mensaje al contexto de diagnóstico para que el matcher lo considere
   state.mensajes_diagnostico.push(texto);
 
@@ -1811,7 +1894,7 @@ function _recalcularTrasDesescalada(texto) {
   state.current_step = "s4";
 
   // Reevaluar con el contexto actualizado
-  const respuesta = _evaluarYResponder(texto);
+  const respuesta = await _evaluarYResponder(texto);
 
   // Si el matching devuelve fallback, sustituir por la versión "pide WhatsApp"
   // en lugar de "te damos el WhatsApp de PDLI"
