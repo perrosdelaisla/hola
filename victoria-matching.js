@@ -82,6 +82,25 @@ const _VOCABULARIO_CANINO = (() => {
   return Array.from(set);
 })();
 
+// Vocabulario SOLO de cuadros (sin set genérico) — usado por la regla de
+// continuidad IA para detectar cuando el cliente vuelve a hablar coherentemente
+// del perro y debe gestionarlo el árbol normal, no la IA. Más estricto que
+// _VOCABULARIO_CANINO porque no acepta palabras como "hola" o "perro" sueltas.
+const _VOCABULARIO_CUADROS = (() => {
+  const set = new Set();
+  for (const dict of TODOS_LOS_DICCIONARIOS) {
+    for (const nivel of ["n1", "n2", "n3"]) {
+      const items = dict[nivel] ?? [];
+      for (const item of items) set.add(item);
+    }
+  }
+  return Array.from(set);
+})();
+
+function _inputTieneVocabularioDeCuadro(textoNorm) {
+  return filtrarHits(textoNorm, _VOCABULARIO_CUADROS).length > 0;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ORQUESTADOR PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
@@ -94,6 +113,7 @@ const _VOCABULARIO_CANINO = (() => {
  */
 export function decidirRespuesta(contexto) {
   const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida } = contexto;
+  const textoNorm = normalizar(contexto.mensaje ?? "");
 
   // ── REGLA DE CONTINUIDAD IA ──────────────────────────────────────────────
   //
@@ -104,10 +124,16 @@ export function decidirRespuesta(contexto) {
   // casual del cliente ("vale, no estoy seguro") devolvería el control al
   // árbol y rompería la continuidad de la conversación IA.
   //
-  // EXCEPCIÓN — filtro 1 (seguridad/mordida) tiene prioridad sobre la
+  // EXCEPCIÓN 1 — filtro 1 (seguridad/mordida) tiene prioridad sobre la
   // continuidad. Si el cliente menciona mordida durante la conversación IA,
   // el árbol retoma el control para activar la derivación al etólogo. Es
   // regla de seguridad clínica, no de UX.
+  //
+  // EXCEPCIÓN 2 — si el cliente vuelve a describir el problema del perro con
+  // vocabulario reconocible de los 7 diccionarios de cuadros, el árbol retoma
+  // el control para gestionarlo como caso normal. NO se setea
+  // fallback_ia_cerrado: la IA puede volver a entrar después si el cliente
+  // vuelve a divagar.
   //
   // Salida del modo IA: ÚNICAMENTE vía fallback_ia_cerrado=true, que setea
   // _fallbackInteligente cuando alcanza maxTurnos (cierre por tope con frase
@@ -120,8 +146,9 @@ export function decidirRespuesta(contexto) {
     !contexto.fallback_ia_cerrado;
 
   const inputDisparaFiltroSeguridad = keywords_mordida || gravedad_mordida;
+  const inputVuelveAlHilo = _inputTieneVocabularioDeCuadro(textoNorm);
 
-  if (enConversacionIA && !inputDisparaFiltroSeguridad) {
+  if (enConversacionIA && !inputDisparaFiltroSeguridad && !inputVuelveAlHilo) {
     return _decision({
       accion: "fallback",
       frase_params: null,
@@ -139,7 +166,6 @@ export function decidirRespuesta(contexto) {
   // respondiendo a la repregunta). Esto evita que Victoria "olvide" el filtro
   // de seguridad entre turnos y venda clases para casos que necesitan etólogo.
 
-  const textoNorm = normalizar(contexto.mensaje ?? "");
   const hayAgresion = KEYWORDS_AGRESION.some(kw => textoNorm.includes(normalizar(kw)));
   const hayVictimaVulnerable = KEYWORDS_VICTIMA_VULNERABLE.some(kw => textoNorm.includes(normalizar(kw)));
   const esGrande = (perro?.peso_kg ?? 0) > 10;
