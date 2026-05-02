@@ -194,7 +194,7 @@ export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `El adiestrador se desplaza a tu
 
 Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
 
-export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — solo necesitas un móvil o un ordenador con cámara, y que {perro} esté contigo en casa para que el adiestrador pueda verlo durante la sesión. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
+export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — solo necesitas un móvil o un ordenador con cámara, y que {perro} esté contigo en casa para que el adiestrador pueda verlo durante la clase. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
 Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
 
@@ -232,11 +232,11 @@ export const FRASES_PRECIO = {
 export const FRASES_PACK = {
   presencial:
     "El pack son 4 clases por 300€ en vez de 360€ (90€ × 4). Te ahorras 60€ y además aseguras la continuidad " +
-    "del trabajo, que es lo que marca la diferencia en los resultados. La decisión la tomas en la primera sesión " +
+    "del trabajo, que es lo que marca la diferencia en los resultados. La decisión la tomas en la primera clase " +
     "sin compromiso — si después de conocer al adiestrador prefieres ir clase a clase, perfecto también.",
   online:
     "El pack online son 4 clases por 240€ en vez de 300€ (75€ × 4). Te ahorras 60€ y aseguras la continuidad. " +
-    "Decides pack o clase suelta en la primera sesión, sin compromiso.",
+    "Decides pack o clase suelta cuando conozcas al adiestrador, sin compromiso.",
 };
 
 export const FRASE_PRECIO_POR_PERRO =
