@@ -435,12 +435,43 @@ function _procesarS1_Zona(texto) {
 }
 
 function _procesarS2_NombrePerro(texto) {
-  const nombre = texto
+  // 1. Stripping de prefix conversacional ("se llama", "mi perro es", etc.)
+  let candidato = texto
     .replace(/^(se llama|mi perro (es|se llama))\s*/i, "")
     .replace(/^(es|un|una)\s+/i, "")
     .trim();
 
-  state.perro.nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  // 2. Cortar en el primer delimitador de frase para evitar capturar
+  //    continuaciones como "toby y se porta muy mal".
+  const DELIMITADORES = /\s+(y|que|pero|porque|tiene|es\s+un|es\s+una|se)\s+|[,.;:?!]/i;
+  const matchDelim = candidato.match(DELIMITADORES);
+  if (matchDelim) {
+    candidato = candidato.slice(0, matchDelim.index).trim();
+  }
+
+  // 3. Limitar a máximo 3 palabras (permite "Bella Luna" pero no frases)
+  const palabras = candidato.split(/\s+/).filter(Boolean).slice(0, 3);
+
+  // 4. Validación: descartar respuestas vacías o evasivas
+  const BLACKLIST = ["todavia", "aun", "ninguno", "ninguna", "no"];
+  const palabrasNorm = palabras.map(w =>
+    w.toLowerCase()
+      .replace(/[áàâä]/g, "a")
+      .replace(/[éèêë]/g, "e")
+      .replace(/[íìîï]/g, "i")
+      .replace(/[óòôö]/g, "o")
+      .replace(/[úùûü]/g, "u")
+      .replace(/ñ/g, "n")
+  );
+  const esEvasiva = palabrasNorm.some(w => BLACKLIST.includes(w));
+
+  if (palabras.length > 0 && !esEvasiva) {
+    // 5. Capitalizar cada palabra: "bella luna" → "Bella Luna"
+    state.perro.nombre = palabras
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+  }
+  // Si vacío o evasivo: no asignar, state.perro.nombre queda como estaba (null al inicio)
 
   const yaTieneEdad = state.perro.edad_meses !== null;
   const yaTienePeso = state.perro.peso_kg !== null;
@@ -449,7 +480,7 @@ function _procesarS2_NombrePerro(texto) {
   // Si el prescan ya llenó todos los datos, saltar s3 e ir directo a s4
   if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
     state.current_step = "s4";
-    return `¡Qué nombre más bonito! Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+    return `¡Qué nombre más bonito! Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
       "Descríbeme la situación con tus propias palabras.";
   }
 
@@ -470,7 +501,7 @@ function _procesarS2_NombrePerro(texto) {
     textoPregunta = `¿${preguntas[0].charAt(0).toUpperCase() + preguntas[0].slice(1)}, ${preguntas[1]} y ${preguntas[2]}?`;
   }
 
-  return `¡Qué nombre más bonito! Una cosa más sobre ${state.perro.nombre}: ${textoPregunta}`;
+  return `¡Qué nombre más bonito! Una cosa más sobre ${_nombrePerro()}: ${textoPregunta}`;
 }
 
 function _procesarS3_DatosPerro(texto) {
@@ -485,7 +516,7 @@ function _procesarS3_DatosPerro(texto) {
     // Guardar este texto como parte del diagnóstico (puede describir el problema)
     state.mensajes_diagnostico.push(texto);
     state.current_step = "s4";
-    return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+    return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
       "Descríbeme la situación con tus propias palabras.";
   }
 
@@ -506,7 +537,7 @@ function _procesarS3_DatosPerro(texto) {
   if (faltaEdad) {
     state.s3_intentos++;
     if (state.s3_intentos === 1) {
-      return `¿Qué edad tiene ${state.perro.nombre}? Con meses si es cachorro, o años si es adulto.`;
+      return `¿Qué edad tiene ${_nombrePerro()}? Con meses si es cachorro, o años si es adulto.`;
     }
     if (state.s3_intentos === 2) {
       return `Perdona, no he sabido leerlo bien. Dímelo con números si puedes — por ejemplo "3 años" o "8 meses".`;
@@ -516,7 +547,7 @@ function _procesarS3_DatosPerro(texto) {
 
   if (faltaPeso && state.s3_intentos <= 1) {
     state.s3_intentos++;
-    return `¿Y cuánto pesa ${state.perro.nombre} aproximadamente? Un número aproximado me vale — por ejemplo "12 kilos".`;
+    return `¿Y cuánto pesa ${_nombrePerro()} aproximadamente? Un número aproximado me vale — por ejemplo "12 kilos".`;
   }
 
   if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
@@ -524,7 +555,7 @@ function _procesarS3_DatosPerro(texto) {
   if (state.perro.raza       === null) state.perro.raza       = "mestizo";
 
   state.current_step = "s4";
-  return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${state.perro.nombre}? ` +
+  return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
     "Descríbeme la situación con tus propias palabras.";
 }
 
@@ -1819,6 +1850,15 @@ function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
   return "Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla. " +
     "Puedes escribirnos por WhatsApp al 622 922 173.";
+}
+
+/**
+ * Devuelve el nombre del perro o "tu perro" como fallback cuando no se conoce
+ * (cliente respondió evasivamente en s2 o el state aún no se ha rellenado).
+ * Centraliza el fallback para evitar render de "null" en plantillas de Victoria.
+ */
+function _nombrePerro() {
+  return state.perro.nombre ?? "tu perro";
 }
 
 function _insertarCierre() {
