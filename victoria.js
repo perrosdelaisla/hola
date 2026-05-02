@@ -1821,7 +1821,7 @@ async function _fallbackInteligente(textoUsuario) {
   if (state.turnos_ia >= IA_FALLBACK_CONFIG.maxTurnos) {
     state.fallback_ia_cerrado = true;
     state.ultima_respuesta_origen = { tipo: "IA_CIERRE" };
-    return "Para darle la mejor orientación, ¿podría dejarnos su WhatsApp? El adiestrador le contacta personalmente y le explica con detalle. También puede escribir al 622 922 173 si lo prefiere.";
+    return "Para orientarte mejor, ¿puedes dejarnos tu WhatsApp? El adiestrador te contacta personalmente y te explica con detalle. También puedes escribir al 622 922 173 si lo prefieres.";
   }
 
   // 5. Construir messages con historial + turno actual
