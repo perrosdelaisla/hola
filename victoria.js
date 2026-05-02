@@ -1142,8 +1142,14 @@ async function _procesarS12_Confirmacion(_texto) {
   }
 
   try {
-    await _guardarCitaEnSupabase();
-    await _notificarCarlos();
+    // Modo prueba: NO persistir cita ni disparar push a Carlos. El tracking
+    // de la sesión sí se actualiza (la fila ya está marcada es_prueba=true
+    // desde _crearSesionTracking; la query del admin la filtra fuera de
+    // stats). UI completa y bubble de confirmación se mantienen.
+    if (!state.prueba) {
+      await _guardarCitaEnSupabase();
+      await _notificarCarlos();
+    }
     state.cita_confirmada = true;
     // ── ADICIÓN 11: tracking conversión ──
     _actualizarSesion({
