@@ -4,17 +4,19 @@
  * Versión 2.0 · Abril 2026
  *
  * ARQUITECTURA SIMPLIFICADA:
- * decidirRespuesta evalúa 4 filtros en orden y devuelve una Decision.
+ * decidirRespuesta evalúa 5 filtros en orden y devuelve una Decision.
  * Ya no hay diagnóstico de cuadros, exclusiones ni pasos de afinado.
  *
  * FILTROS (en orden):
  *   1. Mordida grave (→ preguntar gravedad o derivar al etólogo)
  *   2. Lateral (guardería, peluquería, etc)
  *   3. Zona (Son Gotleu, fuera de cobertura)
+ *   5. Vocabulario canino (input sin keywords reconocidas → fallback IA)
  *   4. Caso general → mensaje principal unificado
  */
 
-import { normalizar } from "./victoria-utils.js";
+import { normalizar, filtrarHits } from "./victoria-utils.js";
+import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KEYWORDS
@@ -47,6 +49,31 @@ const KEYWORDS_VICTIMA_VULNERABLE = [
   "bebé", "bebe", "bebés", "bebes",
   "anciano", "anciana", "abuelo", "abuela",
 ];
+
+// Vocabulario canino unificado: todas las keywords (n1/n2/n3) de los 7
+// diccionarios de cuadros + términos genéricos razonables. Se construye
+// una sola vez al cargar el módulo y se consulta en el filtro 5.
+const _VOCABULARIO_CANINO = (() => {
+  const set = new Set();
+  for (const dict of TODOS_LOS_DICCIONARIOS) {
+    for (const nivel of ["n1", "n2", "n3"]) {
+      const items = dict[nivel] ?? [];
+      for (const item of items) set.add(item);
+    }
+  }
+  // Vocabulario genérico mínimo: palabras que un cliente real puede usar
+  // para describir un problema aunque no matchee ningún cuadro PDLI, más
+  // respuestas afirmativas/negativas cortas para no romper flujos de
+  // confirmación que pasen por _enviarMensaje.
+  const GENERICO = [
+    "perro", "perra", "perrito", "perrita",
+    "mi", "tiene", "tengo", "hace",
+    "hola", "ayuda", "duda",
+    "si", "no", "vale", "ok",
+  ];
+  for (const palabra of GENERICO) set.add(palabra);
+  return Array.from(set);
+})();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ORQUESTADOR PRINCIPAL
@@ -153,6 +180,25 @@ export function decidirRespuesta(contexto) {
       pending_next: null,
       cuadro_ganador: null,
       log: _log(3, `zona fuera sin cobertura`),
+    });
+  }
+
+  // ── FILTRO 5: Vocabulario canino ─────────────────────────────────────────
+  //
+  // Si el texto del cliente no contiene NINGUNA keyword de los 7 diccionarios
+  // ni una palabra genérica del vocabulario mínimo, lo consideramos input
+  // incoherente o fuera de embudo y delegamos en la IA fallback.
+  // Sin esto, el filtro 4 captura cualquier cosa con FRASE_MENSAJE_PRINCIPAL,
+  // incluyendo entradas como "aslkjdaslkdjasldkj".
+
+  const hayVocabularioCanino = filtrarHits(textoNorm, _VOCABULARIO_CANINO).length > 0;
+  if (!hayVocabularioCanino) {
+    return _decision({
+      accion: "fallback",
+      frase_params: null,
+      pending_next: null,
+      cuadro_ganador: null,
+      log: _log(5, "input sin vocabulario canino reconocido"),
     });
   }
 
