@@ -480,7 +480,7 @@ function _procesarS2_NombrePerro(texto) {
   // Si el prescan ya llenó todos los datos, saltar s3 e ir directo a s4
   if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
     state.current_step = "s4";
-    return `¡Qué nombre más bonito! Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
+    return `${_aperturaPostNombre()} Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
       "Descríbeme la situación con tus propias palabras.";
   }
 
@@ -501,7 +501,7 @@ function _procesarS2_NombrePerro(texto) {
     textoPregunta = `¿${preguntas[0].charAt(0).toUpperCase() + preguntas[0].slice(1)}, ${preguntas[1]} y ${preguntas[2]}?`;
   }
 
-  return `¡Qué nombre más bonito! Una cosa más sobre ${_nombrePerro()}: ${textoPregunta}`;
+  return `${_aperturaPostNombre()} Una cosa más sobre ${_nombrePerro()}: ${textoPregunta}`;
 }
 
 function _procesarS3_DatosPerro(texto) {
@@ -1859,6 +1859,17 @@ function _fallbackHumano(razon) {
  */
 function _nombrePerro() {
   return state.perro.nombre ?? "tu perro";
+}
+
+/**
+ * Devuelve la frase de apertura que sigue al paso s2 (nombre del perro).
+ * Si el cliente dio un nombre → felicitación. Si no (respondió evasivamente)
+ * → frase neutra que reconoce sin felicitar. Centraliza la decisión por si
+ * en el futuro hay más plantillas que abren tras s2.
+ */
+function _aperturaPostNombre() {
+  if (state.perro.nombre) return "¡Qué nombre más bonito!";
+  return "Vale, no te preocupes.";
 }
 
 function _insertarCierre() {
