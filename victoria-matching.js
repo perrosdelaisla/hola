@@ -97,24 +97,26 @@ export function decidirRespuesta(contexto) {
 
   // ── REGLA DE CONTINUIDAD IA ──────────────────────────────────────────────
   //
-  // Si la IA ya tomó al menos un turno en esta sesión y aún no ha llegado
-  // al cierre (ni por tope ni forzado), TODOS los turnos siguientes pasan
-  // por la IA sin filtrar. La IA gestiona la conversación reconduciendo al
-  // cliente durante sus N turnos como una conversación continua. Sin esto,
-  // charla casual del cliente ("vale, no estoy seguro") devolvería el
-  // control al árbol y rompería la continuidad de la conversación IA.
+  // Si la IA ya tomó al menos un turno en esta sesión y aún no ha cerrado
+  // (fallback_ia_cerrado=false), TODOS los turnos siguientes pasan por la
+  // IA sin filtrar. La IA gestiona la conversación reconduciendo al cliente
+  // durante sus N turnos como una conversación continua. Sin esto, charla
+  // casual del cliente ("vale, no estoy seguro") devolvería el control al
+  // árbol y rompería la continuidad de la conversación IA.
   //
   // EXCEPCIÓN — filtro 1 (seguridad/mordida) tiene prioridad sobre la
   // continuidad. Si el cliente menciona mordida durante la conversación IA,
   // el árbol retoma el control para activar la derivación al etólogo. Es
   // regla de seguridad clínica, no de UX.
   //
-  // Salida del modo IA: se produce en _fallbackInteligente cuando alcanza
-  // maxTurnos (cierre por tope) o cualquier path que setee fallback_ia_cerrado.
+  // Salida del modo IA: ÚNICAMENTE vía fallback_ia_cerrado=true, que setea
+  // _fallbackInteligente cuando alcanza maxTurnos (cierre por tope con frase
+  // fija de WhatsApp). NO se usa el contador de turnos como guard aquí
+  // porque necesitamos que la llamada del turno N+1 AÚN entre a
+  // _fallbackInteligente para que ejecute el cierre forzado y setee la flag.
 
   const enConversacionIA =
     contexto.turnos_ia >= 1 &&
-    contexto.turnos_ia < contexto.max_turnos_ia &&
     !contexto.fallback_ia_cerrado;
 
   const inputDisparaFiltroSeguridad = keywords_mordida || gravedad_mordida;
