@@ -113,6 +113,11 @@ function _estadoInicial() {
     turnos_ia: 0,
     historial_ia: [],           // array de {role:"user"|"assistant", content:string}
     fallback_ia_cerrado: false, // true tras alcanzar maxTurnos — no reentrar
+
+    // Origen de la última respuesta — solo se renderiza si state.prueba.
+    // Patrón consume-and-reset: se setea en _fallbackInteligente / _fallbackHumano
+    // y se limpia en _mostrarVictoria tras pintar la etiqueta.
+    ultima_respuesta_origen: null,
   };
 }
 
@@ -283,6 +288,26 @@ async function _enviarMensaje() {
  */
 function _mostrarVictoria(texto) {
   if (!_chatEl || !_twEl) return;
+
+  // Etiqueta de debug — SOLO en modo prueba (?prueba=1). Se inserta como
+  // hermana del bubble, justo encima. Patrón consume-and-reset: el origen
+  // queda null tras pintar para que respuestas posteriores (clicks de botón,
+  // bienvenida, etc.) no hereden la etiqueta del turno anterior.
+  if (state.prueba && state.ultima_respuesta_origen) {
+    const o = state.ultima_respuesta_origen;
+    let label = null;
+    if (o.tipo === "IA")             label = `IA · turno ${o.turno}/${IA_FALLBACK_CONFIG.maxTurnos}`;
+    else if (o.tipo === "IA_CIERRE") label = `IA · cierre 3/3`;
+    else if (o.tipo === "FH")        label = `FH: ${o.motivo}`;
+    if (label) {
+      const debugEl = document.createElement("div");
+      debugEl.className = "msg-debug";
+      debugEl.textContent = `[${label}]`;
+      _chatEl.insertBefore(debugEl, _twEl);
+    }
+    state.ultima_respuesta_origen = null;
+  }
+
   const burbuja = document.createElement("div");
   burbuja.className = "msg bot";
   burbuja.innerHTML = `
@@ -1788,6 +1813,7 @@ async function _fallbackInteligente(textoUsuario) {
   // 4. Tope de turnos alcanzado: forzar cierre con frase fija
   if (state.turnos_ia >= IA_FALLBACK_CONFIG.maxTurnos) {
     state.fallback_ia_cerrado = true;
+    state.ultima_respuesta_origen = { tipo: "IA_CIERRE" };
     return "Para darle la mejor orientación, ¿podría dejarnos su WhatsApp? El adiestrador le contacta personalmente y le explica con detalle. También puede escribir al 622 922 173 si lo prefiere.";
   }
 
@@ -1833,6 +1859,7 @@ async function _fallbackInteligente(textoUsuario) {
     state.historial_ia.push({ role: "user", content: textoUsuario });
     state.historial_ia.push({ role: "assistant", content: replyLimpio });
     state.turnos_ia += 1;
+    state.ultima_respuesta_origen = { tipo: "IA", turno: state.turnos_ia };
     return replyLimpio;
 
   } catch (err) {
@@ -1848,6 +1875,7 @@ async function _fallbackInteligente(textoUsuario) {
 
 function _fallbackHumano(razon) {
   console.warn("Victoria fallback:", razon);
+  state.ultima_respuesta_origen = { tipo: "FH", motivo: razon };
   return "Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla. " +
     "Puedes escribirnos por WhatsApp al 622 922 173.";
 }

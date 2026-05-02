@@ -1532,3 +1532,17 @@ body {
   background: #9cb64b;
   color: #1a1a1a;
 }
+
+/* Etiqueta de debug del fallback IA — solo aparece con ?prueba=1.
+   Se inserta como hermana del bubble de Victoria, justo encima.
+   Margin-left = 36px (avatar) + 8px (gap) = 44px → alineado con el inicio del bubble. */
+.msg-debug {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: normal;
+  color: #a09990;
+  opacity: 0.7;
+  letter-spacing: 0.3px;
+  margin: 8px 0 -2px 44px;
+  user-select: none;
+}
