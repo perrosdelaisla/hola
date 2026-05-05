@@ -57,6 +57,32 @@ const KEYWORDS_VICTIMA_VULNERABLE = [
   "anciano", "anciana", "abuelo", "abuela",
 ];
 
+// Objetos que el perro puede morder = destrucción, NO agresión.
+// Si "muerde" aparece junto a uno de estos, el filtro de mordida
+// NO se activa (es exploración o destructividad, no agresión).
+const KEYWORDS_OBJETOS_MORDIBLES = [
+  "muebles", "mueble",
+  "sofá", "sofa", "sillón", "sillon",
+  "silla", "sillas",
+  "mesa", "patas de la mesa",
+  "zapatos", "zapato", "zapatillas", "zapatilla",
+  "cordones",
+  "ropa", "calcetines", "calcetín", "calcetin",
+  "manga", "mangas",
+  "correa", "la correa",
+  "manguera",
+  "juguetes", "juguete", "peluche", "peluches",
+  "cojines", "cojín", "cojin", "almohadas", "almohada",
+  "manta", "mantas",
+  "cables", "cable",
+  "puerta", "puertas", "marco de la puerta",
+  "rodapié", "rodapie",
+  "cosas", "todo lo que pilla", "todo lo que encuentra",
+  "lo que pilla",
+  "alfombra", "alfombras",
+  "plantas", "planta",
+];
+
 // Vocabulario canino unificado: todas las keywords (n1/n2/n3) de los 7
 // diccionarios de cuadros + términos genéricos razonables. Se construye
 // una sola vez al cargar el módulo y se consulta en el filtro 5.
@@ -172,9 +198,17 @@ export function decidirRespuesta(contexto) {
   const esGrandota = (perro?.peso_kg ?? 0) >= 25;
   const esPPP = perro?.es_ppp ?? false;
 
+  // ── DETECCIÓN: muerde objetos vs muerde personas ──
+  // Si el texto contiene "muerde" junto a un objeto del listado,
+  // NO es agresión. Es destrucción o exploración. NO activar
+  // filtro de mordida.
+  const muerdeObjetos =
+    keywords_mordida &&
+    KEYWORDS_OBJETOS_MORDIBLES.some(obj => textoNorm.includes(normalizar(obj)));
+
   // Condiciones para activar el filtro de seguridad
   const activarFiltro =
-    keywords_mordida ||                        // mordida explícita
+    (keywords_mordida && !muerdeObjetos) ||    // mordida a personas/perros, no objetos
     gravedad_mordida ||                        // ya preguntamos antes
     (hayAgresion && esGrande) ||               // agresión + perro >10kg
     (hayAgresion && esPPP) ||                  // agresión + PPP (de cualquier tamaño)
@@ -198,7 +232,7 @@ export function decidirRespuesta(contexto) {
         frase_params: { tipo: "apoyo", subtipo: "filtro_mordida" },
         pending_next: "gravedad_mordida",
         cuadro_ganador: null,
-        log: _log(1, `filtro seguridad: cachorro=${esCachorro} mordida=${!!keywords_mordida} agresion=${hayAgresion} vulnerable=${hayVictimaVulnerable} ppp=${esPPP} peso=${perro?.peso_kg}`),
+        log: _log(1, `filtro seguridad: cachorro=${esCachorro} mordida=${!!keywords_mordida} muerdeObjetos=${muerdeObjetos} agresion=${hayAgresion} vulnerable=${hayVictimaVulnerable} ppp=${esPPP} peso=${perro?.peso_kg}`),
       });
     }
 
