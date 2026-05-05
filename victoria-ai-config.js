@@ -24,11 +24,10 @@ export const IA_FALLBACK_CONFIG = {
 
   /**
    * true  = la IA solo se activa para sesiones con ?prueba=1 en la URL
-   * false = la IA se activa para todos los clientes
-   * Mantener en true durante la fase de pruebas. Pasar a false cuando
-   * estemos seguros del comportamiento.
+   * false = la IA se activa para todos los clientes (prueba y reales)
+   * Kill-switch para volver a "solo prueba" sin redeploy si hay incidencia.
    */
-  soloPrueba: true,
+  soloPrueba: false,
 
   /**
    * URL del Edge Function desplegado en Supabase.
