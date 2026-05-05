@@ -91,19 +91,19 @@ export const FRASES_APOYO = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASE_MENSAJE_PRINCIPAL = [
-  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y la primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y diseña contigo el proceso de aprendizaje según lo que de verdad necesite.`,
+  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y la primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
 
   `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Cada perro es un mundo, por eso aplicamos un proceso de aprendizaje estructurado y la primera clase es la base de todo: el adiestrador conoce a {perro} en su contexto y a partir de ahí se arma el plan contigo.`,
 
-  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y la primera clase es donde el adiestrador le conoce de verdad y diseña contigo el proceso de aprendizaje. Es lo que nos diferencia.`,
+  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y la primera clase es donde el adiestrador le conoce de verdad y elige y aplica el protocolo más adecuado. Es lo que nos diferencia.`,
 ];
 
 export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
-  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y para tu zona lo hacemos online: la primera clase es justo para esto, el adiestrador conoce a {perro} y diseña contigo el proceso de aprendizaje según lo que de verdad necesite.`,
+  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y para tu zona lo hacemos online: la primera clase es justo para esto, el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
 
   `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Trabajamos contigo online y, aunque sea por videollamada, aplicamos un proceso de aprendizaje estructurado: la primera clase es la base de todo, el adiestrador conoce a {perro} en su contexto y a partir de ahí se arma el plan contigo.`,
 
-  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y trabajamos contigo online. La primera clase es donde el adiestrador le conoce y diseña contigo el proceso de aprendizaje. Es lo que nos diferencia.`,
+  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y trabajamos contigo online. La primera clase es donde el adiestrador le conoce y elige y aplica el protocolo más adecuado. Es lo que nos diferencia.`,
 ];
 
 export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;

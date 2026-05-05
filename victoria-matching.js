@@ -182,19 +182,32 @@ export function decidirRespuesta(contexto) {
     (esPPP && hayAgresion);                    // PPP con cualquier conducta agresiva
 
   if (activarFiltro) {
-    // Gravedad aún no definida → preguntar
+    // ── REGLA EDUCAN: cachorros nunca van a etólogo ──
+    // Mordidas en cachorro <9 meses son exploratorias por
+    // definición. PDLI las trabaja en clase, no se derivan
+    // aunque haya señales de gravedad — el adiestrador valora
+    // en la primera clase. Decisión clínica deliberada de Charly.
+    const esCachorro = (perro?.edad_meses ?? 999) < 9;
+
+    // Gravedad aún no definida → preguntar (también en cachorros,
+    // la pregunta misma es útil porque hace que el cliente
+    // dimensione realmente la conducta).
     if (!gravedad_mordida) {
       return _decision({
         accion: "preguntar",
         frase_params: { tipo: "apoyo", subtipo: "filtro_mordida" },
         pending_next: "gravedad_mordida",
         cuadro_ganador: null,
-        log: _log(1, `filtro seguridad: mordida=${!!keywords_mordida} agresion=${hayAgresion} vulnerable=${hayVictimaVulnerable} ppp=${esPPP} peso=${perro?.peso_kg}`),
+        log: _log(1, `filtro seguridad: cachorro=${esCachorro} mordida=${!!keywords_mordida} agresion=${hayAgresion} vulnerable=${hayVictimaVulnerable} ppp=${esPPP} peso=${perro?.peso_kg}`),
       });
     }
 
-    // Grave + (perro grande o PPP) → etólogo
-    if (gravedad_mordida === "grave" && (esGrande || esPPP)) {
+    // CACHORRO → siempre se queda en flujo, NO derivar
+    if (esCachorro) {
+      // Cae al caso general (flujo normal de PDLI)
+    }
+    // Adulto + grave + (perro grande o PPP) → etólogo
+    else if (gravedad_mordida === "grave" && (esGrande || esPPP)) {
       return _decision({
         accion: "derivar",
         frase_params: { tipo: "etologo", subtipo: "mordida_personas" },
@@ -203,9 +216,8 @@ export function decidirRespuesta(contexto) {
         log: _log(1, `mordida grave + peso:${perro?.peso_kg}kg ppp:${esPPP}`),
       });
     }
-
-    // Agresión + grandota (≥25kg) aunque no haya mordida literal → etólogo
-    if (hayAgresion && esGrandota && gravedad_mordida === "grave") {
+    // Adulto + agresión + grandota (≥25kg) + grave → etólogo
+    else if (hayAgresion && esGrandota && gravedad_mordida === "grave") {
       return _decision({
         accion: "derivar",
         frase_params: { tipo: "etologo", subtipo: "mordida_personas" },
@@ -215,7 +227,7 @@ export function decidirRespuesta(contexto) {
       });
     }
 
-    // Leve o perro pequeño → sigue flujo normal (cae al caso general)
+    // Resto de casos: flujo normal (cae al caso general)
   }
 
   // ── FILTRO 2: Lateral ────────────────────────────────────────────────────

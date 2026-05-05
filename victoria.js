@@ -630,6 +630,20 @@ async function _procesarGravedadMordida(texto) {
     "solo gruñe", "solo gruño", "solo gruñido", "solo ladra",
     "solo amaga", "solo amenaza", "amago",
     "sin consecuencias", "nada grave",
+    // Rayón sin intención (criterio Charly)
+    "rayón", "rayon", "rayazo",
+    "rasguño", "rasguno", "raspón", "raspon",
+    "arañazo", "aranazo",
+    // Contexto de juego o exploración (no agresión)
+    "jugando", "mientras jugaba", "estaba jugando",
+    "en el juego", "fue jugando",
+    "exploraba", "exploración", "exploracion",
+    "estaba explorando",
+    "dientes afilados", "diente afilado",
+    "tiene dientes afilados",
+    "se enganchó la piel", "se engancho la piel",
+    "sin querer", "sin intención", "sin intencion",
+    "sin maldad", "sin mala intención",
   ].some(kw => norm.includes(normalizar(kw)));
 
   // GRAVE solo si hay indicadores claros de lesión — quita "marca" suelta (ambigua)
@@ -643,6 +657,17 @@ async function _procesarGravedadMordida(texto) {
     "hematoma", "moratón", "moraton",
     "dejó marca", "quedó marca", "dejó marcas", "hay marca",
     "mordisco fuerte", "mordida fuerte",
+    // Intención + sujeción (criterio Charly: mordida real)
+    "clavó los dientes", "clavo los dientes",
+    "clavó dientes", "clavo dientes",
+    "apretó", "apreto", "apretó fuerte", "apreto fuerte",
+    "no soltaba", "no soltó", "no solto",
+    "se enganchó y no soltó", "se engancho y no solto",
+    "agarró fuerte", "agarro fuerte",
+    "sujetó", "sujeto", "sujetó fuerte",
+    "no me soltaba", "no la soltaba", "no lo soltaba",
+    "tuve que abrirle la boca",
+    "con intención", "con intencion",
   ].some(kw => norm.includes(normalizar(kw)));
 
   if (esLeve) {
