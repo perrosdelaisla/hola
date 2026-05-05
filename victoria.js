@@ -227,6 +227,7 @@ function _conectarSplash() {
   if (!splashEl || !btnEl) return;
 
   btnEl.addEventListener("click", () => {
+    _actualizarSesion({ toco_splash: true });
     splashEl.classList.add("splash-fadeout");
     setTimeout(() => {
       splashEl.style.display = "none";

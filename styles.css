@@ -1037,48 +1037,10 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   background-size: cover;
   background-position: center 20%;
   background-repeat: no-repeat;
-  opacity: 0;
-  transition: opacity 1.2s ease-in-out;
 }
 
 .splash-bg.splash-bg-active {
   opacity: 1;
-}
-
-/* Paneo Ken Burns — solo se aplica a fotos apaisadas/cuadradas */
-/* La animación se ejecuta cuando la capa está activa (visible) */
-
-/* Paneo horizontal: para fotos apaisadas (Parc de la Mar) */
-@keyframes splash-pan-horizontal {
-  0%   { background-position: 15% center; }
-  100% { background-position: 85% center; }
-}
-
-/* Paneo vertical: para fotos cuadradas (Catedral) */
-@keyframes splash-pan-vertical {
-  0%   { background-position: center 15%; }
-  100% { background-position: center 85%; }
-}
-
-.splash-bg.pan-horizontal.splash-bg-active {
-  animation: splash-pan-horizontal 6s ease-out forwards;
-}
-
-.splash-bg.pan-vertical.splash-bg-active {
-  animation: splash-pan-vertical 6s ease-out forwards;
-}
-
-/* Cuando deja de estar activa, la animación se reinicia para la próxima vez */
-.splash-bg.pan-horizontal:not(.splash-bg-active),
-.splash-bg.pan-vertical:not(.splash-bg-active) {
-  animation: none;
-}
-
-/* Letterbox: foto entera con bordes negros arriba/abajo, sin paneo */
-.splash-bg.pan-letterbox {
-  background-size: contain !important;
-  background-color: #000;
-  background-position: center center !important;
 }
 
 .splash-overlay-dark {
@@ -1255,8 +1217,6 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   .splash-bg {
     /* Foto a la derecha, ocupando 60% del ancho */
     left: 40%;
-  }
-  .splash-bg:not(.pan-horizontal):not(.pan-vertical):not(.pan-letterbox) {
     background-position: center 15%;
   }
 
