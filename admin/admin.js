@@ -14,6 +14,7 @@ import {
   obtenerCitasAdminConReportado,
   confirmarCita,
   cancelarCita,
+  obtenerNombresCitasPorIds,
   obtenerSesionesParaStats,
 } from '../supabase.js';
 
@@ -214,6 +215,16 @@ async function cargarBloqueos() {
       return;
     }
 
+    // ── Cruce UUID → nombre cliente para bloqueos automáticos ──
+    // Extraer UUIDs de bloqueos cuyo motivo sea "Auto: cita {UUID}"
+    const REGEX_AUTO_CITA = /^Auto: cita ([a-f0-9-]{36})$/;
+    const idsCitas = bloqueos
+      .map(b => b.motivo?.match(REGEX_AUTO_CITA)?.[1])
+      .filter(Boolean);
+    const nombresPorId = idsCitas.length > 0
+      ? await obtenerNombresCitasPorIds(idsCitas)
+      : {};
+
     bloqueos.forEach(b => {
       const li = document.createElement('li');
       li.className = 'bloqueo-item';
@@ -230,7 +241,13 @@ async function cargarBloqueos() {
       if (b.motivo) {
         const motivoDiv = document.createElement('div');
         motivoDiv.className = 'bloqueo-motivo';
-        motivoDiv.textContent = b.motivo;
+        // Si es "Auto: cita {UUID}" y tenemos el nombre, reemplazar
+        const matchAuto = b.motivo.match(REGEX_AUTO_CITA);
+        if (matchAuto && nombresPorId[matchAuto[1]]) {
+          motivoDiv.textContent = `Auto: cita de ${nombresPorId[matchAuto[1]]}`;
+        } else {
+          motivoDiv.textContent = b.motivo;
+        }
         info.appendChild(motivoDiv);
       }
 

@@ -217,6 +217,26 @@ export async function cancelarCita(citaId) {
   await supa(`citas?id=eq.${citaId}`, 'PATCH', { estado: 'cancelada' });
 }
 
+/**
+ * Dado un array de UUIDs de citas, devuelve un mapa
+ * { [uuid]: nombreCliente } para que el admin pueda mostrar
+ * nombres en lugar de UUIDs.
+ */
+export async function obtenerNombresCitasPorIds(citaIds) {
+  if (!citaIds || citaIds.length === 0) return {};
+  const ids = citaIds.join(',');
+  const citas = await supa(
+    `citas?id=in.(${ids})&select=id,clientes(nombre)`
+  );
+  const mapa = {};
+  (citas || []).forEach(c => {
+    if (c.clientes?.nombre) {
+      mapa[c.id] = c.clientes.nombre;
+    }
+  });
+  return mapa;
+}
+
 /* ════════════════════════════════════════════
    ADMIN — ESTADÍSTICAS
    ════════════════════════════════════════════ */
