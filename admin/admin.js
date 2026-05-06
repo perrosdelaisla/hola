@@ -400,15 +400,29 @@ async function cargarCitas() {
         li.appendChild(protoDiv);
       }
 
+      // Texto a mostrar y label según origen de la cita:
+      //   - c.reportado existe → cita de Victoria, label "Reportado por el cliente"
+      //   - c.reportado no, pero c.notas sí → cita manual, label "Notas"
+      //   - ninguno → no mostrar bloque
+      let textoMostrar = null;
+      let labelTexto   = null;
       if (c.reportado) {
+        textoMostrar = c.reportado;
+        labelTexto   = 'Reportado por el cliente';
+      } else if (c.notas) {
+        textoMostrar = c.notas;
+        labelTexto   = 'Notas';
+      }
+
+      if (textoMostrar) {
         const repDiv = document.createElement('div');
         repDiv.className = 'cita-reportado';
         const label = document.createElement('span');
         label.className = 'cita-reportado-label';
-        label.textContent = 'Reportado por el cliente';
+        label.textContent = labelTexto;
         repDiv.appendChild(label);
         const repTxt = document.createElement('span');
-        repTxt.textContent = `"${c.reportado}"`;
+        repTxt.textContent = `"${textoMostrar}"`;
         repDiv.appendChild(repTxt);
         li.appendChild(repDiv);
       }
