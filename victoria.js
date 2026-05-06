@@ -51,9 +51,9 @@ const SUPA_KEY   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const NTFY_TOPIC = "perrosdelaisla-citas-2026"; // ← cambia por string aleatorio antes de producción
 
 // Delay de typing indicator en ms
-const TYPING_BASE     = 1200;  // mínimo antes de responder
-const TYPING_POR_CHAR = 15;    // ms extra por cada carácter
-const TYPING_MAX      = 3500;  // tope — no hacer esperar más de 3.5s
+const TYPING_BASE     = 700;   // mínimo antes de responder (random 700-1200)
+const TYPING_POR_CHAR = 0;     // legacy: ya no se suma por char (ver _enviarMensaje)
+const TYPING_MAX      = 1200;  // tope — random uniform en [TYPING_BASE, TYPING_MAX]
 const TYPING_DELAY    = 1200;  // fallback para callbacks de botones
 
 const VICTORIA_AVATAR = "https://i.ibb.co/1GXMwqzQ/victoria-cuadrada.jpg";
@@ -133,6 +133,7 @@ export function start() {
   state = _estadoInicial();
   _conectarUI();
   _conectarSplash();
+  _conectarHeader();
 
   // Leer el parámetro ?tema=X de la URL — permite que Victoria sepa desde qué
   // botón de la app de paseos vino el cliente, y personalice el saludo inicial.
@@ -222,17 +223,28 @@ function _conectarUI() {
 }
 
 function _conectarSplash() {
-  const splashEl = document.getElementById("splash");
-  const btnEl    = document.getElementById("splash-start-btn");
-  if (!splashEl || !btnEl) return;
+  // Splash eliminado: el cliente entra directo al chat.
+  // Mantenemos toco_splash=true por compatibilidad con la columna de tracking
+  // (lo seteamos en el INSERT inicial de _crearSesionTracking, no aquí).
+}
 
-  btnEl.addEventListener("click", () => {
-    _actualizarSesion({ toco_splash: true });
-    splashEl.classList.add("splash-fadeout");
-    setTimeout(() => {
-      splashEl.style.display = "none";
-    }, 650);
-  });
+/**
+ * Listener de scroll para encoger/expandir el header según el scroll del
+ * body. El chat scrollea a nivel window (no en un contenedor), por eso
+ * usamos window.scrollY en lugar de scrollTop sobre un elemento.
+ */
+function _conectarHeader() {
+  const header = document.querySelector(".pdli-header");
+  if (!header) return;
+  const onScroll = () => {
+    if (window.scrollY > 40) {
+      header.classList.add("shrunk");
+    } else {
+      header.classList.remove("shrunk");
+    }
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
 }
 
 async function _enviarMensaje() {
@@ -250,9 +262,12 @@ async function _enviarMensaje() {
   // Procesar la respuesta PRIMERO (antes de calcular el delay)
   const respuesta = await _procesarTexto(texto);
 
-  // Calcular delay natural: más largo el texto, más tarda en "escribirlo"
+  // Delay aleatorio uniforme en [TYPING_BASE, TYPING_MAX] — estética WhatsApp
+  // (típicamente 700-1200ms). Se mantiene `longitud` por si en el futuro se
+  // re-introduce un factor por carácter.
+  // eslint-disable-next-line no-unused-vars
   const longitud = respuesta ? respuesta.length : 0;
-  const delay = Math.min(TYPING_BASE + longitud * TYPING_POR_CHAR, TYPING_MAX);
+  const delay = TYPING_BASE + Math.random() * (TYPING_MAX - TYPING_BASE);
 
   // Esperar ese tiempo con el typing visible, luego mostrar respuesta
   setTimeout(() => {
@@ -2069,6 +2084,7 @@ async function _crearSesionTracking() {
       origen:                state.origen,
       es_prueba:             state.prueba,
       dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
+      toco_splash:           true,  // splash eliminado v24 — entrada directa al chat
     });
 
     if (res?.id) {

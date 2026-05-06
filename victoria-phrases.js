@@ -110,11 +110,15 @@ export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nue
 
 export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `El adiestrador se desplaza a tu domicilio — donde {perro} vive su día a día, que es donde mejor se observa su comportamiento real. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
+
+Si quieres conocernos más o ver nuestra forma de trabajar, puedes echar un vistazo a nuestras redes y la web.`;
 
 export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — solo necesitas un móvil o un ordenador con cámara, y que {perro} esté contigo en casa para que el adiestrador pueda verlo durante la clase. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.`;
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
+
+Si quieres conocernos más o ver nuestra forma de trabajar, puedes echar un vistazo a nuestras redes y la web.`;
 
 export const FRASE_CIERRE_METODOLOGIA = `¿Quieres que te pase la información de precios y los horarios disponibles?`;
 

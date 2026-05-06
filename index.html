@@ -31,48 +31,32 @@
 </head>
 <body>
 
-  <!-- ── SPLASH DE BIENVENIDA ── -->
-  <div id="splash" class="splash-wrap">
-    <div class="splash-bg splash-bg-active" style="background-image: url('https://i.ibb.co/v4rVVPsR/IMG-20200802-WA0004-2.jpg');"></div>
-    <div class="splash-overlay-dark"></div>
-    <div class="splash-overlay-brand"></div>
-
-    <div class="splash-header">
-      <div class="splash-logo-row">
-        <img class="splash-logo-img" src="https://i.ibb.co/FkCVpG1j/icon.png" alt="Perros de la Isla">
-        <span class="splash-brand-name">Perros de la Isla</span>
-      </div>
-      <span class="splash-brand-tagline">Adiestramiento canino · Mallorca</span>
+  <!-- ── HEADER STICKY ── -->
+  <header class="pdli-header">
+    <div class="pdli-header-logo">
+      <img src="https://i.ibb.co/FkCVpG1j/icon.png" alt="Perros de la Isla">
     </div>
-
-    <div class="splash-carlos-tag">
-      <p>
-        Carlos Acevedo<br>
-        <span>Instructor canino profesional</span>
-      </p>
+    <div class="pdli-header-info">
+      <div class="pdli-header-title">Perros de la Isla</div>
+      <div class="pdli-header-subtitle">Adiestramiento canino profesional</div>
     </div>
-
-    <div class="splash-footer">
-      <div class="splash-accent-line"></div>
-      <p class="splash-lema">Tu perro<br>merece ser<br>feliz, hoy</p>
-      <button id="splash-start-btn" class="splash-cta">
-        Hablar con Victoria
-        <span class="splash-cta-arrow">→</span>
-      </button>
-      <p class="splash-sub">Consulta en 2 minutos</p>
+    <div class="pdli-header-links">
+      <a href="https://instagram.com/perrosdelaisla" target="_blank" rel="noopener" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+          <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+          <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+        </svg>
+      </a>
+      <a href="https://perrosdelaisla.com" target="_blank" rel="noopener" aria-label="Web">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+        </svg>
+      </a>
     </div>
-  </div>
-
-  <!-- ── MINI-HEADER STICKY ── -->
-  <div class="chat-mini-header">
-    <img class="chat-mini-logo-img" src="https://i.ibb.co/FkCVpG1j/icon.png" alt="Perros de la Isla">
-    <div class="chat-mini-info">
-      <span class="chat-mini-name">Victoria</span>
-      <span class="chat-mini-status">
-        <span class="chat-mini-dot"></span> En línea · Coordinadora
-      </span>
-    </div>
-  </div>
+  </header>
 
   <!-- ── BARRA DE PROGRESO ── -->
   <div class="prog-bar">
@@ -120,7 +104,7 @@
 
   <!-- ── SCRIPTS ── -->
   <script type="module">
-    import { start } from './victoria.js?v=23';
+    import { start } from './victoria.js?v=24';
     start();
   </script>
 </body>
