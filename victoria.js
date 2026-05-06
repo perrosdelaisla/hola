@@ -87,6 +87,10 @@ function _estadoInicial() {
       esSonGotleu: false, necesitaAclaracion: true,
     },
 
+    // Zonas fuera de cobertura: cliente elige online | palma | rechaza tras
+    // que Victoria pregunte. null = todavía no se le preguntó.
+    modalidad_zona_fuera_elegida: null,
+
     mensajes_diagnostico: [],  // solo s4+s5 — alimentan el matcher
     prescan_mensaje_inicial: null,  // texto del primer mensaje si tenía contenido
 
@@ -439,6 +443,7 @@ async function _procesarTexto(texto) {
     s10: _procesarS10_Pago,
     s11: _procesarS11_Captura,
     s12: _procesarS12_Confirmacion,
+    s_zona_fuera: _procesarModalidadZonaFuera,
   };
 
   const procesador = procesadores[state.current_step];
@@ -625,6 +630,133 @@ async function _procesarS4_Problema(texto) {
   });
 
   return await _evaluarYResponder(texto);
+}
+
+/**
+ * Procesa la respuesta del cliente cuando Victoria le preguntó si prefiere
+ * trabajar online o desplazarse a un parque de Palma (zonas fuera del radio
+ * presencial habitual). Tres ramas posibles:
+ *   - "online"  → continúa con mensaje principal versión online
+ *   - "palma"   → confirmación bespoke + sigue como presencial
+ *   - "rechaza" → cierre amable con WhatsApp del negocio + input deshabilitado
+ * Si la respuesta es ambigua, repregunta de forma suave.
+ */
+async function _procesarModalidadZonaFuera(texto) {
+  const t = (texto || "").toLowerCase().trim();
+
+  const eligeOnline = [
+    "online", "on line", "videollamada", "video llamada",
+    "video", "por video", "desde casa", "videoconferencia",
+    "primera opcion", "primera opción", "la primera",
+    "opcion 1", "opción 1", "la 1",
+  ].some(p => t.includes(p));
+
+  const eligePalma = [
+    "palma", "voy", "ir", "me acerco", "me desplazo",
+    "presencial", "en persona", "en parque",
+    "segunda opcion", "segunda opción", "la segunda",
+    "opcion 2", "opción 2", "la 2",
+  ].some(p => t.includes(p));
+
+  // Detección de duda primero — NO es rechazo, debe caer al "repreguntar"
+  const expresaDuda = [
+    "no sé", "no se", "no estoy seguro", "no estoy segura",
+    "no entiendo", "no tengo claro", "no me decido",
+    "ninguna idea", "no sabría", "no sabria",
+  ].some(p => t.includes(p));
+
+  // Rechazo: solo frases claras de descarte (sin "no" suelto, evita
+  // falsos positivos como "no sé"). Si expresa duda, no es rechazo.
+  const rechaza = !expresaDuda && [
+    "no me interesa", "no gracias", "no, gracias",
+    "no me convence", "no quiero", "no me sirve",
+    "no es para mi", "no es para mí",
+    "ninguna", "ninguna de las dos", "ninguna de las opciones",
+    "paso", "lo dejo", "olvidalo", "olvídalo", "déjalo", "dejalo",
+    "mejor no", "no por ahora", "ahora no",
+  ].some(p => {
+    const regex = new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+    return regex.test(t);
+  });
+
+  // ── PALMA ──────────────────────────────────────────────────────────────
+  if (eligePalma && !eligeOnline) {
+    state.modalidad_zona_fuera_elegida = "palma";
+    state.zona.modalidad = "presencial";
+    state.modalidad_final = "presencial";
+    state.protocolo_ya_presentado = true;
+    state.current_step = "s6";
+    state.mostrar_ramificacion_tras_protocolo = true;
+    _actualizarSesion({
+      paso_actual:           "s6",
+      paso_maximo_alcanzado: "s6",
+      vio_mensaje_principal: true,
+      modalidad:             "presencial",
+    });
+    return obtenerFrase({
+      tipo: "apoyo",
+      subtipo: "zona_fuera_eligio_palma",
+      vars: { perro: state.perro?.nombre ?? null },
+    });
+  }
+
+  // ── ONLINE ─────────────────────────────────────────────────────────────
+  // Producimos directamente mensaje_principal_online + flags para que la
+  // ramificación aparezca, sin re-pasar por el matcher (el filtro de
+  // vocabulario canino rechazaría un texto tipo "online" como off-topic).
+  if (eligeOnline && !eligePalma) {
+    state.modalidad_zona_fuera_elegida = "online";
+    state.modalidad_final = "online";
+    state.protocolo_ya_presentado = true;
+    state.current_step = "s6";
+    state.mostrar_ramificacion_tras_protocolo = true;
+    _actualizarSesion({
+      paso_actual:           "s6",
+      paso_maximo_alcanzado: "s6",
+      vio_mensaje_principal: true,
+      modalidad:             "online",
+    });
+    return obtenerFrase({
+      tipo: "mensaje_principal",
+      vars: { perro: state.perro?.nombre ?? null, modalidad: "online" },
+    });
+  }
+
+  // ── RECHAZO ────────────────────────────────────────────────────────────
+  if (rechaza) {
+    state.modalidad_zona_fuera_elegida = "rechaza";
+    _deshabilitarInput();
+    return obtenerFrase({
+      tipo: "apoyo",
+      subtipo: "zona_fuera_rechaza",
+      vars: { perro: state.perro?.nombre ?? null },
+    });
+  }
+
+  // ── AMBIGUO ────────────────────────────────────────────────────────────
+  return "¿Prefieres online o desplazarte a Palma? Si no te encaja ninguna, también está bien.";
+}
+
+/**
+ * Deshabilita el input y el botón de enviar sin inyectar la tarjeta de
+ * cierre completa (que tiene el lema y los botones de redes). Pensado para
+ * cierres conversacionales más sobrios — p.ej. cuando el cliente rechaza
+ * ambas opciones de zona fuera.
+ */
+function _deshabilitarInput() {
+  if (_inputEl) {
+    _inputEl.disabled = true;
+    _inputEl.placeholder = "Conversación finalizada";
+    _inputEl.blur();
+  }
+  if (_sendEl) {
+    _sendEl.disabled = true;
+  }
+  const inputWrap = document.getElementById("victoria-input-wrap");
+  if (inputWrap) {
+    inputWrap.style.opacity = "0.4";
+    inputWrap.style.pointerEvents = "none";
+  }
 }
 
 async function _procesarGravedadMordida(texto) {
@@ -1446,7 +1578,12 @@ async function _evaluarYResponder(textoActual) {
     case "preguntar": {
       const frase = obtenerFrase(decision.frase_params);
       if (!frase) return _fallbackHumano("frase null en preguntar");
-      state.current_step = "s5";
+      // Routear al procesador correcto según qué se está preguntando
+      if (decision.pending_next === "modalidad_zona_fuera") {
+        state.current_step = "s_zona_fuera";
+      } else {
+        state.current_step = "s5";  // mordida (legacy: única pregunta hasta v25)
+      }
       return frase;
     }
 
@@ -1472,6 +1609,7 @@ function _construirContexto(textoActual) {
     lateral_detectado:   state.lateral_detectado,
     gravedad_mordida:    state.gravedad_mordida,
     cuadro_pendiente_mordida: state.cuadro_pendiente_mordida,
+    modalidad_zona_fuera_elegida: state.modalidad_zona_fuera_elegida,
 
     // Estado del fallback IA — usado por la regla de continuidad en
     // decidirRespuesta. Aquí se pasan en plano para que el matcher quede

@@ -138,7 +138,7 @@ function _inputTieneVocabularioDeCuadro(textoNorm) {
  * @returns {Object} Decision
  */
 export function decidirRespuesta(contexto) {
-  const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida } = contexto;
+  const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida, modalidad_zona_fuera_elegida } = contexto;
   const textoNorm = normalizar(contexto.mensaje ?? "");
 
   // ── REGLA DE CONTINUIDAD IA ──────────────────────────────────────────────
@@ -295,6 +295,27 @@ export function decidirRespuesta(contexto) {
       pending_next: null,
       cuadro_ganador: null,
       log: _log(3, `zona fuera sin cobertura`),
+    });
+  }
+
+  // ── FILTRO 3.5: Zona "fuera" — preguntar online vs Palma ─────────────────
+  // Si la zona del cliente queda fuera del radio presencial habitual y todavía
+  // no le hemos preguntado qué prefiere, paramos el flujo aquí y le ofrecemos
+  // las dos opciones. Una vez elegido (modalidad_zona_fuera_elegida = "online"
+  // | "palma"), este filtro deja pasar y el flujo sigue normal con la
+  // modalidad correspondiente. El caso "rechaza" no vuelve a entrar al
+  // matcher (lo gestiona _procesarModalidadZonaFuera directamente).
+  if (zona?.modalidad === "fuera" && !modalidad_zona_fuera_elegida) {
+    return _decision({
+      accion: "preguntar",
+      frase_params: {
+        tipo: "apoyo",
+        subtipo: "zona_fuera_preguntar",
+        vars: { perro: perro?.nombre ?? null },
+      },
+      pending_next: "modalidad_zona_fuera",
+      cuadro_ganador: null,
+      log: _log(3, "zona fuera, preguntar online vs palma"),
     });
   }
 

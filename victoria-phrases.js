@@ -72,6 +72,12 @@ export const FRASES_APOYO = {
 
   filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 
+  zona_fuera_preguntar: `Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te puedo proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
+
+  zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado.`,
+
+  zona_fuera_rechaza: `Sin problema. Si más adelante tienes alguna duda o quieres hablar con una persona, puedes escribirnos al 622 922 173. Mucha suerte con {perro}.`,
+
   pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.`,
 
   pedir_edad: `¿Qué edad tiene tu perro? Con meses si aún es cachorro, o años si ya es adulto.`,
@@ -257,6 +263,12 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
         }
       } else {
         frase = FRASES_APOYO[subtipo] ?? null;
+      }
+      // Sustituir {perro} si la frase lo usa (zona_fuera_eligio_palma,
+      // zona_fuera_rechaza, etc.). Otras subtipos sin placeholder no se ven
+      // afectadas por el replace.
+      if (frase && frase.includes("{perro}")) {
+        frase = frase.replace(/\{perro\}/g, vars?.perro || "tu perro");
       }
       break;
 
