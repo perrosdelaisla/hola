@@ -76,6 +76,8 @@ export const FRASES_APOYO = {
 
   zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado.`,
 
+  zona_fuera_eligio_online: `Genial. Entonces lo trabajamos online por Google Meet — el adiestrador conoce a {perro} en su contexto desde casa y elige y aplica el protocolo más adecuado.`,
+
   zona_fuera_rechaza: `Sin problema. Si más adelante tienes alguna duda o quieres hablar con una persona, puedes escribirnos al 622 922 173. Mucha suerte con {perro}.`,
 
   pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.`,

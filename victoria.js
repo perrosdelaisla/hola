@@ -701,9 +701,10 @@ async function _procesarModalidadZonaFuera(texto) {
   }
 
   // ── ONLINE ─────────────────────────────────────────────────────────────
-  // Producimos directamente mensaje_principal_online + flags para que la
-  // ramificación aparezca, sin re-pasar por el matcher (el filtro de
-  // vocabulario canino rechazaría un texto tipo "online" como off-topic).
+  // Frase puente bespoke (igual que Palma) + flags para que la ramificación
+  // aparezca a continuación. NO pasamos por mensaje_principal porque su
+  // apertura ("Te escucho. Lo que describes…") suena descontextualizada
+  // dos turnos después de que el cliente describiera el caso.
   if (eligeOnline && !eligePalma) {
     state.modalidad_zona_fuera_elegida = "online";
     state.modalidad_final = "online";
@@ -717,8 +718,9 @@ async function _procesarModalidadZonaFuera(texto) {
       modalidad:             "online",
     });
     return obtenerFrase({
-      tipo: "mensaje_principal",
-      vars: { perro: state.perro?.nombre ?? null, modalidad: "online" },
+      tipo: "apoyo",
+      subtipo: "zona_fuera_eligio_online",
+      vars: { perro: state.perro?.nombre ?? null },
     });
   }
 
