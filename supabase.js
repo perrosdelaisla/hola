@@ -218,6 +218,25 @@ export async function cancelarCita(citaId) {
 }
 
 /**
+ * Cambia el estado de una cita a 'realizada'. Se usa cuando Charly
+ * marca desde el admin que ya dio la clase. No borra la fila — solo
+ * cambia el estado para distinguirla visualmente en el panel y en el
+ * feed iCalendar (✅ vs 🟡).
+ */
+export async function marcarCitaRealizada(citaId) {
+  await supa(`citas?id=eq.${citaId}`, 'PATCH', { estado: 'realizada' });
+}
+
+/**
+ * Borra una cita por completo (DELETE). Usado en el admin cuando
+ * Charly quiere quitar del calendario una cita ya realizada o
+ * cancelada que no necesita seguir viendo.
+ */
+export async function eliminarCita(citaId) {
+  await supa(`citas?id=eq.${citaId}`, 'DELETE');
+}
+
+/**
  * Dado un array de UUIDs de citas, devuelve un mapa
  * { [uuid]: nombreCliente } para que el admin pueda mostrar
  * nombres en lugar de UUIDs.

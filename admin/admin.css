@@ -328,6 +328,7 @@ body {
 }
 
 .btn-small.danger { color: var(--rojo); }
+.btn-small.success { color: var(--oliva); border-color: rgba(156, 182, 75, 0.35); }
 .btn-small:hover { background: rgba(255,255,255,0.04); }
 
 /* ─────────── INPUTS ─────────── */
@@ -532,6 +533,12 @@ label .input-admin { margin-top: 6px; }
   background: transparent;
   color: var(--t3);
   border: 0.5px solid var(--border);
+}
+
+.cita-estado.realizada {
+  background: rgba(156, 182, 75, 0.18);
+  color: var(--oliva);
+  border: 0.5px solid rgba(156, 182, 75, 0.4);
 }
 
 .cita-cliente {

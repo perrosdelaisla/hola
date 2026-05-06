@@ -14,6 +14,8 @@ import {
   obtenerCitasAdminConReportado,
   confirmarCita,
   cancelarCita,
+  marcarCitaRealizada,
+  eliminarCita,
   obtenerNombresCitasPorIds,
   obtenerSesionesParaStats,
 } from '../supabase.js';
@@ -327,19 +329,40 @@ async function cargarCitas() {
       return;
     }
 
-    citas.forEach(c => {
+    // Filtrar canceladas pasadas — no aportan valor en la lista
+    const hoyStr = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+    const citasVisibles = citas.filter(c => {
+      if (c.estado !== 'cancelada') return true;
+      return c.fecha >= hoyStr;
+    });
+
+    if (citasVisibles.length === 0) {
+      lista.innerHTML = '<li class="empty-state">No hay citas próximas</li>';
+      return;
+    }
+
+    // Emoji por estado — se prepende a la fecha para que Charly distinga de un vistazo
+    const emojiPorEstado = {
+      confirmada: '🟡',
+      realizada:  '✅',
+      cancelada:  '❌',
+    };
+
+    citasVisibles.forEach(c => {
       const li = document.createElement('li');
       li.className = 'cita-item';
 
       const horaTxt = (c.hora || '').substring(0, 5);
       const estadoClase = (c.estado || 'pendiente').toLowerCase();
+      const emoji = emojiPorEstado[estadoClase] ?? '';
 
       const top = document.createElement('div');
       top.className = 'cita-top';
 
       const fechaSpan = document.createElement('div');
       fechaSpan.className = 'cita-fecha';
-      fechaSpan.textContent = `${formatearFechaLarga(c.fecha)} · ${horaTxt}`;
+      const prefijo = emoji ? `${emoji} ` : '';
+      fechaSpan.textContent = `${prefijo}${formatearFechaLarga(c.fecha)} · ${horaTxt}`;
       top.appendChild(fechaSpan);
 
       const estadoSpan = document.createElement('span');
@@ -392,6 +415,17 @@ async function cargarCitas() {
       const actions = document.createElement('div');
       actions.className = 'cita-actions';
 
+      // Botones según estado y fecha relativa a hoy.
+      //   pendiente              → Confirmar + Cancelar (legacy, sin cambios)
+      //   confirmada futura      → Cancelar + Eliminar
+      //   confirmada hoy/pasada  → Cancelar (solo si hoy) + Eliminar + Marcar realizada
+      //   realizada              → solo Eliminar
+      //   cancelada futura       → solo Eliminar (las pasadas se filtran arriba)
+      const fechaCita = c.fecha;  // 'YYYY-MM-DD'
+      const esHoy   = fechaCita === hoyStr;
+      const esFutura = fechaCita > hoyStr;
+      const esPasada = fechaCita < hoyStr;
+
       if (estadoClase === 'pendiente') {
         const btnConfirmar = document.createElement('button');
         btnConfirmar.className = 'btn-small';
@@ -403,7 +437,9 @@ async function cargarCitas() {
         actions.appendChild(btnConfirmar);
       }
 
-      if (estadoClase !== 'cancelada') {
+      // Cancelar: solo cuando la cita aún tiene sentido cancelarse
+      // (pendiente o confirmada, hoy o futura, NO realizada/cancelada)
+      if ((estadoClase === 'pendiente' || estadoClase === 'confirmada') && (esHoy || esFutura)) {
         const btnCancelar = document.createElement('button');
         btnCancelar.className = 'btn-small danger';
         btnCancelar.textContent = '❌ Cancelar';
@@ -413,6 +449,32 @@ async function cargarCitas() {
           cargarCitas();
         });
         actions.appendChild(btnCancelar);
+      }
+
+      // Marcar realizada: solo en confirmadas de hoy o anteriores
+      if (estadoClase === 'confirmada' && (esHoy || esPasada)) {
+        const btnRealizada = document.createElement('button');
+        btnRealizada.className = 'btn-small success';
+        btnRealizada.textContent = '✓ Marcar realizada';
+        btnRealizada.addEventListener('click', async () => {
+          if (!confirm('¿Marcar como realizada?')) return;
+          await marcarCitaRealizada(c.id);
+          cargarCitas();
+        });
+        actions.appendChild(btnRealizada);
+      }
+
+      // Eliminar: en realizadas, canceladas (futuras) y confirmadas — borra la fila
+      if (estadoClase === 'realizada' || estadoClase === 'cancelada' || estadoClase === 'confirmada') {
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-small danger';
+        btnEliminar.textContent = '🗑 Eliminar';
+        btnEliminar.addEventListener('click', async () => {
+          if (!confirm('¿Eliminar esta cita por completo? No se puede deshacer.')) return;
+          await eliminarCita(c.id);
+          cargarCitas();
+        });
+        actions.appendChild(btnEliminar);
       }
 
       li.appendChild(actions);

@@ -1,7 +1,8 @@
 // supabase/functions/agenda-ics/index.ts
 //
 // Feed iCalendar (RFC 5545) público con la agenda de Charly:
-//   - citas (rango: hoy → hoy+90 días, excluyendo canceladas)
+//   - citas (rango: hoy → hoy+90 días, todos los estados con emoji distintivo:
+//     🟡 confirmada, ✅ realizada, ❌ cancelada futura)
 //   - bloqueos manuales (excluyendo los autogenerados con prefijo "Auto:")
 //
 // Pensado para que Charly suscriba la URL en Google Calendar y vea
@@ -190,13 +191,16 @@ Deno.serve(async (_req: Request) => {
     VTIMEZONE_MADRID,
   ];
 
-  // 1) Citas con cliente y perro embebidos
+  // 1) Citas con cliente y perro embebidos.
+  // Incluimos todos los estados — la fecha >= hoy ya filtra el pasado, así
+  // que las canceladas pasadas no aparecen. Las canceladas futuras sí, con
+  // ❌ en el SUMMARY para que Charly las vea tachadas en el calendario.
   try {
     const citasPath =
       `citas?select=id,fecha,hora,estado,modalidad,zona,sena_pagada,protocolo,` +
       `clientes(nombre,telefono,perros(nombre,edad,peso_kg,problematica))` +
       `&fecha=gte.${hoy}&fecha=lte.${limite}` +
-      `&estado=neq.cancelada&cliente_id=not.is.null` +
+      `&cliente_id=not.is.null` +
       `&order=fecha.asc,hora.asc`;
     const citas = (await pgrest(citasPath)) as Cita[];
 
@@ -208,7 +212,13 @@ Deno.serve(async (_req: Request) => {
       const dtstart = fmtLocalDateTime(c.fecha, c.hora);
       const dtend = fmtLocalPlusMin(c.fecha, c.hora, DURACION_MIN);
 
-      const summary = `🐾 ${cliente.nombre ?? "Cliente"} — ${perro?.nombre ?? "Perro"}`;
+      // Emoji por estado: 🟡 confirmada · ✅ realizada · ❌ cancelada
+      // (el resto — pendiente u otros — cae al genérico 🐾 legacy).
+      const emoji = c.estado === "realizada" ? "✅"
+                  : c.estado === "cancelada" ? "❌"
+                  : c.estado === "confirmada" ? "🟡"
+                  : "🐾";
+      const summary = `${emoji} ${cliente.nombre ?? "Cliente"} — ${perro?.nombre ?? "Perro"}`;
 
       const desc: string[] = [];
       if (cliente.telefono) desc.push(`Tel: ${cliente.telefono}`);
