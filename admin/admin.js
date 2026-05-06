@@ -16,6 +16,7 @@ import {
   cancelarCita,
   marcarCitaRealizada,
   eliminarCita,
+  crearCitaManual,
   obtenerNombresCitasPorIds,
   obtenerSesionesParaStats,
 } from '../supabase.js';
@@ -486,6 +487,130 @@ async function cargarCitas() {
   }
 }
 
+/* ── MODAL CITA MANUAL ── */
+
+// Pobla el <select> de horas con steps de 30 min entre 09:00 y 19:00
+function _llenarHorasCitaManual() {
+  const sel = $('cm-hora');
+  if (!sel || sel.options.length > 1) return; // ya poblado
+  for (let h = 9; h <= 19; h++) {
+    for (const m of ['00', '30']) {
+      if (h === 19 && m === '30') break;
+      const t = `${String(h).padStart(2, '0')}:${m}`;
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      sel.appendChild(opt);
+    }
+  }
+}
+
+function _resetCamposCitaManual() {
+  ['cm-nombre','cm-telefono','cm-perro','cm-raza','cm-edad','cm-peso','cm-fecha','cm-zona','cm-notas']
+    .forEach(id => { const el = $(id); if (el) el.value = ''; });
+  $('cm-ppp').checked = false;
+  $('cm-modalidad').value = 'presencial';
+  $('cm-hora').value = '';
+  const errEl = $('cm-error');
+  errEl.textContent = '';
+  errEl.classList.add('hidden');
+}
+
+function _mostrarErrorCitaManual(msg) {
+  const el = $('cm-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+function configurarModalCitaManual() {
+  _llenarHorasCitaManual();
+
+  $('btn-abrir-cita-manual').addEventListener('click', () => {
+    _resetCamposCitaManual();
+    $('modal-cita-manual').classList.remove('hidden');
+  });
+
+  $('cm-cancel').addEventListener('click', () => {
+    $('modal-cita-manual').classList.add('hidden');
+  });
+
+  $('cm-save').addEventListener('click', async () => {
+    const nombre   = $('cm-nombre').value.trim();
+    const telefono = $('cm-telefono').value.trim();
+    const perroNom = $('cm-perro').value.trim();
+    const fecha    = $('cm-fecha').value;
+    const hora     = $('cm-hora').value;
+
+    // Validación de obligatorios
+    if (!nombre || !telefono || !perroNom || !fecha || !hora) {
+      _mostrarErrorCitaManual('Completa nombre, teléfono, perro, fecha y hora.');
+      return;
+    }
+    // Teléfono: al menos 7 dígitos (acepta cualquier formato visual)
+    const digitos = telefono.replace(/\D/g, '');
+    if (digitos.length < 7) {
+      _mostrarErrorCitaManual('El teléfono necesita al menos 7 dígitos.');
+      return;
+    }
+
+    const raza      = $('cm-raza').value.trim();
+    const edadStr   = $('cm-edad').value;
+    const pesoStr   = $('cm-peso').value;
+    const esPpp     = $('cm-ppp').checked;
+    const modalidad = $('cm-modalidad').value;
+    const zona      = $('cm-zona').value.trim();
+    const notas     = $('cm-notas').value.trim();
+
+    // "presencial-palma" se guarda como modalidad="presencial" para
+    // mantener las stats coherentes con Victoria, y se anota en
+    // notas el marcador [Parque céntrico de Palma] para que Charly
+    // lo distinga de un presencial normal en zona del cliente.
+    let modalidadGuardar = modalidad;
+    let notasGuardar = notas;
+    if (modalidad === 'presencial-palma') {
+      modalidadGuardar = 'presencial';
+      const marcador = '[Parque céntrico de Palma]';
+      notasGuardar = notasGuardar ? `${marcador} ${notasGuardar}` : marcador;
+    }
+
+    const datos = {
+      cliente: { nombre, telefono },
+      perro: {
+        nombre:       perroNom,
+        raza:         raza || null,
+        edad_meses:   edadStr ? parseInt(edadStr, 10) : null,
+        peso_kg:      pesoStr ? parseFloat(pesoStr) : null,
+        es_ppp:       esPpp,
+        problematica: notas || null,
+      },
+      cita: {
+        fecha,
+        hora,
+        modalidad: modalidadGuardar,
+        zona:      zona || null,
+        notas:     notasGuardar || null,
+      },
+    };
+
+    const saveBtn = $('cm-save');
+    saveBtn.disabled = true;
+    const labelOriginal = saveBtn.textContent;
+    saveBtn.textContent = 'Guardando…';
+
+    const res = await crearCitaManual(datos);
+
+    saveBtn.disabled = false;
+    saveBtn.textContent = labelOriginal;
+
+    if (res.ok) {
+      $('modal-cita-manual').classList.add('hidden');
+      cargarCitas();
+    } else {
+      _mostrarErrorCitaManual(`No se pudo guardar: ${res.error}`);
+    }
+  });
+}
+
 /* ═══════════════════════════════════════════
    ESTADÍSTICAS
    ═══════════════════════════════════════════ */
@@ -851,6 +976,7 @@ function init() {
   configurarTabs();
   configurarModalAddHora();
   configurarFormBloqueo();
+  configurarModalCitaManual();
 
   checkLogin();
 }

@@ -237,6 +237,107 @@ export async function eliminarCita(citaId) {
 }
 
 /**
+ * Crea cliente + perro + cita + bloqueo en una sola operación
+ * coordinada. Pensado para el botón "+ Cita manual" del admin
+ * (caso Vicky cerrando clases por fuera del flujo de Victoria).
+ *
+ * Recibe:
+ *   datos = {
+ *     cliente: { nombre, telefono },
+ *     perro:   { nombre, raza, edad_meses, peso_kg, es_ppp, problematica },
+ *     cita:    { fecha, hora, modalidad, zona, notas }
+ *   }
+ *
+ * Devuelve { ok: true, clienteId, perroId, citaId } o
+ *          { ok: false, error: string }.
+ *
+ * Si falla en cliente/perro/cita intenta rollback de lo creado hasta
+ * ese punto. Si falla solo el bloqueo, la cita queda igual (no se
+ * rollbackea — el bloqueo se puede recrear a mano si hace falta).
+ */
+export async function crearCitaManual(datos) {
+  const { cliente, perro, cita } = datos || {};
+  if (!cliente?.nombre || !cliente?.telefono) {
+    return { ok: false, error: 'Faltan datos de cliente' };
+  }
+  if (!perro?.nombre) {
+    return { ok: false, error: 'Falta nombre del perro' };
+  }
+  if (!cita?.fecha || !cita?.hora) {
+    return { ok: false, error: 'Falta fecha u hora' };
+  }
+
+  const horaCompleta = cita.hora.length === 5 ? `${cita.hora}:00` : cita.hora;
+
+  let clienteId = null;
+  let perroId = null;
+  let citaId = null;
+
+  try {
+    // 1) Cliente
+    const clienteBody = {
+      nombre:   cliente.nombre,
+      telefono: cliente.telefono,
+      estado:   'consulta',
+    };
+    if (cita.zona) clienteBody.zona = cita.zona;
+    const clienteResp = await supa('clientes', 'POST', clienteBody);
+    clienteId = clienteResp?.[0]?.id;
+    if (!clienteId) throw new Error('No se pudo crear el cliente');
+
+    // 2) Perro
+    const perroBody = { cliente_id: clienteId, nombre: perro.nombre };
+    if (perro.raza)                 perroBody.raza = perro.raza;
+    if (perro.edad_meses != null)   perroBody.edad_meses = perro.edad_meses;
+    if (perro.peso_kg != null)      perroBody.peso_kg = perro.peso_kg;
+    if (perro.es_ppp)               perroBody.es_ppp = true;
+    if (perro.problematica)         perroBody.problematica = perro.problematica;
+    const perroResp = await supa('perros', 'POST', perroBody);
+    perroId = perroResp?.[0]?.id;
+    if (!perroId) throw new Error('No se pudo crear el perro');
+
+    // 3) Cita
+    const citaBody = {
+      cliente_id: clienteId,
+      fecha:      cita.fecha,
+      hora:       horaCompleta,
+      estado:     'confirmada',
+      confirmada: true,
+    };
+    if (cita.modalidad) citaBody.modalidad = cita.modalidad;
+    if (cita.zona)      citaBody.zona = cita.zona;
+    if (cita.notas)     citaBody.notas = cita.notas;
+    const citaResp = await supa('citas', 'POST', citaBody);
+    citaId = citaResp?.[0]?.id;
+    if (!citaId) throw new Error('No se pudo crear la cita');
+
+    // 4) Bloqueo — formato "Auto: cita {uuid}" para que el admin lo
+    // resuelva a "Auto: cita de {nombre}" automáticamente.
+    try {
+      await supa('bloqueos', 'POST', {
+        fecha:  cita.fecha,
+        hora:   horaCompleta,
+        motivo: `Auto: cita ${citaId}`,
+      });
+    } catch (bloqErr) {
+      console.warn('Cita creada pero falló crear bloqueo:', bloqErr);
+    }
+
+    return { ok: true, clienteId, perroId, citaId };
+  } catch (err) {
+    console.error('Error en crearCitaManual:', err);
+    // Rollback en orden inverso de lo que sí se creó
+    try { if (citaId)    await supa(`citas?id=eq.${citaId}`,       'DELETE'); }
+    catch (e) { console.warn('rollback cita falló:', e); }
+    try { if (perroId)   await supa(`perros?id=eq.${perroId}`,     'DELETE'); }
+    catch (e) { console.warn('rollback perro falló:', e); }
+    try { if (clienteId) await supa(`clientes?id=eq.${clienteId}`, 'DELETE'); }
+    catch (e) { console.warn('rollback cliente falló:', e); }
+    return { ok: false, error: err.message };
+  }
+}
+
+/**
  * Dado un array de UUIDs de citas, devuelve un mapa
  * { [uuid]: nombreCliente } para que el admin pueda mostrar
  * nombres en lugar de UUIDs.

@@ -114,6 +114,7 @@
         <div class="section-header">
           <h2>Próximas citas</h2>
           <p class="section-desc">Confirma o cancela. Incluye el texto de lo que el cliente reportó.</p>
+          <button id="btn-abrir-cita-manual" class="btn-primary success cita-manual-trigger">+ Cita manual</button>
         </div>
         <ul id="citas-list" class="citas-list">
           <!-- Lista generada por JS -->
@@ -219,6 +220,79 @@
       <div class="modal-actions">
         <button id="modal-cancel" class="btn-secondary">Cancelar</button>
         <button id="modal-save" class="btn-primary">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal cita manual (Vicky cierra por fuera de Victoria) -->
+  <div id="modal-cita-manual" class="modal hidden">
+    <div class="modal-box modal-box-lg">
+      <h3>Nueva cita manual</h3>
+
+      <div class="cm-section">
+        <h4>Cliente</h4>
+        <label>Nombre completo
+          <input type="text" id="cm-nombre" class="input-admin" autocomplete="off">
+        </label>
+        <label>Teléfono
+          <input type="tel" id="cm-telefono" class="input-admin" autocomplete="off" inputmode="tel">
+        </label>
+      </div>
+
+      <div class="cm-section">
+        <h4>Perro</h4>
+        <label>Nombre
+          <input type="text" id="cm-perro" class="input-admin" autocomplete="off">
+        </label>
+        <label>Raza
+          <input type="text" id="cm-raza" class="input-admin" autocomplete="off" placeholder="Mestizo, labrador, etc.">
+        </label>
+        <div class="cm-row">
+          <label>Edad (meses)
+            <input type="number" id="cm-edad" class="input-admin" min="0" step="1" inputmode="numeric">
+          </label>
+          <label>Peso (kg)
+            <input type="number" id="cm-peso" class="input-admin" min="0" step="0.1" inputmode="decimal">
+          </label>
+        </div>
+        <label class="cm-check">
+          <input type="checkbox" id="cm-ppp">
+          <span>Raza PPP</span>
+        </label>
+      </div>
+
+      <div class="cm-section">
+        <h4>Cita</h4>
+        <div class="cm-row">
+          <label>Fecha
+            <input type="date" id="cm-fecha" class="input-admin">
+          </label>
+          <label>Hora
+            <select id="cm-hora" class="input-admin">
+              <option value="">—</option>
+            </select>
+          </label>
+        </div>
+        <label>Modalidad
+          <select id="cm-modalidad" class="input-admin">
+            <option value="presencial">Presencial (zona del cliente)</option>
+            <option value="presencial-palma">Presencial en parque de Palma</option>
+            <option value="online">Online (Google Meet)</option>
+          </select>
+        </label>
+        <label>Zona
+          <input type="text" id="cm-zona" class="input-admin" autocomplete="off" placeholder="Palma, Inca, Sóller…">
+        </label>
+        <label>Notas / problemática
+          <textarea id="cm-notas" class="input-admin" rows="3" placeholder="Lo que cuenta el cliente sobre el perro"></textarea>
+        </label>
+      </div>
+
+      <p id="cm-error" class="cm-error hidden"></p>
+
+      <div class="modal-actions">
+        <button id="cm-cancel" class="btn-secondary">Cancelar</button>
+        <button id="cm-save" class="btn-primary success">Guardar cita</button>
       </div>
     </div>
   </div>

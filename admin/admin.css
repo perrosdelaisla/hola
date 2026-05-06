@@ -299,6 +299,11 @@ body {
 .btn-primary:hover { opacity: 0.92; }
 .btn-primary:active { transform: scale(0.98); }
 
+.btn-primary.success {
+  background: var(--oliva);
+  color: #1a1a1a;
+}
+
 .btn-secondary {
   padding: 12px 20px;
   background: transparent;
@@ -612,6 +617,14 @@ label .input-admin { margin-top: 6px; }
   width: 100%;
 }
 
+/* Modal grande — usado por "Nueva cita manual" (formulario más largo).
+   Scrollea internamente si la pantalla es chica. */
+.modal-box.modal-box-lg {
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .modal-box h3 {
   font-family: var(--fn-head);
   font-size: 16px;
@@ -624,6 +637,95 @@ label .input-admin { margin-top: 6px; }
   display: flex;
   gap: 10px;
   margin-top: 20px;
+}
+
+/* ─────────── MODAL CITA MANUAL ─────────── */
+
+.cita-manual-trigger {
+  margin-top: 12px;
+  padding: 10px 16px;
+  font-size: 11px;
+}
+
+.cm-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--border);
+}
+
+.cm-section:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.cm-section h4 {
+  font-family: var(--fn-head);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--t3);
+  margin: 0 0 10px;
+}
+
+.cm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.cm-check {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  cursor: pointer;
+  color: var(--t1);
+  font-size: 13px;
+}
+
+.cm-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--oliva);
+  cursor: pointer;
+}
+
+.cm-check span {
+  user-select: none;
+}
+
+.cm-error {
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: rgba(197, 48, 48, 0.12);
+  border: 0.5px solid rgba(197, 48, 48, 0.4);
+  border-radius: var(--r8);
+  color: #ff8a8a;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+/* Inputs cómodos al toque (Vicky/Charly los usan desde móvil) */
+.modal-box-lg .input-admin {
+  min-height: 44px;
+}
+
+.modal-box-lg textarea.input-admin {
+  min-height: 72px;
+  resize: vertical;
+  font-family: var(--fn);
+  line-height: 1.45;
+}
+
+@media (max-width: 480px) {
+  .modal-box.modal-box-lg {
+    max-width: 95vw;
+    padding: 20px 18px;
+  }
+  .cm-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ─────────── ESTADOS VACÍOS / CARGA ─────────── */
