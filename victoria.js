@@ -1269,7 +1269,13 @@ function _procesarS9_DatosCliente(texto) {
   const telefono = _extraerTelefono(texto);
   if (telefono) state.cliente.telefono = telefono;
 
-  const nombreCandidato = texto.replace(/\d[\d\s]{8,}/g, "").trim();
+  // Limpiar el texto del/los teléfonos antes de quedarnos con el nombre.
+  // Mismo set de patrones que _extraerTelefono (intl + ES + genérico).
+  const nombreCandidato = texto
+    .replace(/\+\d[\d\s.\-()]{7,18}/g, "")                               // intl con +
+    .replace(/(?<!\d)[6789]\d{2}[\s.\-]?\d{3}[\s.\-]?\d{3}(?!\d)/g, "")  // ES móvil/fijo
+    .replace(/\d[\d\s.\-()]{8,18}/g, "")                                  // genérico
+    .trim();
   if (nombreCandidato.length > 2) state.cliente.nombre = nombreCandidato;
 
   if (!state.cliente.nombre) return "¿Cuál es tu nombre completo?";
@@ -1903,8 +1909,55 @@ function _extraerRaza(texto) {
 }
 
 function _extraerTelefono(texto) {
-  const tel = texto.match(/(\+34\s?)?[6789]\d{8}/);
-  return tel ? tel[0].replace(/\s/g, "") : null;
+  // Estrategia: detectar SECUENCIAS LARGAS de dígitos que claramente son
+  // teléfonos. Aceptamos cualquier país (Mallorca tiene mucho cliente
+  // extranjero: alemanes, ingleses, franceses, italianos). El antifraude
+  // real lo pone Bizum en el flujo de pago — si el número es falso, el
+  // cliente no puede pagar la seña de 45€ y se autorregula.
+  //
+  // Acepta:
+  //   - 612345678          (ES sin prefijo)
+  //   - +34 612 345 678    (ES con prefijo)
+  //   - +44 7700 900123    (UK)
+  //   - +49 151 12345678   (DE)
+  //   - +33 6 12 34 56 78  (FR)
+  //   - 4477009 00123      (raro pero válido — fallback genérico)
+  //
+  // Rechaza:
+  //   - "tengo 5 años"     (1 dígito)
+  //   - "07001"            (CP, 5 dígitos)
+  //   - "65 kilos"         (2 dígitos)
+
+  // 1) Internacional con + adelante: + seguido de 8 a 15 dígitos,
+  //    permitiendo separadores espacios, guiones, puntos, paréntesis.
+  const reIntl = /\+\d[\d\s.\-()]{7,18}/;
+
+  // 2) ES sin prefijo: 9 dígitos contiguos comenzando por 6/7/8/9
+  //    (móvil 6/7, fijo 8/9), con separadores opcionales.
+  const reES = /(?<!\d)[6789]\d{2}[\s.\-]?\d{3}[\s.\-]?\d{3}(?!\d)/;
+
+  // 3) Fallback genérico: cualquier secuencia con separadores
+  //    que tenga al menos ~9 caracteres (≈ 8 dígitos reales).
+  //    Cubre extranjeros que copian-pegan números formateados raro
+  //    sin '+'. Se evalúa ÚLTIMO porque privilegia matches con + o ES.
+  const reFallback = /\d[\d\s.\-()]{8,18}/;
+
+  const match =
+    texto.match(reIntl) ||
+    texto.match(reES) ||
+    texto.match(reFallback);
+
+  if (!match) return null;
+
+  // Normalizar: dejar solo dígitos y conservar el + inicial si lo había.
+  let limpio = match[0].trim();
+  const tienePlus = limpio.startsWith("+");
+  limpio = limpio.replace(/[^\d]/g, "");
+
+  // Validar longitud final según ITU-T E.164 (mín 8, máx 15).
+  if (limpio.length < 8 || limpio.length > 15) return null;
+
+  return tienePlus ? `+${limpio}` : limpio;
 }
 
 function _extraerEmail(texto) {
