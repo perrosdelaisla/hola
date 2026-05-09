@@ -1284,7 +1284,7 @@ function _procesarS9_DatosCliente(texto) {
   }
 
   if (state.modalidad_final === "online" && !state.cliente.email) {
-    return "Como la sesión es por Google Meet, necesito también tu email " +
+    return "Como la clase es por Google Meet, necesito también tu email " +
       "para enviarte el enlace de la videollamada.";
   }
   const email = _extraerEmail(texto);
@@ -1347,7 +1347,7 @@ async function _procesarS12_Confirmacion(_texto) {
       ? "online por Google Meet"
       : "en tu domicilio";
 
-    return `¡Todo confirmado! 🐾 El equipo de Perros de la Isla se pondrá en contacto contigo para preparar la primera sesión. ` +
+    return `¡Todo confirmado! 🐾 El equipo de Perros de la Isla se pondrá en contacto contigo para preparar la primera clase. ` +
       `Quedamos el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
       `Si necesitas cambiar algo, escríbenos directamente al 622 922 173. ` +
       `¡Mucho ánimo con ${perro}!`;
@@ -1463,13 +1463,13 @@ function _mensajePrecio() {
   if (state.modalidad_final === "online") {
     return "Antes de seguir te cuento los detalles prácticos: el valor de la clase online es de 75€. " +
       "También tenemos un pack de 4 clases por 240€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
-      "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera sesión, no hace falta elegir ahora. " +
+      "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera clase, no hace falta elegir ahora. " +
       "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
       "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
   }
   return "Antes de seguir te cuento los detalles prácticos: el valor de la clase presencial es de 90€. " +
     "También tenemos un pack de 4 clases por 300€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
-    "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera sesión, no hace falta elegir ahora. " +
+    "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera clase, no hace falta elegir ahora. " +
     "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
     "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
 }
@@ -1756,7 +1756,7 @@ async function _notificarCarlos() {
     "",
     "Cómo trabajamos:",
     "",
-    "La clase dura 1 hora y puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos, no cerrar la sesión a toque de reloj.",
+    "La clase dura 1 hora y puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos, no cerrar la clase a toque de reloj.",
     "",
     "Entre clases tienes consultas por WhatsApp con el adiestrador. Te enviamos videos de referencia para que tengas claro cómo practicar, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.",
     "",
