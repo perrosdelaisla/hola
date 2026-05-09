@@ -32,74 +32,34 @@ async function supa(path, method = 'GET', body = null) {
 export async function obtenerSlotsDisponibles() {
   const hoy = new Date();
   const desde = new Date(hoy);
-  desde.setDate(hoy.getDate() + 1);
   const hasta = new Date(hoy);
   hasta.setDate(hoy.getDate() + 25);
 
-  const slots = await supa('slots?activo=eq.true&order=dia_semana,hora');
-
   const desdeStr = desde.toISOString().split('T')[0];
   const hastaStr = hasta.toISOString().split('T')[0];
-  const bloqueos = await supa(
-    `bloqueos?fecha=gte.${desdeStr}&fecha=lte.${hastaStr}&select=fecha,hora`
-  );
 
-  const diasBloqueadosCompletos = new Set(
-    bloqueos.filter(b => b.hora === null).map(b => b.fecha)
-  );
-  const slotsBloqueados = new Set(
-    bloqueos.filter(b => b.hora !== null).map(b => `${b.fecha}_${b.hora}`)
-  );
-
-  const citas = await supa(
-    `citas?fecha=gte.${desdeStr}&fecha=lte.${hastaStr}&estado=neq.cancelada&select=fecha,hora`
-  );
-
-  const citasPorDia = {};
-  citas.forEach(c => {
-    citasPorDia[c.fecha] = (citasPorDia[c.fecha] || 0) + 1;
-  });
-
-  const citasPorSlot = {};
-  citas.forEach(c => {
-    const key = `${c.fecha}_${c.hora}`;
-    citasPorSlot[key] = (citasPorSlot[key] || 0) + 1;
-  });
-
-  const disponibles = [];
-  const cursor = new Date(desde);
-
-  while (cursor <= hasta) {
-    const diaSemana = cursor.getDay();
-    const fechaStr = cursor.toISOString().split('T')[0];
-
-    if (!diasBloqueadosCompletos.has(fechaStr)) {
-      const maxCitas = diaSemana === 6 ? 1 : 2;
-      const citasHoy = citasPorDia[fechaStr] || 0;
-
-      if (citasHoy < maxCitas) {
-        const slotsHoy = slots.filter(s => s.dia_semana === diaSemana);
-
-        slotsHoy.forEach(slot => {
-          const slotKey = `${fechaStr}_${slot.hora}`;
-          const citasEnSlot = citasPorSlot[slotKey] || 0;
-
-          if (citasEnSlot === 0 && !slotsBloqueados.has(slotKey)) {
-            disponibles.push({
-              fecha: fechaStr,
-              hora: slot.hora.substring(0, 5),
-              dia_semana: diaSemana,
-              label: formatearFecha(cursor),
-            });
-          }
-        });
-      }
+  // Llamada a la RPC: la antelación de 3 días la aplica la propia RPC
+  const slots = await supa(
+    `rpc/get_available_slots`,
+    'POST',
+    {
+      p_desde: desdeStr,
+      p_hasta: hastaStr,
+      p_min_dias_antelacion: 3
     }
+  );
 
-    cursor.setDate(cursor.getDate() + 1);
-  }
-
-  return disponibles;
+  // La RPC devuelve: { fecha, hora, dia_semana }
+  // Transformamos al formato que espera agenda.js: { fecha, hora, dia_semana, label }
+  return (slots || []).map(s => {
+    const fechaObj = new Date(s.fecha + 'T00:00:00');
+    return {
+      fecha: s.fecha,
+      hora: typeof s.hora === 'string' ? s.hora.substring(0, 5) : s.hora,
+      dia_semana: s.dia_semana,
+      label: formatearFecha(fechaObj),
+    };
+  });
 }
 
 function formatearFecha(fecha) {

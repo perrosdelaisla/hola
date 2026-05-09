@@ -34,28 +34,16 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
     contenedor.innerHTML = `
       <div class="warn">
         No pude cargar los horarios en este momento.<br>
-        Escríbenos al <a href="https://wa.me/34653591301">653 591 301</a> y te buscamos hueco.
+        Escríbenos al <a href="https://wa.me/34622922173">622 922 173</a> y te buscamos hueco.
       </div>`;
     return;
   }
-
-  // Fix C — Filtrar slots: primer día visible a +5 días del actual
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const fechaMinima = new Date(hoy);
-  fechaMinima.setDate(fechaMinima.getDate() + 5);
-
-  slots = slots.filter((s) => {
-    // s.fecha tiene formato "YYYY-MM-DD"
-    const fechaSlot = new Date(s.fecha + "T00:00:00");
-    return fechaSlot >= fechaMinima;
-  });
 
   if (!slots || slots.length === 0) {
     contenedor.innerHTML = `
       <div class="warn">
         No hay huecos disponibles en los próximos días.<br>
-        Escríbenos al <a href="https://wa.me/34653591301">653 591 301</a> y te buscamos hueco.
+        Escríbenos al <a href="https://wa.me/34622922173">622 922 173</a> y te buscamos hueco.
       </div>`;
     return;
   }
