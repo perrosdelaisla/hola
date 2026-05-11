@@ -49,7 +49,7 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
         <p class="pay-number">653 591 301</p>
         <p class="pay-concepto">Concepto: <em>Cita ${datosCita.nombre ?? ""}</em></p>
         <label class="upload-label" for="input-captura-bizum">
-          <span class="upload-label-text">📎 Toca aquí para subir la captura del Bizum</span>
+          <span class="upload-label-text">📷 Adjuntar foto del Bizum</span>
           <input type="file" id="input-captura-bizum"
             accept="image/*"
             class="upload-input" />
@@ -64,7 +64,7 @@ export function renderPago(contenedor, datosCita, onPagoConfirmado, onVolver) {
         <p class="pay-titular">Titular: Carlos Antonio Acevedo</p>
         <p class="pay-concepto">Concepto: <em>Cita ${datosCita.nombre ?? ""}</em></p>
         <label class="upload-label" for="input-captura-transf">
-          <span class="upload-label-text">📎 Toca aquí para subir el justificante</span>
+          <span class="upload-label-text">📷 Adjuntar justificante</span>
           <input type="file" id="input-captura-transf"
             accept="image/*,application/pdf"
             class="upload-input" />

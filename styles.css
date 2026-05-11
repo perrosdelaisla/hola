@@ -884,32 +884,36 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   font-style: italic;
 }
 
-/* Zona de subida — drag & drop style */
+/* Botón de adjuntar comprobante — CTA primario rojo PDLI */
 .upload-label {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 18px 14px;
-  margin-top: 4px;
-  background: var(--s2);
-  border: 2px dashed var(--s4);
+  gap: 8px;
+  padding: 16px 18px;
+  margin-top: 8px;
+  background: #C8102E;
+  border: 0;
   border-radius: var(--r12);
   cursor: pointer;
-  transition: border-color .12s, background .12s;
+  transition: background .12s, transform .08s;
   text-align: center;
+  box-shadow: 0 2px 6px rgba(200, 16, 46, 0.25);
 }
 
 .upload-label:hover {
-  border-color: var(--verde);
-  background: var(--verde-xs);
+  background: #A60D26;
+}
+
+.upload-label:active {
+  transform: scale(.98);
 }
 
 .upload-label-text {
-  font-size: 13px;
-  color: var(--t2);
-  font-weight: 500;
+  font-size: 16px;
+  color: #FFFFFF;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 /* Input file oculto visualmente pero funcional */
