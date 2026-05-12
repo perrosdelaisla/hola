@@ -1198,9 +1198,10 @@ function _mostrarMetodologiaCompleta() {
 function _mostrarBotonPedirWhatsApp() {
   setTimeout(() => {
     // Widget custom (bubble bot) con 3 opciones en jerarquía visual:
-    //   1. CTA primario "Agendar llamada" — bold, .opt-btn-inline
-    //   2. Secundario "Ver horarios de clase" — mismo tamaño sin bold
-    //   3. Link chico "O déjanos tu WhatsApp" — <a> con margen reducido
+    //   1. CTA primario "Agendar llamada" — outline rojo PDLI, peso 600
+    //   2. Secundario "Ver horarios de clase" — outline crema fino, peso 400
+    //   3. Link terciario "O déjanos tu WhatsApp" — crema casi invisible
+    // Tono editorial sobrio: jerarquía por peso/opacidad, no por contraste de fondo.
     const contenedor = _insertarContenedorEnChat("cta-llamada-slot", "cta-llamada-widget");
     if (!contenedor) return;
 
@@ -1208,16 +1209,16 @@ function _mostrarBotonPedirWhatsApp() {
       <button id="btn-cta-llamada" style="
         display:block;
         width:100%;
-        padding:14px 16px;
-        margin-bottom:10px;
-        background:#C8102E;
-        color:#F5EFE0;
-        border:none;
+        padding:12px 16px;
+        margin-bottom:8px;
+        background:transparent;
+        color:#C8102E;
+        border:1.5px solid #C8102E;
         border-radius:6px;
         font-family:inherit;
-        font-size:15px;
-        font-weight:700;
-        letter-spacing:0.5px;
+        font-size:14px;
+        font-weight:600;
+        letter-spacing:0.3px;
         cursor:pointer;
         text-align:center;
       ">📞 Agendar llamada gratuita</button>
@@ -1225,23 +1226,23 @@ function _mostrarBotonPedirWhatsApp() {
       <button id="btn-cta-agenda" style="
         display:block;
         width:100%;
-        padding:11px 16px;
-        margin-bottom:14px;
+        padding:12px 16px;
+        margin-bottom:12px;
         background:transparent;
-        color:#C8102E;
-        border:1px solid #C8102E;
+        color:rgba(245,239,224,0.85);
+        border:1.5px solid rgba(245,239,224,0.4);
         border-radius:6px;
         font-family:inherit;
         font-size:14px;
-        font-weight:500;
+        font-weight:400;
+        letter-spacing:0.3px;
         cursor:pointer;
         text-align:center;
       ">Ver horarios de clase</button>
 
       <div style="text-align:center">
         <a href="#" id="lnk-cta-wa" style="
-          color:#F5EFE0;
-          opacity:0.65;
+          color:rgba(245,239,224,0.6);
           font-size:13px;
           text-decoration:underline;
         ">O déjanos tu WhatsApp y te contactamos</a>
@@ -1295,6 +1296,20 @@ function _mostrarBotonesAgendaTrasPausa() {
           setTimeout(async () => {
             _mostrarTyping(false);
             await _iniciarAgenda();
+            _actualizarProgreso();
+          }, TYPING_DELAY);
+        },
+      },
+      {
+        label: "📞 Agendar llamada gratuita",
+        onClick: async () => {
+          _mostrarCliente("📞 Agendar llamada gratuita");
+          _registrarTurno("cliente", "Agendar llamada gratuita");
+          state.current_step = "s6";  // NO avanzamos a s7 — la llamada es rescate, no agenda
+          _mostrarTyping(true);
+          setTimeout(async () => {
+            _mostrarTyping(false);
+            await _iniciarLlamada();
             _actualizarProgreso();
           }, TYPING_DELAY);
         },
@@ -1486,7 +1501,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=1");
+  const { renderLlamada } = await import("./llamada.js?v=2");
 
   await renderLlamada(
     contenedor,

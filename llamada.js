@@ -148,35 +148,84 @@ function _renderGrid(contenedor, onConfirmacion, onVolver) {
  */
 function _renderForm(contenedor, onConfirmacion, onVolver) {
   contenedor.innerHTML = `
+    <style>
+      #victoria-llamada-slot .llamada-form-input {
+        width:100%;
+        background:transparent;
+        color:#F5EFE0;
+        border:none;
+        border-bottom:1px solid rgba(245,239,224,0.3);
+        border-radius:0;
+        padding:8px 0;
+        font-family:inherit;
+        font-size:14px;
+        box-sizing:border-box;
+        outline:none;
+      }
+      #victoria-llamada-slot .llamada-form-input:focus {
+        border-bottom-color:#C8102E;
+      }
+      #victoria-llamada-slot .llamada-form-input::placeholder {
+        color:rgba(245,239,224,0.35);
+      }
+    </style>
     <div class="llamada-form">
-      <div class="llamada-form-resumen" style="margin-bottom:10px;font-size:14px">
-        Horario elegido: <strong>${slotSeleccionado.label}</strong>
+      <div style="margin-bottom:14px;font-size:13px;color:rgba(245,239,224,0.7);letter-spacing:0.3px">
+        Horario elegido: <strong style="color:#F5EFE0">${slotSeleccionado.label}</strong>
       </div>
 
-      <label class="llamada-form-campo" style="display:block;margin-bottom:8px">
-        <span style="display:block;margin-bottom:2px">Nombre completo *</span>
-        <input type="text" id="llamada-nombre" maxlength="120" autocomplete="name" required style="width:100%;box-sizing:border-box">
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">Nombre completo *</span>
+        <input class="llamada-form-input" type="text" id="llamada-nombre" maxlength="120" autocomplete="name" required>
       </label>
 
-      <label class="llamada-form-campo" style="display:block;margin-bottom:8px">
-        <span style="display:block;margin-bottom:2px">Móvil *</span>
-        <input type="tel" id="llamada-telefono" maxlength="40" inputmode="tel" autocomplete="tel" required placeholder="+34 612 345 678" style="width:100%;box-sizing:border-box">
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">Móvil *</span>
+        <input class="llamada-form-input" type="tel" id="llamada-telefono" maxlength="40" inputmode="tel" autocomplete="tel" required placeholder="+34 612 345 678">
       </label>
 
-      <label class="llamada-form-campo" style="display:block;margin-bottom:8px">
-        <span style="display:block;margin-bottom:2px">¿Algo más que quieras que sepamos antes de la llamada?</span>
-        <textarea id="llamada-mensaje" maxlength="200" rows="3" style="width:100%;box-sizing:border-box;resize:vertical"></textarea>
-        <small style="opacity:.7"><span id="llamada-mensaje-counter">0</span> / 200</small>
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">¿Algo más que quieras que sepamos antes de la llamada?</span>
+        <textarea class="llamada-form-input" id="llamada-mensaje" maxlength="200" rows="3" style="resize:vertical"></textarea>
+        <small style="color:rgba(245,239,224,0.5);font-size:12px"><span id="llamada-mensaje-counter">0</span> / 200</small>
       </label>
 
-      <div id="llamada-form-error" class="warn" style="display:none;margin:8px 0"></div>
+      <div id="llamada-form-error" style="display:none;color:#C8102E;font-size:13px;padding:8px 0"></div>
 
-      <div style="margin-top:10px">
-        <button class="bmain verde" id="btn-confirmar-reserva">Confirmar reserva</button>
-        <button class="bsec" id="btn-volver-form">← Volver</button>
-      </div>
+      <button id="btn-confirmar-reserva" style="
+        display:block;
+        width:100%;
+        padding:12px 16px;
+        margin-bottom:8px;
+        background:transparent;
+        color:#C8102E;
+        border:1.5px solid #C8102E;
+        border-radius:6px;
+        font-family:inherit;
+        font-size:14px;
+        font-weight:600;
+        letter-spacing:0.3px;
+        cursor:pointer;
+        text-align:center;
+      ">Confirmar reserva</button>
 
-      <small style="display:block;margin-top:8px;opacity:.7">
+      <button id="btn-volver-form" style="
+        display:block;
+        width:100%;
+        padding:12px 16px;
+        background:transparent;
+        color:rgba(245,239,224,0.85);
+        border:1.5px solid rgba(245,239,224,0.4);
+        border-radius:6px;
+        font-family:inherit;
+        font-size:14px;
+        font-weight:400;
+        letter-spacing:0.3px;
+        cursor:pointer;
+        text-align:center;
+      ">← Volver</button>
+
+      <small style="display:block;margin-top:12px;color:rgba(245,239,224,0.6);font-size:12px;text-align:center">
         Te llamaremos al móvil que indiques.
       </small>
     </div>`;
