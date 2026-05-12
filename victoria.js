@@ -40,6 +40,10 @@ import { esPPP }                             from "./victoria-breeds.js";
 import { decidirRespuesta }                  from "./victoria-matching.js";
 import { renderAgenda }                      from "./agenda.js";
 import { renderPago }                        from "./pagos.js";
+import {
+  buscarOCrearClientePorTelefono,
+  reservarLlamada,
+}                                            from "./supabase.js";
 import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1104,11 +1108,13 @@ async function _procesarS6_Protocolo(texto) {
     return await _iniciarAgenda();
   }
 
-  // 8. Nada matcheó → pedir WhatsApp al cliente (NUNCA dar el 622 sin seña pagada)
+  // 8. Nada matcheó → catch-all del s6. El lead vio precio, hizo pregunta sin
+  //    match. Ofrecemos 3 opciones con jerarquía visual: CTA primario "Agendar
+  //    llamada gratuita", secundario "Ver horarios de clase" (acceso directo a
+  //    agenda regular), link chico "déjanos tu WhatsApp" (último recurso).
   _mostrarBotonPedirWhatsApp();
-  return "Para esa pregunta prefiero que alguien del equipo te contacte directamente y lo habléis con calma. " +
-    "¿Me puedes dejar tu WhatsApp? En cuanto me lo pases, nos ponemos en contacto contigo. " +
-    "Si prefieres, también puedes seguir aquí y ver los horarios disponibles.";
+  return "Para esa pregunta prefiero que hablemos por teléfono y la resolvamos directamente. " +
+    "Puedes agendar una llamada gratuita con el adiestrador o alguien del equipo eligiendo un horario que te venga bien.";
 }
 
 /**
@@ -1191,32 +1197,58 @@ function _mostrarMetodologiaCompleta() {
 
 function _mostrarBotonPedirWhatsApp() {
   setTimeout(() => {
-    _mostrarOpciones([
-      {
-        label: "Sí, ver horarios disponibles",
-        onClick: async () => {
-          _mostrarCliente("Sí, ver horarios");
-          _registrarTurno("cliente", "Sí, ver horarios");
-          state.current_step = "s7";
-          _mostrarTyping(true);
-          setTimeout(async () => {
-            _mostrarTyping(false);
-            await _iniciarAgenda();
-            _actualizarProgreso();
-          }, TYPING_DELAY);
-        },
-      },
-      {
-        label: "Dejar mi WhatsApp para que me contacten",
-        onClick: () => {
-          _mostrarCliente("Dejar mi WhatsApp");
-          _registrarTurno("cliente", "Dejar mi WhatsApp");
-          const msg = "Genial. Escríbeme tu número de WhatsApp y el equipo de Perros de la Isla te contactará en cuanto pueda.";
-          _mostrarVictoria(msg);
-          _registrarTurno("victoria", msg);
-        },
-      },
-    ]);
+    // Widget custom (bubble bot) con 3 opciones en jerarquía visual:
+    //   1. CTA primario "Agendar llamada" — bold, .opt-btn-inline
+    //   2. Secundario "Ver horarios de clase" — mismo tamaño sin bold
+    //   3. Link chico "O déjanos tu WhatsApp" — <a> con margen reducido
+    const contenedor = _insertarContenedorEnChat("cta-llamada-slot", "cta-llamada-widget");
+    if (!contenedor) return;
+
+    contenedor.innerHTML = `
+      <button class="opt-btn-inline" id="btn-cta-llamada" style="font-weight:600">
+        📞 Agendar llamada gratuita
+      </button>
+      <button class="opt-btn-inline" id="btn-cta-agenda" style="margin-top:6px">
+        Ver horarios de clase
+      </button>
+      <div style="margin-top:6px;text-align:center;font-size:13px;opacity:.85">
+        <a href="#" id="lnk-cta-wa" style="text-decoration:underline">
+          O déjanos tu WhatsApp y te contactamos
+        </a>
+      </div>
+    `;
+
+    contenedor.querySelector('#btn-cta-llamada').addEventListener('click', async () => {
+      _mostrarCliente("📞 Agendar llamada gratuita");
+      _registrarTurno("cliente", "Agendar llamada gratuita");
+      _mostrarTyping(true);
+      setTimeout(async () => {
+        _mostrarTyping(false);
+        await _iniciarLlamada();           // ← se define en Sub-bloque 4
+        _actualizarProgreso();
+      }, TYPING_DELAY);
+    });
+
+    contenedor.querySelector('#btn-cta-agenda').addEventListener('click', async () => {
+      _mostrarCliente("Sí, ver horarios");
+      _registrarTurno("cliente", "Sí, ver horarios");
+      state.current_step = "s7";
+      _mostrarTyping(true);
+      setTimeout(async () => {
+        _mostrarTyping(false);
+        await _iniciarAgenda();
+        _actualizarProgreso();
+      }, TYPING_DELAY);
+    });
+
+    contenedor.querySelector('#lnk-cta-wa').addEventListener('click', (e) => {
+      e.preventDefault();
+      _mostrarCliente("Dejar mi WhatsApp");
+      _registrarTurno("cliente", "Dejar mi WhatsApp");
+      const msg = "Genial. Escríbeme tu número de WhatsApp y el equipo de Perros de la Isla te contactará en cuanto pueda.";
+      _mostrarVictoria(msg);
+      _registrarTurno("victoria", msg);
+    });
   }, 4500);
 }
 
@@ -1406,6 +1438,244 @@ async function _iniciarAgenda() {
   );
 
   return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LLAMADA — Reserva de llamada con el adiestrador (catch-all del s6)
+// Patrón espejado de _iniciarAgenda: insertamos un widget como burbuja
+// del chat. Diferencia clave: import dinámico de llamada.js para no
+// cargar el bundle hasta que el lead efectivamente pulse "Agendar llamada".
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function _iniciarLlamada() {
+  const contenedor = _insertarContenedorEnChat("victoria-llamada-slot", "llamada-widget");
+  if (!contenedor) {
+    return "Ahora te muestro los horarios disponibles para la llamada — " +
+      "si no aparecen, escríbenos al 622 922 173 y te buscamos hueco.";
+  }
+
+  // Import dinámico: el bundle de llamada.js solo se carga si el lead
+  // efectivamente entra al flujo de catch-all y pulsa el CTA.
+  const { renderLlamada } = await import("./llamada.js?v=1");
+
+  await renderLlamada(
+    contenedor,
+    async (datos) => await _finalizarReservaLlamada(datos),
+    () => {
+      // onVolver — reservado, espejo del contrato de agenda.js
+    }
+  );
+
+  return null;
+}
+
+/**
+ * Orquesta la reserva post-confirmación del form de llamada:
+ *   1) Cliente — busca por móvil, crea si no existe (vincula a fila existente)
+ *   2) llamadas_solicitadas — INSERT con snapshot completo del state
+ *   3) ntfy a Charly (ver _notificarLlamada en sub-bloque 5)
+ *   4) _actualizarSesion({ agendo_llamada: true }) — tracking de rescate
+ *   5) UI: pantalla de éxito + _insertarCierre
+ *
+ * En modo prueba (?prueba=1) saltea pasos 1-3 (no toca DB, no notifica)
+ * pero SÍ marca agendo_llamada y muestra la UI completa — permite testear
+ * end-to-end sin contaminar producción. Espejo del s12.
+ *
+ * Errores: si reservarLlamada o ntfy fallan post-cliente, el cliente
+ * queda creado huérfano. Asumido como menos malo que mostrar error sin
+ * guardar — el 622 recupera al lead por WhatsApp.
+ */
+async function _finalizarReservaLlamada({ fecha, hora, nombre, telefono, mensaje_adicional }) {
+  // Modo prueba — espejo del s12 (línea ~1330)
+  if (state.prueba) {
+    _actualizarSesion({ agendo_llamada: true });
+    _mostrarExitoLlamada({ fecha, hora, telefono, nombre });
+    return;
+  }
+
+  try {
+    // 1) Cliente — buscar o crear por teléfono
+    const cliente_id = await buscarOCrearClientePorTelefono(telefono, {
+      nombre,
+      telefono,
+      zona: state.zona?.zonaDetectada ?? null,
+    });
+
+    // 2) Llamada — INSERT con snapshot completo del state
+    const llamada = await reservarLlamada({
+      cliente_id,
+      sesion_id:            state.sesion_id ?? null,
+      fecha,
+      hora,
+      nombre_cliente:       nombre,
+      telefono_cliente:     telefono,
+      mensaje_adicional:    mensaje_adicional || null,
+      zona:                 state.zona?.zonaDetectada ?? null,
+      perro_nombre:         state.perro?.nombre        ?? null,
+      perro_raza:           state.perro?.raza          ?? null,
+      perro_edad_meses:     state.perro?.edad_meses    ?? null,
+      perro_peso_kg:        state.perro?.peso_kg       ?? null,
+      mensajes_diagnostico: state.mensajes_diagnostico?.length
+                             ? state.mensajes_diagnostico
+                             : null,
+    });
+
+    // 3) ntfy — definida en Sub-bloque 5
+    _notificarLlamada({
+      llamada,
+      nombre,
+      telefono,
+      fecha,
+      hora,
+      mensaje_adicional,
+      zona:                 state.zona?.zonaDetectada,
+      perro_nombre:         state.perro?.nombre,
+      perro_raza:           state.perro?.raza,
+      perro_edad_meses:     state.perro?.edad_meses,
+      perro_peso_kg:        state.perro?.peso_kg,
+      mensajes_diagnostico: state.mensajes_diagnostico,
+    });
+
+    // 4) Tracking — flag de rescate de lead
+    _actualizarSesion({ agendo_llamada: true });
+
+    // 5) UI éxito
+    _mostrarExitoLlamada({ fecha, hora, telefono, nombre });
+  } catch (err) {
+    console.error("Error reservando llamada:", err);
+    const errMsg = "Ha habido un problema técnico al reservar la llamada. " +
+      "Por favor, escríbenos al 622 922 173 y lo gestionamos enseguida.";
+    _mostrarVictoria(errMsg);
+    _registrarTurno("victoria", errMsg);
+  }
+}
+
+/**
+ * Renderiza la pantalla de éxito post-reserva con el copy literal
+ * aprobado #4. Formato fecha: "martes 19 de mayo" — completo en
+ * español ES, sin abreviar. Tras 3500ms inserta el cierre (slogan +
+ * IG/web) igual que s12.
+ */
+function _mostrarExitoLlamada({ fecha, hora, telefono, nombre }) {
+  const fechaLegible = _formatearFechaCompleta(fecha);
+  const horaCorta    = hora.length > 5 ? hora.substring(0, 5) : hora;
+
+  const msg = `Listo. Hemos agendado una llamada para el ${fechaLegible} a las ${horaCorta}h. ` +
+    `El adiestrador o alguien del equipo te llamará al ${telefono}. ` +
+    `Si necesitas cambiar algo, escríbenos al 622 922 173.`;
+
+  _mostrarVictoria(msg);
+  _registrarTurno("victoria", msg);
+  _actualizarProgreso();
+
+  // Cierre con slogan + botones — mismo patrón que s12 (línea ~1370)
+  setTimeout(() => { _insertarCierre(); }, 3500);
+}
+
+/**
+ * "2026-05-19" → "martes 19 de mayo" en español ES.
+ * Helper local — el formatearFecha de supabase.js da formato corto
+ * abreviado ("Mar 19 may") que no queremos en la pantalla de éxito.
+ */
+function _formatearFechaCompleta(fechaIso) {
+  const d = new Date(fechaIso + "T00:00:00");
+  const dias  = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio",
+                 "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+  return `${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
+}
+
+/**
+ * Notifica a Charly por ntfy.sh cuando un lead reserva llamada desde
+ * el catch-all del s6. Topic compartido con citas — Charly ya lo
+ * monitorea en su móvil.
+ *
+ * Title ASCII-safe (sin emojis) por restricción ISO-8859-1 del header
+ * HTTP. Días abreviados ["lun","mar","mie.","jue","vie","sab.","dom"]
+ * para evitar tildes en el Title. Body con prefijo 📞 y datos
+ * completos para preparar la llamada (móvil destacado, perro, zona,
+ * mensaje adicional, problema reportado, id de la fila).
+ *
+ * Try/catch interno DELIBERADO: un fallo de ntfy NO debe romper la
+ * UX del cliente. La fila ya está insertada en llamadas_solicitadas.
+ * Charly la verá en admin (Fase 4) o Google Calendar (Fase 5).
+ */
+async function _notificarLlamada({
+  llamada,
+  nombre,
+  telefono,
+  fecha,
+  hora,
+  mensaje_adicional,
+  zona,
+  perro_nombre,
+  perro_raza,
+  perro_edad_meses,
+  perro_peso_kg,
+  mensajes_diagnostico,
+}) {
+  try {
+    const DIAS_ABREV   = ["dom", "lun", "mar", "mie.", "jue", "vie", "sab."];
+    const fechaObj     = new Date(fecha + "T00:00:00");
+    const diaAbrev     = DIAS_ABREV[fechaObj.getDay()];
+    const horaCorta    = hora.length > 5 ? hora.substring(0, 5) : hora;
+    const primerNombre = (nombre ?? "").split(" ")[0] || nombre;
+
+    // Edad humana: <12m → "X meses", ≥12m → "X años"
+    const edadTexto =
+      perro_edad_meses == null         ? "—" :
+      perro_edad_meses < 12            ? `${perro_edad_meses} meses` :
+                                         `${Math.round(perro_edad_meses / 12)} años`;
+
+    // Resumen del problema: primeros 2 mensajes del cliente, truncado a 400 chars
+    const mensajesCliente = Array.isArray(mensajes_diagnostico) ? mensajes_diagnostico : [];
+    const reportadoTexto  = mensajesCliente.slice(0, 2).join(" · ").slice(0, 400) ||
+      "Sin texto del cliente";
+
+    const cuerpo = [
+      "📞 LLAMADA AGENDADA",
+      "━━━━━━━━━━━━━━━━━━━━━━━",
+      "",
+      `📅 Cuándo: ${diaAbrev} ${fecha} a las ${horaCorta}h`,
+      "",
+      "━━━━━━━━━━━━━━━━━━━━━━━",
+      "📞 MÓVIL (llamar a este número):",
+      "",
+      `    ➡️  ${telefono}  ⬅️`,
+      `    👤  ${nombre}`,
+      "━━━━━━━━━━━━━━━━━━━━━━━",
+      "",
+      `🐕 Perro: ${perro_nombre ?? "—"} · ${perro_raza ?? "—"} · ${edadTexto} · ${perro_peso_kg ?? "—"}kg`,
+      `📍 Zona: ${zona ?? "—"}`,
+      "",
+      mensaje_adicional
+        ? `📝 Mensaje del cliente:\n   "${mensaje_adicional.slice(0, 300)}"`
+        : "📝 Mensaje del cliente: —",
+      "",
+      `🗒️ Reportado en chat:`,
+      `   "${reportadoTexto}"`,
+      "",
+      `🔗 ID llamada: ${llamada?.id ?? "—"}`,
+    ].join("\n");
+
+    const titulo = `LLAMADA - ${diaAbrev} ${horaCorta} - ${primerNombre}`;
+
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Title":        titulo,
+        "Priority":     "high",
+        "Tags":         "phone,calendar",
+      },
+      body: cuerpo,
+    });
+  } catch (err) {
+    // DELIBERADO: no re-tirar. La fila ya está en llamadas_solicitadas.
+    // El cliente ve "Listo, hemos agendado" sin enterarse del fallo.
+    // Charly la verá igual en admin (Fase 4) o Google Calendar (Fase 5).
+    console.warn("Error notificando llamada por ntfy (la fila ya está guardada):", err);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

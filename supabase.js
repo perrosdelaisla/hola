@@ -331,3 +331,123 @@ export async function obtenerSesionesParaStats(desde, hasta) {
     return [];
   }
 }
+
+/* ════════════════════════════════════════════
+   LLAMADAS — Agendar llamada con el adiestrador (s6 catch-all)
+   ════════════════════════════════════════════ */
+
+/**
+ * Devuelve los slots disponibles para reservar una llamada con el
+ * adiestrador en los próximos 14 días. La RPC ya aplica internamente
+ * las reglas: lun-sáb, franjas 14:00-14:45 y 19:00-19:45 cada 15 min,
+ * antelación mínima 2 horas desde now() (Europe/Madrid), excluye los
+ * slots ya tomados por llamadas con estado en (pendiente, realizada).
+ *
+ * Devuelve array de { fecha, hora, dia_semana, label } — label corto
+ * tipo "Mar 13 may" para que llamada.js lo use sin re-formatear.
+ * Espejo intencional de obtenerSlotsDisponibles para mantener la
+ * misma forma de datos que ya consume el patrón de agenda.js.
+ */
+export async function obtenerSlotsLlamadasDisponibles() {
+  const hoy = new Date();
+  const desde = new Date(hoy);
+  const hasta = new Date(hoy);
+  hasta.setDate(hoy.getDate() + 14);
+
+  const desdeStr = desde.toISOString().split('T')[0];
+  const hastaStr = hasta.toISOString().split('T')[0];
+
+  const slots = await supa(
+    'rpc/get_available_call_slots',
+    'POST',
+    {
+      p_desde: desdeStr,
+      p_hasta: hastaStr,
+    }
+  );
+
+  return (slots || []).map(s => {
+    const fechaObj = new Date(s.fecha + 'T00:00:00');
+    return {
+      fecha: s.fecha,
+      hora: typeof s.hora === 'string' ? s.hora.substring(0, 5) : s.hora,
+      dia_semana: s.dia_semana,
+      label: formatearFecha(fechaObj),
+    };
+  });
+}
+
+/**
+ * Busca un cliente por teléfono exacto. Si existe devuelve su id. Si
+ * no existe lo crea con estado='consulta' y devuelve el id nuevo.
+ *
+ * Pensado para el flujo "Agendar llamada": Victoria no debe duplicar
+ * clientes cada vez que alguien agenda — si el mismo móvil ya estaba
+ * en clientes (por una consulta o cita anterior), vinculamos a esa
+ * fila en lugar de crear duplicado.
+ *
+ * Mejora deliberada sobre crearCitaManual, que siempre hace INSERT en
+ * clientes sin buscar primero. Aquí hacemos SELECT exact-match → si
+ * no aparece, INSERT.
+ *
+ * @param {string} telefono - normalizado por _extraerTelefono (puede
+ *   contener "+34", espacios, etc.; la búsqueda es exact-match, así
+ *   que dos formatos distintos del mismo número se tratarán como
+ *   clientes distintos — limitación conocida, asumible al volumen
+ *   actual).
+ * @param {Object} datos - { nombre, telefono, zona? } usados solo si
+ *   hay que crear cliente nuevo.
+ *
+ * @returns {Promise<string>} UUID del cliente (existente o nuevo).
+ * @throws Si la búsqueda o la creación fallan (red / RLS / etc.).
+ */
+export async function buscarOCrearClientePorTelefono(telefono, datos) {
+  // 1) Buscar — exact match en columna telefono
+  const filas = await supa(
+    `clientes?telefono=eq.${encodeURIComponent(telefono)}&select=id&limit=1`
+  );
+  if (filas && filas.length > 0) {
+    return filas[0].id;
+  }
+
+  // 2) Crear — estado='consulta' por defecto
+  const body = {
+    nombre:   datos.nombre,
+    telefono: datos.telefono,
+    estado:   'consulta',
+  };
+  if (datos.zona) body.zona = datos.zona;
+
+  const creado = await supa('clientes', 'POST', body);
+  const id = creado?.[0]?.id;
+  if (!id) throw new Error('No se pudo crear el cliente');
+  return id;
+}
+
+/**
+ * Inserta una fila en llamadas_solicitadas con todos los datos del
+ * lead. Se llama desde _finalizarReservaLlamada en victoria.js
+ * después de buscarOCrearClientePorTelefono.
+ *
+ * Normaliza hora a HH:MM:SS (la RPC y la columna esperan time sin
+ * timezone con segundos; si llega "14:30" lo deja "14:30:00").
+ *
+ * @param {Object} payload - todos los campos de la tabla. Mínimo
+ *   obligatorio: fecha, hora, nombre_cliente, telefono_cliente.
+ *   Resto opcional pero recomendado (cliente_id, sesion_id,
+ *   mensaje_adicional, snapshot perro_*, mensajes_diagnostico, zona).
+ *
+ * @returns {Promise<Object>} La fila creada — incluye id generado,
+ *   created_at, estado='pendiente' por default.
+ * @throws Si el INSERT falla (RLS, CHECK constraint, red).
+ */
+export async function reservarLlamada(payload) {
+  const horaCompleta = payload.hora && payload.hora.length === 5
+    ? `${payload.hora}:00`
+    : payload.hora;
+  const body = { ...payload, hora: horaCompleta };
+  const resp = await supa('llamadas_solicitadas', 'POST', body);
+  const fila = resp?.[0];
+  if (!fila) throw new Error('No se pudo reservar la llamada');
+  return fila;
+}
