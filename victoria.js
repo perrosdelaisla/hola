@@ -1113,8 +1113,8 @@ async function _procesarS6_Protocolo(texto) {
   //    llamada gratuita", secundario "Ver horarios de clase" (acceso directo a
   //    agenda regular), link chico "déjanos tu WhatsApp" (último recurso).
   _mostrarBotonPedirWhatsApp();
-  return "Para esa pregunta prefiero que hablemos por teléfono y la resolvamos directamente. " +
-    "Puedes agendar una llamada gratuita con el adiestrador o alguien del equipo eligiendo un horario que te venga bien.";
+  return "Si quieres lo hablamos por teléfono. " +
+    "Puedes agendar una llamada gratuita con el adiestrador eligiendo un horario que te venga bien.";
 }
 
 /**
