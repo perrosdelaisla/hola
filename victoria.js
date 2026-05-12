@@ -2305,6 +2305,13 @@ function _actualizarSesion(cambios) {
     payload.duracion_segundos = Math.round((Date.now() - state.sesion_inicio_ts) / 1000);
   }
 
+  // Persistencia de datos que vivían solo en memoria. Se inyectan en CADA
+  // PATCH para refrescar el array si s5 añadió mensajes tras la PATCH de s4
+  // y para que sesiones que se mueren a mitad del flujo conserven lo último
+  // que vio Victoria. Redundancia barata (<1KB por PATCH típico).
+  if (state.perro?.nombre)               payload.perro_nombre         = state.perro.nombre;
+  if (state.mensajes_diagnostico?.length) payload.mensajes_diagnostico = state.mensajes_diagnostico;
+
   fetch(`${SUPA_URL}/rest/v1/sesiones?id=eq.${state.sesion_id}`, {
     method: "PATCH",
     headers: {
