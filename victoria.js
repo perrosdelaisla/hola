@@ -1818,6 +1818,20 @@ function _mostrarPrecioYBotonesAgenda() {
             },
           },
           {
+            label: "📞 Agendar llamada gratuita",
+            onClick: async () => {
+              _mostrarCliente("📞 Agendar llamada gratuita");
+              _registrarTurno("cliente", "Agendar llamada gratuita");
+              state.current_step = "s6";  // NO avanzamos a s7 — la llamada es rescate, no agenda
+              _mostrarTyping(true);
+              setTimeout(async () => {
+                _mostrarTyping(false);
+                await _iniciarLlamada();
+                _actualizarProgreso();
+              }, TYPING_DELAY);
+            },
+          },
+          {
             label: "Prefiero preguntar algo más",
             onClick: () => {
               _mostrarCliente("Tengo una pregunta");
