@@ -177,6 +177,7 @@ interface Bloqueo {
 
 Deno.serve(async (_req: Request) => {
   const hoy = madridDate(new Date());
+  const desde = addDays(hoy, -365);
   const limite = addDays(hoy, HORIZONTE_DIAS);
   const dtstamp = nowDtstamp();
 
@@ -192,14 +193,15 @@ Deno.serve(async (_req: Request) => {
   ];
 
   // 1) Citas con cliente y perro embebidos.
-  // Incluimos todos los estados — la fecha >= hoy ya filtra el pasado, así
-  // que las canceladas pasadas no aparecen. Las canceladas futuras sí, con
-  // ❌ en el SUMMARY para que Charly las vea tachadas en el calendario.
+  // Ventana [hoy-365, hoy+90]: hacia atrás 1 año para que las citas
+  // 'realizada' (que por naturaleza ya pasaron) sigan apareciendo en
+  // Google Calendar con su ✅, en vez de desvanecerse al día siguiente.
+  // Hacia adelante 90 días como siempre.
   try {
     const citasPath =
       `citas?select=id,fecha,hora,estado,modalidad,zona,sena_pagada,protocolo,` +
       `clientes(nombre,telefono,perros(nombre,edad,peso_kg,problematica))` +
-      `&fecha=gte.${hoy}&fecha=lte.${limite}` +
+      `&fecha=gte.${desde}&fecha=lte.${limite}` +
       `&cliente_id=not.is.null` +
       `&order=fecha.asc,hora.asc`;
     const citas = (await pgrest(citasPath)) as Cita[];
