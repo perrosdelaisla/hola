@@ -1205,16 +1205,46 @@ function _mostrarBotonPedirWhatsApp() {
     if (!contenedor) return;
 
     contenedor.innerHTML = `
-      <button class="opt-btn-inline" id="btn-cta-llamada" style="font-weight:600">
-        📞 Agendar llamada gratuita
-      </button>
-      <button class="opt-btn-inline" id="btn-cta-agenda" style="margin-top:6px">
-        Ver horarios de clase
-      </button>
-      <div style="margin-top:6px;text-align:center;font-size:13px;opacity:.85">
-        <a href="#" id="lnk-cta-wa" style="text-decoration:underline">
-          O déjanos tu WhatsApp y te contactamos
-        </a>
+      <button id="btn-cta-llamada" style="
+        display:block;
+        width:100%;
+        padding:14px 16px;
+        margin-bottom:10px;
+        background:#C8102E;
+        color:#F5EFE0;
+        border:none;
+        border-radius:6px;
+        font-family:inherit;
+        font-size:15px;
+        font-weight:700;
+        letter-spacing:0.5px;
+        cursor:pointer;
+        text-align:center;
+      ">📞 Agendar llamada gratuita</button>
+
+      <button id="btn-cta-agenda" style="
+        display:block;
+        width:100%;
+        padding:11px 16px;
+        margin-bottom:14px;
+        background:transparent;
+        color:#C8102E;
+        border:1px solid #C8102E;
+        border-radius:6px;
+        font-family:inherit;
+        font-size:14px;
+        font-weight:500;
+        cursor:pointer;
+        text-align:center;
+      ">Ver horarios de clase</button>
+
+      <div style="text-align:center">
+        <a href="#" id="lnk-cta-wa" style="
+          color:#F5EFE0;
+          opacity:0.65;
+          font-size:13px;
+          text-decoration:underline;
+        ">O déjanos tu WhatsApp y te contactamos</a>
       </div>
     `;
 
