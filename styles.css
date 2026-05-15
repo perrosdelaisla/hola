@@ -1047,20 +1047,6 @@ body {
   display: none;
 }
 
-.pdli-header-logo img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-  transition: width 0.2s, height 0.2s;
-}
-
-.pdli-header.shrunk .pdli-header-logo img {
-  width: 32px;
-  height: 32px;
-}
-
 .pdli-header-info {
   flex: 1;
   min-width: 0;
@@ -1299,4 +1285,40 @@ body {
 .msg.bot .av,
 #tw .av {
   border-color: #C8102E !important;
+}
+
+/* ═══════════════════════════════════════════
+   LOGO HEADER — aro rojo coherente PDLI
+   Mismo patrón que Paseos Seguros y app cliente: contenedor
+   .logo-circle con borde rojo, padding interno y el ícono
+   "respirando" dentro. Soporta versión shrunk del header.
+   ═══════════════════════════════════════════ */
+
+.logo-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid var(--pdli-rojo, #C8102E);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.logo-circle img,
+.logo-circle__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Versión shrunk (cuando header se achica al scrollear) */
+.pdli-header.shrunk .logo-circle {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
 }
