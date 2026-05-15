@@ -83,6 +83,7 @@ function _estadoInicial() {
     tema_preseleccionado: null,  // viene de ?tema=X en la URL
     origen: null,                // viene de ?origen=X en la URL (whatsapp/instagram/mail/paseos)
     prueba: false,               // viene de ?prueba=1 en la URL — marca la sesión como es_prueba=true
+    token_vicky: null,           // si arrancó con ?token=XXX (flujo Vicky), guarda el token
 
     perro: { nombre: null, edad_meses: null, raza: null, peso_kg: null, es_ppp: false },
 
@@ -168,6 +169,16 @@ export function start() {
     state.prueba = true;
   }
 
+  // Leer ?token=XXX — flujo Vicky: el lead viene de un link generado por
+  // Vicky humana, con sus datos ya cargados. Saltamos el embudo
+  // conversacional (s1-s6) y entramos directo a la agenda.
+  const tokenRaw = (params.get("token") || "").trim();
+  if (tokenRaw) {
+    _arrancarFlujoVicky(tokenRaw);
+    return;
+  }
+
+  // Arranque normal (sin token)
   const bienvenida = _construirSaludoBienvenida();
 
   _registrarTurno("victoria", bienvenida);
@@ -203,6 +214,175 @@ function _construirSaludoBienvenida() {
   return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
     "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
     "Para empezar, ¿en qué zona de Mallorca estás?";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FLUJO VICKY — arranque por ?token=XXX
+// El lead llega con un link que Vicky generó al teléfono. Consumimos el
+// token, precargamos sus datos y saltamos directo a la agenda (s7).
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Arranca el flujo Vicky: consume el token vía RPC, precarga el state con
+ * los datos del lead y muestra el saludo + resumen + botones de confirmación.
+ * Si el token es inválido/expirado/usado, muestra un mensaje y bloquea el input.
+ */
+async function _arrancarFlujoVicky(token) {
+  state.token_vicky = token;
+
+  let datos;
+  try {
+    const res = await fetch(`${SUPA_URL}/rest/v1/rpc/consume_token_vicky`, {
+      method: "POST",
+      headers: {
+        "apikey":        SUPA_KEY,
+        "Authorization": `Bearer ${SUPA_KEY}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({ p_token: token }),
+    });
+    const payload = await res.json();
+    if (!payload?.ok) {
+      const mensaje = _mensajeErrorToken(payload?.error);
+      _registrarTurno("victoria", mensaje);
+      _mostrarVictoria(mensaje);
+      _deshabilitarInput();
+      return;
+    }
+    datos = payload.datos;
+  } catch (err) {
+    console.error("Error consumiendo token:", err);
+    const mensaje = "Hemos tenido un problema técnico al cargar tus datos. " +
+      "Escríbenos al 622 922 173 y lo solucionamos enseguida.";
+    _registrarTurno("victoria", mensaje);
+    _mostrarVictoria(mensaje);
+    _deshabilitarInput();
+    return;
+  }
+
+  // Precargar state con los datos del token
+  state.cliente.nombre   = datos.tutor_nombre;
+  state.cliente.telefono = datos.tutor_telefono;
+  state.cliente.email    = datos.tutor_email;
+  state.perro.nombre     = datos.perro_nombre;
+  state.perro.raza       = datos.perro_raza;
+  state.perro.edad_meses = datos.perro_edad_meses;
+  state.perro.peso_kg    = datos.perro_peso_kg;
+  state.perro.es_ppp     = datos.perro_es_ppp;
+
+  const esPresencial = String(datos.modalidad || "").startsWith("presencial");
+  state.zona = {
+    zonaDetectada:      datos.zona,
+    modalidad:          esPresencial ? "presencial" : "online",
+    esSonGotleu:        false,
+    necesitaAclaracion: false,
+  };
+  state.modalidad_final = esPresencial ? "presencial" : "online";
+  state.mensajes_diagnostico = [datos.problematica];
+  state.protocolo_ya_presentado = true;
+  state.current_step = "s7";  // saltamos directo a agenda
+
+  // Crear sesión de tracking con es_vicky=true
+  await _crearSesionTrackingVicky();
+
+  // Mostrar saludo + resumen + botones de confirmación
+  _mostrarSaludoVickyConResumen(datos);
+}
+
+/**
+ * Mensaje al cliente según el código de error de consume_token_vicky.
+ */
+function _mensajeErrorToken(codigo) {
+  if (codigo === "token_expirado") {
+    return "Este enlace ha caducado. Escríbenos al 622 922 173 y te enviamos uno nuevo.";
+  }
+  if (codigo === "token_ya_usado") {
+    return "Este enlace ya se ha utilizado. Si necesitas hacer una nueva reserva, " +
+      "escríbenos al 622 922 173.";
+  }
+  // token_no_existe u otro
+  return "No hemos podido cargar tu reserva. Escríbenos al 622 922 173 y lo " +
+    "solucionamos enseguida.";
+}
+
+/**
+ * Convierte el slug de modalidad a texto legible para el cliente.
+ */
+function _modalidadLegible(slug) {
+  if (slug === "presencial-zona-cliente")  return "Presencial en tu domicilio";
+  if (slug === "presencial-parque-Palma")  return "Presencial en parque de Palma";
+  if (slug === "online")                   return "Online (videollamada)";
+  return slug || "—";
+}
+
+/**
+ * Convierte edad en meses a texto legible: "X años" si ≥12, "X meses" si <12.
+ */
+function _edadLegible(meses) {
+  if (meses == null) return "edad no indicada";
+  if (meses >= 12) {
+    const anios = Math.round(meses / 12);
+    return anios === 1 ? "1 año" : `${anios} años`;
+  }
+  return meses === 1 ? "1 mes" : `${meses} meses`;
+}
+
+/**
+ * Muestra el saludo Vicky con el resumen de datos del lead y 2 botones:
+ * confirmar (→ agenda) o reportar error (→ derivar al 622). Con typing
+ * indicator y delays para mantener el ritmo del resto de Victoria.
+ */
+function _mostrarSaludoVickyConResumen(datos) {
+  const perro        = datos.perro_nombre || "tu perro";
+  const edadTxt      = _edadLegible(datos.perro_edad_meses);
+  const modalidadTxt = _modalidadLegible(datos.modalidad);
+
+  const mensaje =
+    `Hola ${datos.tutor_nombre}. Esto es lo que apuntamos sobre tu llamada con el equipo:\n\n` +
+    `Perro: ${perro} (${datos.perro_raza}, ${edadTxt}, ${datos.perro_peso_kg} kg)\n` +
+    `Zona: ${datos.zona}\n` +
+    `Modalidad: ${modalidadTxt}\n` +
+    `Tema a trabajar: ${datos.problematica}\n\n` +
+    `¿Está todo correcto?`;
+
+  _mostrarTyping(true);
+  setTimeout(() => {
+    _mostrarTyping(false);
+    _registrarTurno("victoria", mensaje);
+    _mostrarVictoria(mensaje);
+    _actualizarProgreso();
+
+    setTimeout(() => {
+      _mostrarOpciones([
+        {
+          label: "Sí, continuar con la reserva",
+          onClick: async () => {
+            _mostrarCliente("Sí, continuar con la reserva");
+            _registrarTurno("cliente", "Sí, continuar con la reserva");
+            _mostrarTyping(true);
+            setTimeout(async () => {
+              _mostrarTyping(false);
+              await _iniciarAgenda();
+              _actualizarProgreso();
+            }, TYPING_DELAY);
+          },
+        },
+        {
+          label: "Hay un dato que no encaja",
+          onClick: () => {
+            _mostrarCliente("Hay un dato que no encaja");
+            _registrarTurno("cliente", "Hay un dato que no encaja");
+            const msg = "Sin problema. Escríbenos al 622 922 173 indicando qué hay " +
+              "que ajustar y enseguida te mandamos el enlace actualizado. " +
+              "Esto nos lleva 2 minutos.";
+            _mostrarVictoria(msg);
+            _registrarTurno("victoria", msg);
+            _deshabilitarInput();
+          },
+        },
+      ]);
+    }, 800);
+  }, 1000);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1337,6 +1517,23 @@ function _procesarS8_ConfirmacionSlot(_texto) {
     return "Parece que no has seleccionado ningún horario todavía. " +
       "Elige el que mejor te venga en el calendario.";
   }
+
+  // Flujo Vicky: nombre/teléfono/email ya vienen precargados del token, así
+  // que NO pasamos por s9 (pedir datos) — saltamos directo a s10 (pago).
+  // Replica el cierre de _procesarS9_DatosCliente: programa el widget de
+  // pago tras el mensaje explicativo y devuelve el texto de _explicarPago.
+  if (state.token_vicky) {
+    state.current_step = "s10";
+    setTimeout(() => {
+      _mostrarTyping(true);
+      setTimeout(() => {
+        _mostrarTyping(false);
+        _iniciarPago();
+      }, 1000);
+    }, 3500);
+    return `Perfecto, reservamos el ${state.slot_elegido.label}. ` + _explicarPago();
+  }
+
   state.current_step = "s9";
   return `Perfecto, reservamos el ${state.slot_elegido.label}. ` +
     "Para confirmar la cita necesito algunos datos: ¿cuál es tu nombre completo y tu teléfono?";
@@ -1407,6 +1604,24 @@ async function _procesarS12_Confirmacion(_texto) {
     if (!state.prueba) {
       await _guardarCitaEnSupabase();
       await _notificarCarlos();
+
+      // Flujo Vicky: marcar el token como usado ahora que la cita existe.
+      // No bloqueante — si falla, la cita ya está guardada igual.
+      if (state.token_vicky && state.cita_id) {
+        try {
+          await fetch(`${SUPA_URL}/rest/v1/rpc/confirmar_token_vicky`, {
+            method: "POST",
+            headers: {
+              "apikey":        SUPA_KEY,
+              "Authorization": `Bearer ${SUPA_KEY}`,
+              "Content-Type":  "application/json",
+            },
+            body: JSON.stringify({ p_token: state.token_vicky, p_cita_id: state.cita_id }),
+          });
+        } catch (err) {
+          console.warn("Fallo al marcar token Vicky como usado:", err);
+        }
+      }
     }
     state.cita_confirmada = true;
     // ── ADICIÓN 11: tracking conversión ──
@@ -2614,6 +2829,42 @@ async function _crearSesionTracking() {
     }
   } catch (err) {
     console.warn("Tracking: fallo al crear sesión (continúo sin tracking):", err);
+  }
+}
+
+/**
+ * Variante de _crearSesionTracking para el flujo Vicky: marca es_vicky=true
+ * y arranca el tracking en s7 (saltamos s0-s6, el embudo conversacional).
+ * Persiste de entrada los datos del perro/zona ya conocidos por el token.
+ */
+async function _crearSesionTrackingVicky() {
+  try {
+    const ahora = Date.now();
+    state.sesion_inicio_ts = ahora;
+
+    const res = await _supabasePost("/rest/v1/sesiones", {
+      paso_actual:           "s7",
+      paso_maximo_alcanzado: "s7",
+      origen:                state.origen,
+      es_prueba:             state.prueba,
+      es_vicky:              true,
+      dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
+      toco_splash:           true,
+      zona:                  state.zona?.zonaDetectada,
+      modalidad:             state.modalidad_final,
+      raza_perro:            state.perro.raza,
+      peso_kg:               state.perro.peso_kg,
+      edad_meses:            state.perro.edad_meses,
+      es_ppp:                state.perro.es_ppp,
+      perro_nombre:          state.perro.nombre,
+      mensajes_diagnostico:  state.mensajes_diagnostico,
+    });
+
+    if (res?.id) {
+      state.sesion_id = res.id;
+    }
+  } catch (err) {
+    console.warn("Tracking Vicky: fallo al crear sesión:", err);
   }
 }
 
