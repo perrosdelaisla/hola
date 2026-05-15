@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Crear link de reserva — Perros de la Isla</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="vicky.css">
+</head>
+<body>
+  <main class="vicky-main">
+    <header class="vicky-header">
+      <h1 class="vicky-title">Link de reserva</h1>
+      <p class="vicky-subtitle">Perros de la Isla</p>
+    </header>
+
+    <!-- Pantalla 1: login -->
+    <section id="pantalla-login" class="pantalla">
+      <form id="form-login" class="vicky-form" autocomplete="off">
+        <label class="vicky-label">
+          <span>Contraseña</span>
+          <input type="password" id="login-password" autocomplete="off" required>
+        </label>
+        <p id="login-error" class="vicky-error" hidden></p>
+        <button type="submit" class="vicky-btn">Entrar</button>
+      </form>
+    </section>
+
+    <!-- Pantalla 2: formulario -->
+    <section id="pantalla-form" class="pantalla" hidden>
+      <form id="form-lead" class="vicky-form" autocomplete="off">
+        <fieldset class="vicky-fieldset">
+          <legend>Tutor</legend>
+          <label class="vicky-label">
+            <span>Nombre del tutor *</span>
+            <input type="text" id="tutor-nombre" required maxlength="120" autocomplete="off">
+          </label>
+          <label class="vicky-label">
+            <span>Teléfono *</span>
+            <input type="tel" id="tutor-telefono" required maxlength="40" inputmode="tel" autocomplete="off" placeholder="+34 612 345 678">
+          </label>
+          <label class="vicky-label">
+            <span>Email <small class="vicky-hint">(obligatorio si modalidad online)</small></span>
+            <input type="email" id="tutor-email" maxlength="120" autocomplete="off">
+          </label>
+        </fieldset>
+
+        <fieldset class="vicky-fieldset">
+          <legend>Perro</legend>
+          <label class="vicky-label">
+            <span>Nombre del perro *</span>
+            <input type="text" id="perro-nombre" required maxlength="80" autocomplete="off">
+          </label>
+          <label class="vicky-label">
+            <span>Raza *</span>
+            <input type="text" id="perro-raza" required maxlength="80" autocomplete="off">
+          </label>
+          <label class="vicky-label">
+            <span>Edad *</span>
+            <input type="text" id="perro-edad" required maxlength="40" autocomplete="off" placeholder="ej: 3 años, 8 meses, 2">
+            <small class="vicky-hint">Solo número: ≤24 se interpreta como meses, &gt;24 como años.</small>
+          </label>
+          <label class="vicky-label">
+            <span>Peso (kg) *</span>
+            <input type="number" id="perro-peso" required min="0.1" step="0.1" autocomplete="off">
+          </label>
+          <label class="vicky-label vicky-label--checkbox">
+            <input type="checkbox" id="perro-ppp">
+            <span>Es PPP (potencialmente peligroso)</span>
+          </label>
+        </fieldset>
+
+        <fieldset class="vicky-fieldset">
+          <legend>Caso</legend>
+          <label class="vicky-label">
+            <span>Zona *</span>
+            <input type="text" id="lead-zona" required maxlength="80" autocomplete="off" placeholder="Palma, Manacor, Génova…">
+          </label>
+          <label class="vicky-label">
+            <span>Modalidad *</span>
+            <select id="lead-modalidad" required>
+              <option value="">Elegí una opción…</option>
+              <option value="presencial-zona-cliente">Presencial en domicilio del cliente</option>
+              <option value="presencial-parque-Palma">Presencial en parque de Palma</option>
+              <option value="online">Online (videollamada)</option>
+            </select>
+          </label>
+          <label class="vicky-label">
+            <span>Problemática *</span>
+            <textarea id="lead-problematica" required minlength="10" maxlength="800" rows="4" placeholder="Describí qué pasa con el perro (mínimo 10 caracteres)"></textarea>
+          </label>
+        </fieldset>
+
+        <p id="form-error" class="vicky-error" hidden></p>
+        <button type="submit" class="vicky-btn" id="btn-generar">Generar link</button>
+      </form>
+    </section>
+
+    <!-- Pantalla 3: link generado -->
+    <section id="pantalla-link" class="pantalla" hidden>
+      <h2 class="vicky-success">✓ Link generado</h2>
+      <label class="vicky-label">
+        <span>Link para el cliente</span>
+        <input type="text" id="link-generado" readonly>
+      </label>
+      <button type="button" class="vicky-btn" id="btn-copiar">Copiar link</button>
+      <p class="vicky-info">Mándale este link al cliente por WhatsApp. Caduca en 24 horas.</p>
+      <button type="button" class="vicky-btn vicky-btn--secondary" id="btn-otro">Crear otro link</button>
+    </section>
+  </main>
+
+  <script type="module" src="./vicky.js"></script>
+</body>
+</html>

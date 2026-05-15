@@ -1,0 +1,237 @@
+/* ═══════════════════════════════════════════
+   PERROS DE LA ISLA · Vicky
+   vicky.css — Canal B sobrio editorial
+   Fondo crema PDLI, Inter UI, Bebas Neue titulares,
+   rojo PDLI para CTA. Sin emojis decorativos, sin formas Memphis.
+   ═══════════════════════════════════════════ */
+
+:root {
+  --pdli-rojo: #C8102E;
+  --pdli-rojo-hover: #a30c25;
+  --pdli-crema: #F5EFE0;
+  --pdli-negro: #1A1A1A;
+  --vicky-borde: rgba(26, 26, 26, 0.18);
+  --vicky-muted: rgba(26, 26, 26, 0.55);
+  --vicky-fondo-input: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--pdli-crema);
+  color: var(--pdli-negro);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.vicky-main {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+
+.vicky-header {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.vicky-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 36px;
+  letter-spacing: 1.5px;
+  margin: 0;
+  color: var(--pdli-negro);
+}
+
+.vicky-subtitle {
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--vicky-muted);
+  margin: 4px 0 0;
+  text-transform: uppercase;
+}
+
+.pantalla {
+  display: block;
+}
+
+.pantalla[hidden] {
+  display: none;
+}
+
+.vicky-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vicky-fieldset {
+  border: 1px solid var(--vicky-borde);
+  border-radius: 6px;
+  padding: 14px 18px 18px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vicky-fieldset legend {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1.5px;
+  color: var(--pdli-rojo);
+  padding: 0 8px;
+  text-transform: uppercase;
+}
+
+.vicky-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.vicky-label > span {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.vicky-hint {
+  font-size: 12px;
+  color: var(--vicky-muted);
+  font-weight: 400;
+  letter-spacing: 0.2px;
+  display: inline;
+  margin-left: 4px;
+}
+
+.vicky-label small.vicky-hint {
+  display: block;
+  margin: 2px 0 0;
+}
+
+.vicky-label--checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+
+.vicky-label--checkbox input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--pdli-rojo);
+}
+
+.vicky-label input[type="text"],
+.vicky-label input[type="tel"],
+.vicky-label input[type="email"],
+.vicky-label input[type="number"],
+.vicky-label input[type="password"],
+.vicky-label select,
+.vicky-label textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--vicky-borde);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--pdli-negro);
+  background: var(--vicky-fondo-input);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.vicky-label input:focus,
+.vicky-label select:focus,
+.vicky-label textarea:focus {
+  border-color: var(--pdli-rojo);
+  box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.15);
+}
+
+.vicky-label textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-family: inherit;
+}
+
+.vicky-label input[readonly] {
+  background: rgba(26, 26, 26, 0.04);
+  color: var(--vicky-muted);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+}
+
+.vicky-btn {
+  display: block;
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--pdli-rojo);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.vicky-btn:hover {
+  background: var(--pdli-rojo-hover);
+}
+
+.vicky-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vicky-btn--secondary {
+  background: transparent;
+  color: var(--pdli-rojo);
+  border: 1.5px solid var(--pdli-rojo);
+  margin-top: 8px;
+}
+
+.vicky-btn--secondary:hover {
+  background: rgba(200, 16, 46, 0.06);
+}
+
+.vicky-error {
+  color: var(--pdli-rojo);
+  font-size: 13px;
+  margin: 0;
+  padding: 10px 12px;
+  background: rgba(200, 16, 46, 0.08);
+  border-radius: 4px;
+  border-left: 3px solid var(--pdli-rojo);
+}
+
+.vicky-success {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 1.5px;
+  color: var(--pdli-rojo);
+  margin: 0 0 20px;
+  text-align: center;
+}
+
+.vicky-info {
+  font-size: 13px;
+  color: var(--vicky-muted);
+  margin: 14px 0;
+  line-height: 1.5;
+  text-align: center;
+}
