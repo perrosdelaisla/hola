@@ -1304,7 +1304,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3px;
+  padding: 0;
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -1320,5 +1320,5 @@ body {
 .pdli-header.shrunk .logo-circle {
   width: 32px;
   height: 32px;
-  padding: 2px;
+  padding: 0;
 }
