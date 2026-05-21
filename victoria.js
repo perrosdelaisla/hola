@@ -3060,20 +3060,38 @@ function _repintarHistorial() {
 
 /**
  * Re-dispara el widget o mensaje correspondiente al paso actual tras
- * restaurar. Lógica:
- *  - s10 (pago): validar slot contra DB. Si libre → _iniciarPago(). Si
- *    tomado → mensaje + _iniciarAgenda().
- *  - s7/s8/s9 (eligiendo slot o post-slot): _iniciarAgenda().
- *  - s1-s6 (flujo conversacional): mensaje de bienvenida de vuelta, sin
- *    widget (el cliente sigue escribiendo).
+ * restaurar. Lógica diferenciada por paso para no confundir al cliente:
+ *  - s10 (pago): validar slot. Si libre → _iniciarPago(). Si tomado →
+ *    mensaje + _iniciarAgenda().
+ *  - s7 (eligiendo slot, agenda abierta sin elegir): _iniciarAgenda().
+ *  - s8 (slot elegido, esperando confirmación): mensaje específico
+ *    "¿Confirmamos tu cita del [slot]?" SIN agenda (el cliente responde
+ *    sí/no en el input, el flujo s8 procesa).
+ *  - s9 (slot confirmado, pidiendo datos cliente): mensaje SIN agenda.
+ *  - s1-s6 (flujo conversacional): mensaje genérico, sin widget.
+ *
+ * Guard contra duplicación: si el último turno del historial ya es un
+ * "Bienvenido de vuelta", no agregamos otro (caso de doble F5).
  */
 async function _redispararPasoActual() {
   const paso = state.current_step;
 
+  // Guard contra mensaje duplicado de bienvenida (doble F5)
+  const ultimoTurno = state.historial_turnos[state.historial_turnos.length - 1];
+  const yaSaludoBienvenida = ultimoTurno
+    && ultimoTurno.rol === "victoria"
+    && typeof ultimoTurno.texto === "string"
+    && ultimoTurno.texto.startsWith("¡Bienvenido de vuelta");
+
+  const decir = (msg) => {
+    if (yaSaludoBienvenida) return;
+    _registrarTurno("victoria", msg);
+    _mostrarVictoria(msg);
+  };
+
   if (paso === "s10") {
     const slot = state.slot_elegido;
     if (!slot || !slot.fecha || !slot.hora) {
-      // Sin slot válido — raro en s10, volver a agenda
       await _iniciarAgenda();
       return;
     }
@@ -3083,32 +3101,29 @@ async function _redispararPasoActual() {
         s => s.fecha === slot.fecha && s.hora === slot.hora
       );
       if (sigueLibre) {
-        const msg = `¡Bienvenido de vuelta! Continuemos con tu pago para confirmar la cita del ${slot.label}.`;
-        _registrarTurno("victoria", msg);
-        _mostrarVictoria(msg);
+        decir(`¡Bienvenido de vuelta! Continuemos con tu pago para confirmar la cita del ${slot.label}.`);
         _iniciarPago();
       } else {
-        const msg = `Bienvenido de vuelta. El horario que habías elegido (${slot.label}) ya no está disponible. Te muestro las opciones que quedan libres.`;
-        _registrarTurno("victoria", msg);
-        _mostrarVictoria(msg);
+        decir(`¡Bienvenido de vuelta! El horario que habías elegido (${slot.label}) ya no está disponible. Te muestro las opciones que quedan libres.`);
         await _iniciarAgenda();
       }
     } catch (err) {
       console.warn("Error validando slot al restaurar:", err);
-      // Fallback: re-mostrar pago. Si después el slot estaba tomado, se
-      // detectará al confirmar en _guardarCitaEnSupabase.
       _iniciarPago();
     }
-  } else if (paso === "s7" || paso === "s8" || paso === "s9") {
-    const msg = "¡Bienvenido de vuelta! Sigamos eligiendo el horario.";
-    _registrarTurno("victoria", msg);
-    _mostrarVictoria(msg);
+  } else if (paso === "s7") {
+    decir("¡Bienvenido de vuelta! Sigamos eligiendo el horario.");
     await _iniciarAgenda();
+  } else if (paso === "s8") {
+    const slot = state.slot_elegido;
+    const slotLabel = slot && slot.label ? slot.label : "el horario elegido";
+    decir(`¡Bienvenido de vuelta! ¿Confirmamos tu cita del ${slotLabel}?`);
+    // Sin widget — el cliente tipea sí/no en el input, _procesarS8 maneja
+  } else if (paso === "s9") {
+    decir("¡Bienvenido de vuelta! Continuemos con tus datos.");
+    // Sin widget — el cliente sigue tipeando datos, _procesarS9 maneja
   } else {
-    // s1 a s6: flujo de conversación. Sin widget, solo mensaje.
-    const msg = "¡Bienvenido de vuelta! Continuemos donde quedamos.";
-    _registrarTurno("victoria", msg);
-    _mostrarVictoria(msg);
+    decir("¡Bienvenido de vuelta! Continuemos donde quedamos.");
   }
 }
 
