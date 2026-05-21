@@ -43,6 +43,7 @@ import { renderPago }                        from "./pagos.js";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
+  obtenerSlotsDisponibles,
 }                                            from "./supabase.js";
 import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js";
 
@@ -61,6 +62,10 @@ const TYPING_MAX      = 1200;  // tope — random uniform en [TYPING_BASE, TYPIN
 const TYPING_DELAY    = 1200;  // fallback para callbacks de botones
 
 const VICTORIA_AVATAR = "https://i.ibb.co/1GXMwqzQ/victoria-cuadrada.jpg";
+
+// ── Persistencia de sesión (Bug A: retomar al recargar) ──
+const STORAGE_KEY = "pdli_victoria_state";
+const STORAGE_TTL_MS = 24 * 60 * 60 * 1000;  // 24 horas
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTADO CONVERSACIONAL — vive en memoria, se persiste en Supabase al cerrar
@@ -138,7 +143,7 @@ function _estadoInicial() {
  * Arranca la conversación. Conecta la UI y envía el primer mensaje.
  * index.html llama a start() al cargar.
  */
-export function start() {
+export async function start() {
   state = _estadoInicial();
   _conectarUI();
   _conectarSplash();
@@ -167,6 +172,42 @@ export function start() {
   const pruebaRaw = (params.get("prueba") || "").trim();
   if (pruebaRaw === "1") {
     state.prueba = true;
+  }
+
+  // ── ADICIÓN: intentar restaurar sesión previa (Bug A) ──
+  // Solo si NO viene con token (flujo Vicky) ni con prueba=1.
+  // Si la URL trae token, descartamos cualquier storage previo: el flujo
+  // Vicky tiene su propia lógica y no se mezcla.
+  const tokenEnURL = (params.get("token") || "").trim();
+  if (state.prueba || tokenEnURL) {
+    _limpiarEstadoPersistido();
+  } else {
+    const restaurado = _cargarEstadoPersistido();
+    if (restaurado) {
+      // Validar coincidencia de tema (si la URL trae uno distinto al
+      // guardado, el cliente cambió de intención → descartar)
+      const temaURL = state.tema_preseleccionado || null;
+      const temaGuardado = restaurado.tema_preseleccionado || null;
+      const temaCoincide = temaURL === temaGuardado || (!temaURL && temaGuardado);
+
+      if (temaCoincide) {
+        // Restaurar state completo, pero preservar origen actual de URL
+        // por si el cliente reentra desde un canal distinto (whatsapp/mail/etc.)
+        const origenActual = state.origen;
+        state = restaurado;
+        if (origenActual) state.origen = origenActual;
+        delete state._persistido_ts;
+
+        // Repintar y re-disparar el widget pendiente del paso
+        _repintarHistorial();
+        _actualizarProgreso();
+        await _redispararPasoActual();
+        return;
+      } else {
+        // Tema distinto → descartar el viejo, flujo limpio
+        _limpiarEstadoPersistido();
+      }
+    }
   }
 
   // Leer ?token=XXX — flujo Vicky: el lead viene de un link generado por
@@ -1631,6 +1672,8 @@ async function _procesarS12_Confirmacion(_texto) {
       cita_confirmada:       true,
       cita_id:               state.cita_id,
     });
+    // ── ADICIÓN Bug A: cita confirmada, limpiar storage ──
+    _limpiarEstadoPersistido();
     setTimeout(() => { _insertarCierre(); }, 3500);
 
     const perro    = state.perro.nombre ?? "tu perro";
@@ -2583,6 +2626,7 @@ function _prescanPrimerMensaje(texto) {
 
 function _registrarTurno(rol, texto) {
   state.historial_turnos.push({ rol, texto, timestamp: new Date().toISOString() });
+  _persistirEstado();
 }
 
 async function _fallbackInteligente(textoUsuario) {
@@ -2904,6 +2948,168 @@ function _actualizarSesion(cambios) {
   }).catch(err => {
     console.warn("Tracking: fallo al actualizar sesión:", err);
   });
+
+  // ── ADICIÓN Bug A: mirror a localStorage para retomar al recargar ──
+  _persistirEstado();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PERSISTENCIA DE SESIÓN — Bug A: retomar al recargar
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Guarda el state completo en localStorage para que el cliente pueda
+ * recargar la página o cerrar/abrir el chat y retomar donde lo dejó.
+ * Se llama después de cada _actualizarSesion y _registrarTurno.
+ * Silencioso si localStorage falla (Safari incognito, quota llena, etc.).
+ */
+function _persistirEstado() {
+  // Guards: no persistir si no hay sesión, si es prueba, o si ya se confirmó
+  if (!state.sesion_id) return;
+  if (state.prueba) return;
+  if (state.cita_confirmada) return;
+
+  try {
+    const snapshot = {
+      ...state,
+      _persistido_ts: Date.now(),
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  } catch (err) {
+    // Silencioso — Safari incognito tira QuotaExceededError, no es crítico
+  }
+}
+
+/**
+ * Lee el state guardado de localStorage. Valida que sea retomable:
+ * - JSON parseable
+ * - Tiene sesion_id
+ * - No es prueba
+ * - No tiene cita_confirmada
+ * - No expiró el TTL (24h)
+ * Si no pasa validación, retorna null (no restaura).
+ */
+function _cargarEstadoPersistido() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+
+    const snapshot = JSON.parse(raw);
+    if (!snapshot || typeof snapshot !== "object") return null;
+    if (!snapshot.sesion_id) return null;
+    if (snapshot.cita_confirmada === true) return null;
+    if (snapshot.prueba === true) return null;
+
+    // TTL check
+    const persistidoTs = snapshot._persistido_ts || snapshot.sesion_inicio_ts || 0;
+    if (Date.now() - persistidoTs > STORAGE_TTL_MS) {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      return null;
+    }
+
+    return snapshot;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Borra el state persistido. Se llama cuando la sesión cumple su misión
+ * (cita_confirmada=true) o cuando se decide descartar (token Vicky, tema
+ * cambiado, prueba en URL).
+ */
+function _limpiarEstadoPersistido() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (err) {
+    // ignore
+  }
+}
+
+/**
+ * Repinta el historial de turnos en la UI tras restaurar el state.
+ * Itera state.historial_turnos e inserta las burbujas SIN animación de
+ * typing — pintado instantáneo para que el cliente vea el chat completo
+ * antes del mensaje de "continuemos donde quedamos".
+ */
+function _repintarHistorial() {
+  if (!_chatEl || !_twEl) return;
+  if (!Array.isArray(state.historial_turnos) || state.historial_turnos.length === 0) {
+    return;
+  }
+  for (const turno of state.historial_turnos) {
+    const burbuja = document.createElement("div");
+    if (turno.rol === "victoria") {
+      burbuja.className = "msg bot in";
+      burbuja.innerHTML = `
+        <div class="av">
+          <img src="${VICTORIA_AVATAR}" alt="Victoria">
+        </div>
+        <div class="bub">${_escaparHTML(turno.texto)}</div>
+      `;
+    } else if (turno.rol === "cliente") {
+      burbuja.className = "msg usr in";
+      burbuja.innerHTML = `<div class="bub">${_escaparHTML(turno.texto)}</div>`;
+    } else {
+      continue;
+    }
+    _chatEl.insertBefore(burbuja, _twEl);
+  }
+  _scrollAbajo();
+}
+
+/**
+ * Re-dispara el widget o mensaje correspondiente al paso actual tras
+ * restaurar. Lógica:
+ *  - s10 (pago): validar slot contra DB. Si libre → _iniciarPago(). Si
+ *    tomado → mensaje + _iniciarAgenda().
+ *  - s7/s8/s9 (eligiendo slot o post-slot): _iniciarAgenda().
+ *  - s1-s6 (flujo conversacional): mensaje de bienvenida de vuelta, sin
+ *    widget (el cliente sigue escribiendo).
+ */
+async function _redispararPasoActual() {
+  const paso = state.current_step;
+
+  if (paso === "s10") {
+    const slot = state.slot_elegido;
+    if (!slot || !slot.fecha || !slot.hora) {
+      // Sin slot válido — raro en s10, volver a agenda
+      await _iniciarAgenda();
+      return;
+    }
+    try {
+      const slotsLibres = await obtenerSlotsDisponibles();
+      const sigueLibre = (slotsLibres || []).some(
+        s => s.fecha === slot.fecha && s.hora === slot.hora
+      );
+      if (sigueLibre) {
+        const msg = `¡Bienvenido de vuelta! Continuemos con tu pago para confirmar la cita del ${slot.label}.`;
+        _registrarTurno("victoria", msg);
+        _mostrarVictoria(msg);
+        _iniciarPago();
+      } else {
+        const msg = `Bienvenido de vuelta. El horario que habías elegido (${slot.label}) ya no está disponible. Te muestro las opciones que quedan libres.`;
+        _registrarTurno("victoria", msg);
+        _mostrarVictoria(msg);
+        await _iniciarAgenda();
+      }
+    } catch (err) {
+      console.warn("Error validando slot al restaurar:", err);
+      // Fallback: re-mostrar pago. Si después el slot estaba tomado, se
+      // detectará al confirmar en _guardarCitaEnSupabase.
+      _iniciarPago();
+    }
+  } else if (paso === "s7" || paso === "s8" || paso === "s9") {
+    const msg = "¡Bienvenido de vuelta! Sigamos eligiendo el horario.";
+    _registrarTurno("victoria", msg);
+    _mostrarVictoria(msg);
+    await _iniciarAgenda();
+  } else {
+    // s1 a s6: flujo de conversación. Sin widget, solo mensaje.
+    const msg = "¡Bienvenido de vuelta! Continuemos donde quedamos.";
+    _registrarTurno("victoria", msg);
+    _mostrarVictoria(msg);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
