@@ -319,6 +319,9 @@ async function _arrancarFlujoVicky(token) {
     necesitaAclaracion: false,
   };
   state.modalidad_final = esPresencial ? "presencial" : "online";
+  if (datos.modalidad === "presencial-parque-Palma") {
+    state.modalidad_zona_fuera_elegida = "palma";
+  }
   state.mensajes_diagnostico = [datos.problematica];
   state.protocolo_ya_presentado = true;
   state.current_step = "s7";  // saltamos directo a agenda
@@ -452,9 +455,8 @@ function _conectarUI() {
 }
 
 function _conectarSplash() {
-  // Splash eliminado: el cliente entra directo al chat.
-  // Mantenemos toco_splash=true por compatibilidad con la columna de tracking
-  // (lo seteamos en el INSERT inicial de _crearSesionTracking, no aquí).
+  // Splash eliminado: el cliente entra directo al chat. No queda nada que
+  // conectar — la función se mantiene por simetría con _conectarUI/_conectarHeader.
 }
 
 /**
@@ -1306,6 +1308,9 @@ async function _procesarS6_Protocolo(texto) {
     if (state.modalidad_final === "online") {
       respuesta = "Las clases online se hacen por Google Meet — solo necesitas un ordenador o móvil con cámara. " +
         "Te enviamos el enlace antes de cada clase y la hacemos desde donde te venga bien.";
+    } else if (state.modalidad_zona_fuera_elegida === "palma") {
+      respuesta = "Las clases presenciales las hacemos en un parque céntrico de Palma — un entorno tranquilo donde el adiestrador conoce a tu perro en persona. " +
+        "Te enviamos la ubicación exacta al confirmar la cita.";
     } else {
       respuesta = "Las clases presenciales se hacen en tu domicilio — es donde el perro vive su día a día y " +
         "donde podemos observar con más criterio el comportamiento en su contexto real. " +
@@ -1363,7 +1368,7 @@ function _mostrarBotonesRamificacion() {
         },
       },
     ]);
-  }, 4500);
+  }, 1600);
 }
 
 function _mostrarMetodologiaCompleta() {
@@ -1372,9 +1377,12 @@ function _mostrarMetodologiaCompleta() {
     _mostrarTyping(false);
     const modalidad = state.modalidad_final === "online" ? "online" : "presencial";
     const perro = state.perro.nombre ?? null;
+    const lugar = state.modalidad_zona_fuera_elegida === "palma"
+      ? "en un parque céntrico de Palma, un entorno tranquilo donde el adiestrador conoce a {perro} en persona (te enviamos la ubicación al confirmar la cita)"
+      : "en tu domicilio — donde {perro} vive su día a día, que es donde mejor se observa su comportamiento real";
     const frase = obtenerFrase({
       tipo: "como_trabajamos",
-      vars: { perro, modalidad },
+      vars: { perro, modalidad, lugar },
     });
     _mostrarVictoria(frase);
     _registrarTurno("victoria", frase);
@@ -1684,7 +1692,9 @@ async function _procesarS12_Confirmacion(_texto) {
     const slot     = state.slot_elegido;
     const modalidad = state.modalidad_final === "online"
       ? "online por Google Meet"
-      : "en tu domicilio";
+      : state.modalidad_zona_fuera_elegida === "palma"
+        ? "presencial en un parque de Palma"
+        : "en tu domicilio";
 
     return `¡Todo confirmado! 🐾 El equipo de Perros de la Isla se pondrá en contacto contigo para preparar la primera clase. ` +
       `Quedamos el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
@@ -2038,17 +2048,35 @@ function _iniciarPago() {
 
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
-    return "Antes de seguir te cuento los detalles prácticos: el valor de la clase online es de 75€. " +
-      "También tenemos un pack de 4 clases por 240€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
-      "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera clase, no hace falta elegir ahora. " +
-      "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
-      "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
+    return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que entienda mejor y viva más tranquilo.
+
+La inversión de la primera clase online es de 75€, e incluye bastante más que la hora de clase:
+- Consulta por WhatsApp con el adiestrador entre semana
+- Videos de apoyo para practicar los ejercicios
+- App para seguir los ejercicios de tu perro día a día
+- Una evaluación del bienestar de tu perro para personalizar el trabajo
+- Acompañamiento hasta dejar el caso encaminado
+
+La mayoría de familias continúa con el pack de 4 clases (240€, ahorras 60€), donde se consolidan los resultados — pero eso lo decides tras la primera clase, sin compromiso.
+
+Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
   }
-  return "Antes de seguir te cuento los detalles prácticos: el valor de la clase presencial es de 90€. " +
-    "También tenemos un pack de 4 clases por 300€ — ahorras 60€ y es lo que solemos recomendar para que el trabajo sea consistente. " +
-    "Puedes decidir pack o clase suelta cuando conozcas al adiestrador en la primera clase, no hace falta elegir ahora. " +
-    "Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. " +
-    "Si necesitas cancelar o cambiar la cita, sin problema siempre que sea con 48h de antelación.";
+  const lugarBullet = state.modalidad_zona_fuera_elegida === "palma"
+    ? "El adiestrador te recibe en un parque céntrico de Palma"
+    : "El adiestrador se desplaza a tu domicilio";
+  return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que entienda mejor y viva más tranquilo.
+
+La inversión de la primera clase presencial es de 90€, e incluye bastante más que la hora de clase:
+- ${lugarBullet}
+- Consulta por WhatsApp con el adiestrador entre semana
+- Videos de apoyo para practicar los ejercicios
+- App para seguir los ejercicios de tu perro día a día
+- Una evaluación del bienestar de tu perro para personalizar el trabajo
+- Acompañamiento hasta dejar el caso encaminado
+
+La mayoría de familias continúa con el pack de 4 clases (300€, ahorras 60€), donde se consolidan los resultados — pero eso lo decides tras la primera clase, sin compromiso.
+
+Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
 }
 
 function _mostrarPrecioYBotonesAgenda() {
@@ -2351,7 +2379,9 @@ async function _notificarCarlos() {
   const slotLabel    = slot?.label ?? "—";
   const modalidadTexto = state.modalidad_final === "online"
     ? "online por Google Meet"
-    : "presencial · en tu domicilio";
+    : state.modalidad_zona_fuera_elegida === "palma"
+      ? "presencial · parque de Palma"
+      : "presencial · en tu domicilio";
 
   const mensajeCliente = [
     `¡Hola ${primerNombre}! 🐾`,
@@ -2369,7 +2399,7 @@ async function _notificarCarlos() {
     "",
     "Entre clases tienes consultas por WhatsApp con el adiestrador. Te enviamos videos de referencia para que tengas claro cómo practicar, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.",
     "",
-    "Si necesitas cambiar o cancelar algo, avísame con 48h de antelación y lo reorganizamos sin problema.",
+    "Si necesitas cambiar o cancelar, avísame con al menos 48h de antelación y lo reorganizamos sin problema. Con menos de 48h, la seña de 45€ no se devuelve.",
     "",
     "Cualquier duda hasta entonces, aquí estoy.",
     "",
@@ -2887,7 +2917,6 @@ async function _crearSesionTracking() {
       origen:                state.origen,
       es_prueba:             state.prueba,
       dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
-      toco_splash:           true,  // splash eliminado v24 — entrada directa al chat
     });
 
     if (res?.id) {
@@ -2915,7 +2944,6 @@ async function _crearSesionTrackingVicky() {
       es_prueba:             state.prueba,
       es_vicky:              true,
       dispositivo:           /Mobi|Android/i.test(navigator.userAgent) ? "movil" : "desktop",
-      toco_splash:           true,
       zona:                  state.zona?.zonaDetectada,
       modalidad:             state.modalidad_final,
       raza_perro:            state.perro.raza,

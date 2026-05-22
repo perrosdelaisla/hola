@@ -72,7 +72,7 @@ export const FRASES_APOYO = {
 
   filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 
-  zona_fuera_preguntar: `Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te puedo proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
+  zona_fuera_preguntar: `Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te puedo proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
 
   zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado.`,
 
@@ -99,7 +99,7 @@ export const FRASES_APOYO = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const FRASE_MENSAJE_PRINCIPAL = [
-  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y la primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
+  `Entiendo. Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y la primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
 
   `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Cada perro es un mundo, por eso aplicamos un proceso de aprendizaje estructurado: la primera clase es la base de todo, el adiestrador conoce a {perro} en su contexto para elegir y aplicar el protocolo más adecuado para él.`,
 
@@ -107,7 +107,7 @@ export const FRASE_MENSAJE_PRINCIPAL = [
 ];
 
 export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
-  `Entiendo. Lo que cuentas es de lo que trabajamos a diario, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y para tu zona lo hacemos online: la primera clase es justo para esto, el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
+  `Entiendo. Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y para tu zona lo hacemos online: la primera clase es justo para esto, el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
 
   `Te escucho. Lo que describes lo trabajamos habitualmente, no te preocupes. Trabajamos contigo online y, aunque sea por videollamada, aplicamos un proceso de aprendizaje estructurado: la primera clase es la base de todo, el adiestrador conoce a {perro} en su contexto para elegir y aplicar el protocolo más adecuado para él.`,
 
@@ -116,15 +116,15 @@ export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
 
 export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
 
-export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `El adiestrador se desplaza a tu domicilio — donde {perro} vive su día a día, que es donde mejor se observa su comportamiento real. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
+export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `Las clases presenciales son {lugar}. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Además, como cliente tienes acceso a nuestra app para seguir los ejercicios de {perro} día a día, una carpeta para tomar apuntes en cada clase, y una evaluación del bienestar de tu perro que usamos para personalizar el trabajo y mejorar su calidad de vida. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
 
 Si quieres conocernos más o ver nuestra forma de trabajar, puedes echar un vistazo a nuestras redes y la web.`;
 
 export const FRASE_COMO_TRABAJAMOS_ONLINE = `Las clases son por Google Meet — solo necesitas un móvil o un ordenador con cámara, y que {perro} esté contigo en casa para que el adiestrador pueda verlo durante la clase. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
-Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
+Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos de apoyo para que practiques los ejercicios correctamente, y puedes mandarnos videos tuyos entrenando para que te vayamos corrigiendo. Además, como cliente tienes acceso a nuestra app para seguir los ejercicios de {perro} día a día, una carpeta para tomar tus apuntes, y una evaluación del bienestar de tu perro que usamos para personalizar el trabajo y mejorar su calidad de vida. Así cada clase avanza sobre la anterior y aprovechamos al máximo el trabajo.
 
 Si quieres conocernos más o ver nuestra forma de trabajar, puedes echar un vistazo a nuestras redes y la web.`;
 
@@ -211,11 +211,8 @@ export function obtenerFrase({ tipo, cuadro, modalidad, subtipo, vars = {} }) {
       } else {
         frase = FRASE_COMO_TRABAJAMOS_PRESENCIAL;
       }
-      if (vars.perro) {
-        frase = frase.replace(/\{perro\}/g, vars.perro);
-      } else {
-        frase = frase.replace(/\{perro\}/g, "tu perro");
-      }
+      frase = frase.replace(/\{lugar\}/g, vars.lugar || "en tu domicilio");
+      frase = frase.replace(/\{perro\}/g, vars.perro || "tu perro");
       break;
 
     case "cierre_metodologia":
