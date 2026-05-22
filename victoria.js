@@ -2048,35 +2048,17 @@ function _iniciarPago() {
 
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
-    return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que entienda mejor y viva más tranquilo.
+    return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que viva más tranquilo.
 
-La inversión de la primera clase online es de 75€, e incluye bastante más que la hora de clase:
-- Consulta por WhatsApp con el adiestrador entre semana
-- Videos de apoyo para practicar los ejercicios
-- App para seguir los ejercicios de tu perro día a día
-- Una evaluación del bienestar de tu perro para personalizar el trabajo
-- Acompañamiento hasta dejar el caso encaminado
+El valor de la clase suelta online es de 75€, y el del pack de 4 clases, 240€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
 
-La mayoría de familias continúa con el pack de 4 clases (240€, ahorras 60€), donde se consolidan los resultados — pero eso lo decides tras la primera clase, sin compromiso.
-
-Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
+Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
   }
-  const lugarBullet = state.modalidad_zona_fuera_elegida === "palma"
-    ? "El adiestrador te recibe en un parque céntrico de Palma"
-    : "El adiestrador se desplaza a tu domicilio";
-  return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que entienda mejor y viva más tranquilo.
+  return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que viva más tranquilo.
 
-La inversión de la primera clase presencial es de 90€, e incluye bastante más que la hora de clase:
-- ${lugarBullet}
-- Consulta por WhatsApp con el adiestrador entre semana
-- Videos de apoyo para practicar los ejercicios
-- App para seguir los ejercicios de tu perro día a día
-- Una evaluación del bienestar de tu perro para personalizar el trabajo
-- Acompañamiento hasta dejar el caso encaminado
+El valor de la clase suelta presencial es de 90€, y el del pack de 4 clases, 300€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
 
-La mayoría de familias continúa con el pack de 4 clases (300€, ahorras 60€), donde se consolidan los resultados — pero eso lo decides tras la primera clase, sin compromiso.
-
-Para reservar la cita se pide una seña de 45€ por Bizum o transferencia, que se descuenta del total. Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
+Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
 }
 
 function _mostrarPrecioYBotonesAgenda() {
