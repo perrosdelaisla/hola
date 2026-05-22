@@ -1643,7 +1643,11 @@ async function _procesarS12_Confirmacion(_texto) {
     // desde _crearSesionTracking; la query del admin la filtra fuera de
     // stats). UI completa y bubble de confirmación se mantienen.
     if (!state.prueba) {
-      await _guardarCitaEnSupabase();
+      // Capa 2 doble reserva: si el slot fue tomado entre la elección y la
+      // confirmación, _guardarCitaEnSupabase devuelve false tras reubicar al
+      // cliente en la agenda. Cortamos aquí — sin notificar ni marcar cita.
+      const guardado = await _guardarCitaEnSupabase();
+      if (!guardado) return null;
       await _notificarCarlos();
 
       // Flujo Vicky: marcar el token como usado ahora que la cita existe.
@@ -2245,23 +2249,40 @@ async function _guardarCitaEnSupabase() {
   const fechaCita = slot?.fecha ?? null;
   const horaCita  = slot?.hora  ?? null;
 
-  const citaRes = await _supabasePost("/rest/v1/citas", {
-    cliente_id:              clienteId,
-    fecha:                   fechaCita,
-    hora:                    horaCita,
-    estado:                  "confirmada",
-    sena_pagada:             !state.pago_pendiente_verificar,
-    metodo_pago:             state.metodo_pago ?? null,
-    comprobante_url:         state.comprobante_url,
-    modalidad:               state.modalidad_final,
-    zona:                    state.zona?.zonaDetectada,
-    cuadros_detectados:      cuadros,
-    es_mixto:                decision?.es_mixto            ?? false,
-    mixto_degradado:         decision?.mixto_degradado     ?? false,
-    bandera_edad_temprana:   state.bandera_edad_temprana   ?? false,
-    pago_pendiente_verificar: state.pago_pendiente_verificar,
-    confirmada:              true,
-  });
+  let citaRes;
+  try {
+    citaRes = await _supabasePost("/rest/v1/citas", {
+      cliente_id:              clienteId,
+      fecha:                   fechaCita,
+      hora:                    horaCita,
+      estado:                  "confirmada",
+      sena_pagada:             !state.pago_pendiente_verificar,
+      metodo_pago:             state.metodo_pago ?? null,
+      comprobante_url:         state.comprobante_url,
+      modalidad:               state.modalidad_final,
+      zona:                    state.zona?.zonaDetectada,
+      cuadros_detectados:      cuadros,
+      es_mixto:                decision?.es_mixto            ?? false,
+      mixto_degradado:         decision?.mixto_degradado     ?? false,
+      bandera_edad_temprana:   state.bandera_edad_temprana   ?? false,
+      pago_pendiente_verificar: state.pago_pendiente_verificar,
+      confirmada:              true,
+    }, { relanzarError: true });
+  } catch (err) {
+    if (_esErrorSlotTomado(err)) {
+      const msg = "Acabamos de comprobar que ese horario ya no está disponible. Te mostramos las opciones que quedan libres.";
+      _registrarTurno("victoria", msg);
+      _mostrarVictoria(msg);
+      // Reubicar en la agenda. Reseteamos el paso a s7 para que la
+      // persistencia (Bug A) y un eventual recargar reabran la agenda y no
+      // el cierre de s12. El slot tomado se descarta.
+      state.current_step = "s7";
+      state.slot_elegido = null;
+      await _iniciarAgenda();
+      return false; // slot tomado — el caller corta el flujo (no crea conversación)
+    }
+    throw err;
+  }
   state.cita_id = citaRes?.id ?? null;
 
   await _supabasePost("/rest/v1/conversaciones", {
@@ -2269,6 +2290,7 @@ async function _guardarCitaEnSupabase() {
     turnos:       state.historial_turnos,
     log_matching: state.log_matching_final,
   });
+  return true;
 }
 
 // Mapa cuadro interno → nombre humano + duración estimada
@@ -3131,7 +3153,18 @@ async function _redispararPasoActual() {
 // SUPABASE — helper genérico
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function _supabasePost(endpoint, body) {
+/**
+ * Detecta si un error de Supabase corresponde a violación del constraint
+ * UNIQUE citas_slot_unico (Capa 1, aplicado 22/05/2026).
+ */
+function _esErrorSlotTomado(error) {
+  if (!error) return false;
+  if (error.code === '23505') return true;
+  const msg = typeof error.message === 'string' ? error.message : '';
+  return msg.includes('citas_slot_unico') || msg.includes('duplicate key');
+}
+
+async function _supabasePost(endpoint, body, { relanzarError = false } = {}) {
   try {
     const res = await fetch(`${SUPA_URL}${endpoint}`, {
       method: "POST",
@@ -3143,11 +3176,26 @@ async function _supabasePost(endpoint, body) {
       },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Supabase ${res.status} en ${endpoint}`);
+    if (!res.ok) {
+      // Parsear body para extraer info del error (ej. código 23505 del
+      // constraint citas_slot_unico — Capa 1 aplicada 22/05/2026).
+      let bodyErr = {};
+      try { bodyErr = await res.json(); } catch (_) {}
+      const err = new Error(bodyErr.message || `Supabase ${res.status} en ${endpoint}`);
+      err.status = res.status;
+      err.code = bodyErr.code;
+      err.details = bodyErr.details;
+      err.hint = bodyErr.hint;
+      throw err;
+    }
     const data = await res.json();
     return Array.isArray(data) ? data[0] : data;
   } catch (err) {
     console.error("Error Supabase:", err);
+    // Opt-in: solo los llamadores que pasan { relanzarError: true } reciben
+    // el error propagado. Por defecto se mantiene el contrato histórico
+    // (devolver null) para no romper los otros llamadores del helper.
+    if (relanzarError) throw err;
     return null;
   }
 }
