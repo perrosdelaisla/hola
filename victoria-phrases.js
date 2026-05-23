@@ -68,7 +68,7 @@ export const FRASES_APOYO = {
 
   pedir_especificacion: `Cuéntame algo más del día a día con tu perro — qué situaciones te gustaría mejorar, qué has notado que te preocupa, cómo es la convivencia. Con eso puedo orientarte mejor.`,
 
-  filtro_mordida: `Para orientarte bien, ¿con quién o con qué pasa? ¿Con personas, con otros perros, o con cosas (muebles, ropa, juguetes)? Cuéntame cómo es el último episodio que recuerdes.`,
+  filtro_mordida: `Para orientarte bien, ¿con quién o con qué pasa? ¿Con personas, con otros perros, o con cosas (muebles, ropa, cordones)? Cuéntame cómo es el último episodio que recuerdes.`,
 
   filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 

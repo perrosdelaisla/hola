@@ -52,9 +52,41 @@ const KEYWORDS_AGRESION = [
 // Con agresión + víctima vulnerable → derivación cautelosa aunque no haya peso.
 const KEYWORDS_VICTIMA_VULNERABLE = [
   "mi hijo", "mi hija", "mis hijos", "mis hijas",
+  "mi sobrino", "mi sobrina", "mis sobrinos", "mis sobrinas",
+  "mi nieto", "mi nieta",
   "niño", "niña", "niños", "niñas",
   "bebé", "bebe", "bebés", "bebes",
   "anciano", "anciana", "abuelo", "abuela",
+];
+
+// Cualquier víctima humana — superconjunto de VULNERABLE + tutor + familia
+// extendida + genéricas. Se usa para derivar al etólogo inmediato cuando
+// hay mordida + víctima persona + perro adulto con riesgo (peso o PPP).
+// Mordida al tutor también deriva (criterio Charly: es grave por sí solo).
+const KEYWORDS_VICTIMA_PERSONA = [
+  // Tutor (caso clínicamente grave)
+  "a mí", "me mordió", "me ha mordido", "me muerde", "me ataca", "me marcó",
+  // Familia directa
+  "mi hijo", "mi hija", "mis hijos", "mis hijas",
+  "mi mujer", "mi marido", "mi pareja",
+  "mi padre", "mi madre", "mis padres",
+  "mi abuelo", "mi abuela",
+  "mi suegro", "mi suegra",
+  // Familia extendida
+  "mi sobrino", "mi sobrina", "mis sobrinos", "mis sobrinas",
+  "mi primo", "mi prima",
+  "mi hermano", "mi hermana",
+  "mi nieto", "mi nieta",
+  "mi yerno", "mi nuera",
+  "mi cuñado", "mi cuñada",
+  // Genéricas
+  "niño", "niña", "niños", "niñas",
+  "bebé", "bebe", "bebés", "bebes",
+  "anciano", "anciana", "abuelo", "abuela",
+  "vecino", "vecina", "vecinos", "vecinas",
+  "cartero", "repartidor", "repartidora",
+  "amigo", "amiga", "amigos", "amigas",
+  "alguien", "una persona", "personas", "la gente", "gente",
 ];
 
 // Objetos que el perro puede morder = destrucción, NO agresión.
@@ -194,6 +226,7 @@ export function decidirRespuesta(contexto) {
 
   const hayAgresion = KEYWORDS_AGRESION.some(kw => textoNorm.includes(normalizar(kw)));
   const hayVictimaVulnerable = KEYWORDS_VICTIMA_VULNERABLE.some(kw => textoNorm.includes(normalizar(kw)));
+  const hayVictimaPersona = KEYWORDS_VICTIMA_PERSONA.some(kw => textoNorm.includes(normalizar(kw)));
   const esGrande = (perro?.peso_kg ?? 0) > 10;
   const esGrandota = (perro?.peso_kg ?? 0) >= 25;
   const esPPP = perro?.es_ppp ?? false;
@@ -205,6 +238,25 @@ export function decidirRespuesta(contexto) {
   const muerdeObjetos =
     keywords_mordida &&
     KEYWORDS_OBJETOS_MORDIBLES.some(obj => textoNorm.includes(normalizar(obj)));
+
+  // ── REGLA PDLI: mordida a persona (no cachorro, con riesgo por tamaño/PPP)
+  // → etólogo directo, sin pasar por la pregunta de gravedad.
+  // Criterio clínico: la mordida a humanos en perro adulto con peso o PPP
+  // requiere valoración etológica antes de adiestramiento. Caniche (≤10kg
+  // no PPP) mordiendo a tutor sí se trabaja en clase — diferencia clínica
+  // por riesgo real de lesión.
+  {
+    const esCachorroDirecto = (perro?.edad_meses ?? 999) < 9;
+    if (keywords_mordida && hayVictimaPersona && !esCachorroDirecto && (esGrande || esPPP)) {
+      return _decision({
+        accion: "derivar",
+        frase_params: { tipo: "etologo", subtipo: "mordida_personas" },
+        pending_next: null,
+        cuadro_ganador: null,
+        log: _log(1, `mordida a persona: peso=${perro?.peso_kg}kg ppp=${esPPP} → etólogo directo`),
+      });
+    }
+  }
 
   // Condiciones para activar el filtro de seguridad
   const activarFiltro =
