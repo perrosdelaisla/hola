@@ -23,11 +23,11 @@
 
 export const FRASES_ETOLOGO = {
 
-  principal: `Gracias por escribirme con tanto detalle. Por lo que describes, lo que tu perro necesita en este momento va más allá de un protocolo de adiestramiento — sería importante empezar por una valoración con un etólogo veterinario. Los etólogos tienen formación clínica en comportamiento canino y pueden valorar si hay algún componente médico o neurológico detrás del cuadro, además de definir un plan individualizado. No es un "no" a trabajar con vosotros — es que el orden importa, y empezar por ahí es lo que mejor le va a ir a tu perro. Si en un futuro, una vez hecha esa evaluación, quieres plantearte un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Gracias de nuevo por la confianza.`,
+  principal: `Gracias por escribirnos con tanto detalle. Por lo que describes, lo que tu perro necesita en este momento va más allá de un protocolo de adiestramiento — sería importante empezar por una valoración con un etólogo veterinario. Los etólogos tienen formación clínica en comportamiento canino y pueden valorar si hay algún componente médico o neurológico detrás del cuadro, además de definir un plan individualizado. No es un "no" a trabajar con vosotros — es que el orden importa, y empezar por ahí es lo que mejor le va a ir a tu perro. Si en un futuro, una vez hecha esa evaluación, quieres plantearte un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Gracias de nuevo por la confianza.`,
 
-  complementaria: `En Mallorca hay varios profesionales. El más conocido es Tomás Camps, aunque te recomendaría mirar también qué perfil te queda más cerca de zona y con quién te sientes cómodo — es una decisión personal y es importante que el encaje sea bueno.`,
+  complementaria: `En Mallorca hay varios profesionales. El más conocido es Tomás Camps, aunque te recomendaríamos mirar también qué perfil te queda más cerca de zona y con quién te sientes cómodo — es una decisión personal y es importante que el encaje sea bueno.`,
 
-  mordida_personas: `Gracias por contármelo con tanta claridad. Por lo que describes, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento — cuando hay mordida a personas, es imprescindible una evaluación clínica para garantizar la seguridad de todos, incluido tu perro. En Perros de la Isla no aceptamos casos así sin esa valoración previa, es un criterio firme que mantenemos por responsabilidad profesional. Te recomiendo buscar un etólogo veterinario colegiado en tu zona. Si en un futuro, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
+  mordida_personas: `Gracias por contárnoslo con tanta claridad. Por lo que describes, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento — cuando hay mordida a personas, es imprescindible una evaluación clínica para garantizar la seguridad de todos, incluido tu perro. En Perros de la Isla no aceptamos casos así sin esa valoración previa, es un criterio firme que mantenemos por responsabilidad profesional. Te recomendamos buscar un etólogo veterinario colegiado en tu zona. Si en un futuro, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
 };
 
 
@@ -39,7 +39,7 @@ export const FRASES_SON_GOTLEU = {
 
   compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo. Lo que sí podemos hacer es trabajarlo en modalidad online por Google Meet, junto a los tutores, con pautas concretas entre semana — funciona muy bien para este tipo de casos.`,
 
-  no_compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo, y este tipo de caso solo lo trabajamos presencialmente porque necesita observación directa del perro en su contexto. Te recomendaría buscar un profesional cerca de tu zona con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros.`,
+  no_compatible_online: `Por temas de agenda y organización, en esa zona no estamos ofreciendo desplazamiento presencial ahora mismo, y este tipo de caso solo lo trabajamos presencialmente porque necesita observación directa del perro en su contexto. Te recomendaríamos buscar un profesional cerca de tu zona con enfoque cognitivo-emocional y sin métodos aversivos — es el perfil que mejor resultado da en estos cuadros.`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -48,15 +48,15 @@ export const FRASES_SON_GOTLEU = {
 
 export const FRASES_LATERALES = {
 
-  paseos_grupales: `Gracias por el interés. Los paseos grupales no son un servicio fijo en agenda — los organizamos de forma puntual según época del año, disponibilidad y tiempo. Te recomendaría seguirnos en Instagram (@perrosdelaisla), que es donde avisamos cuándo abrimos fechas, condiciones y cómo apuntarse. Si mientras tanto hay algo concreto del día a día con tu perro que te gustaría trabajar (paseo, convivencia, socialización, alguna conducta que quieras mejorar), cuéntame y lo vemos.`,
+  paseos_grupales: `Gracias por el interés. Los paseos grupales no son un servicio fijo en agenda — los organizamos de forma puntual según época del año, disponibilidad y tiempo. Te recomendaríamos seguirnos en Instagram (@perrosdelaisla), que es donde avisamos cuándo abrimos fechas, condiciones y cómo apuntarse. Si mientras tanto hay algo concreto del día a día con tu perro que te gustaría trabajar (paseo, convivencia, socialización, alguna conducta que quieras mejorar), cuéntanos y lo vemos.`,
 
   adopciones: `Gracias por escribir. No nos dedicamos a adopciones — somos una empresa de adiestramiento canino especializada en perros de familia. Si en algún momento adoptas y necesitas apoyo para educarlo o integrarlo bien en casa, aquí estamos.`,
 
   guarderia: `Para guardería canina, lo mejor es que mires opciones en tu zona y visites las instalaciones antes de decidir — es importante que veas cómo manejan a los perros, qué espacio tienen, cómo es el personal. No tenemos una recomendación concreta que darte con la que nos sintamos cómodos al cien por cien, así que preferimos que elijas tú con calma después de verlo en persona.`,
 
-  peluqueria: `Para peluquería canina en Palma, la más conocida y con la que hemos tenido buena experiencia es Dogma. Te recomendaría buscarlos y ver disponibilidad. Si estás fuera de Palma, lo mejor es preguntar en tu veterinario de referencia qué peluquería recomienda en tu zona — ellos suelen saber quiénes trabajan con trato cuidadoso.`,
+  peluqueria: `Para peluquería canina en Palma, la más conocida y con la que hemos tenido buena experiencia es Dogma. Te recomendaríamos buscarlos y ver disponibilidad. Si estás fuera de Palma, lo mejor es preguntar en tu veterinario de referencia qué peluquería recomienda en tu zona — ellos suelen saber quiénes trabajan con trato cuidadoso.`,
 
-  veterinaria: `Para veterinaria, si estás en Palma te recomendaría Veterinaria Sa Palla, en Plaça del Pes de Sa Palla 5 (casco antiguo). Es la que usamos nosotros, muy cuidadosa con el trato y con buena atención. Si estás fuera de Palma, lo mejor es buscar un veterinario de zona con buenas referencias y consulta sin prisas.`,
+  veterinaria: `Para veterinaria, si estás en Palma te recomendaríamos Veterinaria Sa Palla, en Plaça del Pes de Sa Palla 5 (casco antiguo). Es la que usamos nosotros, muy cuidadosa con el trato y con buena atención. Si estás fuera de Palma, lo mejor es buscar un veterinario de zona con buenas referencias y consulta sin prisas.`,
 };
 
 
@@ -66,13 +66,13 @@ export const FRASES_LATERALES = {
 
 export const FRASES_APOYO = {
 
-  pedir_especificacion: `Cuéntame algo más del día a día con tu perro — qué situaciones te gustaría mejorar, qué has notado que te preocupa, cómo es la convivencia. Con eso puedo orientarte mejor.`,
+  pedir_especificacion: `Cuéntanos algo más del día a día con tu perro — qué situaciones te gustaría mejorar, qué has notado que te preocupa, cómo es la convivencia. Con eso podemos orientarte mejor.`,
 
-  filtro_mordida: `Para orientarte bien, ¿con quién o con qué pasa? ¿Con personas, con otros perros, o con cosas (muebles, ropa, cordones)? Cuéntame cómo es el último episodio que recuerdes.`,
+  filtro_mordida: `Para orientarte bien, ¿con quién o con qué pasa? ¿Con personas, con otros perros, o con cosas (muebles, ropa, cordones)? Cuéntanos cómo es el último episodio que recuerdes.`,
 
-  filtro_mordida_repregunta: `Para poder orientarte bien, cuéntame con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
+  filtro_mordida_repregunta: `Para poder orientarte bien, cuéntanos con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 
-  zona_fuera_preguntar: `Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te puedo proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
+  zona_fuera_preguntar: `Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te podemos proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
 
   zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado.`,
 
@@ -80,17 +80,17 @@ export const FRASES_APOYO = {
 
   zona_fuera_rechaza: `Sin problema. Si más adelante tienes alguna duda o quieres hablar con una persona, puedes escribirnos al 622 922 173. Mucha suerte con {perro}.`,
 
-  pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio me vale para ver qué podemos ofrecerte.`,
+  pedir_zona: `¿En qué zona de Mallorca estás? Con el municipio o barrio nos vale para ver qué podemos ofrecerte.`,
 
   pedir_edad: `¿Qué edad tiene tu perro? Con meses si aún es cachorro, o años si ya es adulto.`,
 
-  pedir_peso: `¿Qué peso aproximado tiene? No hace falta que sea exacto, un número aproximado me vale.`,
+  pedir_peso: `¿Qué peso aproximado tiene? No hace falta que sea exacto, un número aproximado nos vale.`,
 
-  pedir_raza: `¿Qué raza es? Si es mestizo o no estás seguro, descríbeme cómo es de tamaño y complexión.`,
+  pedir_raza: `¿Qué raza es? Si es mestizo o no estás seguro, descríbenos cómo es de tamaño y complexión.`,
 
-  pedir_conducta: `Cuando pasa eso, ¿cómo reacciona exactamente tu perro? ¿Se esconde, se queda paralizado, intenta salir corriendo? ¿O más bien ladra, se lanza, tira de la correa? La respuesta del perro es lo que me ayuda a orientarte bien.`,
+  pedir_conducta: `Cuando pasa eso, ¿cómo reacciona exactamente tu perro? ¿Se esconde, se queda paralizado, intenta salir corriendo? ¿O más bien ladra, se lanza, tira de la correa? La respuesta del perro es lo que nos ayuda a orientarte bien.`,
 
-  fallback_whatsapp: `Para poder orientarte bien, te paso directamente con el equipo de Perros de la Isla — pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173.`,
+  fallback_whatsapp: `Para poder orientarte bien, te conectamos directamente con el equipo de Perros de la Isla — pueden atenderte con más detalle. Puedes escribirnos por WhatsApp al 622 922 173.`,
 };
 
 
