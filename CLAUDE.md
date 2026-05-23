@@ -197,3 +197,29 @@ VictorIA tiene respuestas hardcoded en `FRASES_LATERALES` ([victoria-phrases.js]
 ---
 
 > **Recordatorio para sesiones futuras de Claude**: este es el archivo de referencia. Si algo de aquí entra en conflicto con lo que ves en el código, **el código manda** — y avísale a Charly para actualizar este CLAUDE.md.
+
+
+## Bump de versión (cache busting)
+
+Cuando cambies cualquier archivo JS del proyecto y necesites que
+los clientes vean la versión nueva, **correr este comando UNA vez
+antes de commitear**:
+
+```bash
+node bump-version.js <nueva-version>
+```
+
+Ejemplo: `node bump-version.js 52`
+
+Esto actualiza todas las refs `?v=N` en cadena:
+- `index.html` → carga `victoria.js?v=52`
+- `victoria.js` → importa `agenda.js?v=52`, `supabase.js?v=52`, etc.
+- Archivos hijos (`agenda.js`, `llamada.js`, `victoria-matching.js`,
+  `victoria-breeds.js`, `victoria-dictionaries.js`) → sus imports
+  internos también pasan a `?v=52`.
+
+Esto asegura que cualquier cliente con cache viejo descargue
+**toda la cadena de archivos nuevos** sin posibilidad de mezclar
+versiones.
+
+Verificar con `git diff` antes de commitear.
