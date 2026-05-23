@@ -37,7 +37,7 @@ import {
   FRASE_DURACION_UNIFICADA,
 } from "./victoria-phrases.js";
 import { esPPP }                             from "./victoria-breeds.js";
-import { decidirRespuesta }                  from "./victoria-matching.js";
+import { decidirRespuesta, tieneVocabularioReconocible } from "./victoria-matching.js";
 import { renderAgenda }                      from "./agenda.js";
 import { renderPago }                        from "./pagos.js";
 import {
@@ -82,6 +82,7 @@ function _estadoInicial() {
     lateral_detectado: null,
     decision_actual: null,
     bandera_edad_temprana: false,
+    s_inicio_intentos: 0,
     s3_intentos: 0,
     s5_intentos: 0,
     protocolo_ya_presentado: false,
@@ -702,29 +703,47 @@ async function _procesarTexto(texto) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function _procesarInicioProblema(texto) {
-  // Reorder: el primer mensaje es la descripción del problema. El prescan
-  // rescata zona/raza/edad/peso si vienen; el problema se guarda para evaluarlo
-  // una vez tengamos zona + datos del perro.
   _prescanPrimerMensaje(texto);
-  state.problema_texto = texto;
+  state.problema_texto = (state.problema_texto ? state.problema_texto + " " : "") + texto;
   if (!state.mensajes_diagnostico.includes(texto)) {
     state.mensajes_diagnostico.push(texto);
   }
   state.prescan_mensaje_inicial = null;
+  state.s_inicio_intentos = (state.s_inicio_intentos || 0) + 1;
 
   _actualizarSesion({ paso_actual: "s_inicio", paso_maximo_alcanzado: "s_inicio" });
 
-  // Sin zona válida en el prescan → la pedimos (enlaza al flujo s1).
-  if (!state.zona || state.zona.necesitaAclaracion) {
-    state.current_step = "s1";
-    return "Gracias por contárnoslo. Para orientarte bien necesitamos un par de datos rápidos. ¿En qué zona de Mallorca estás?";
+  const textoCompleto = state.problema_texto;
+  const tieneZona = state.zona && !state.zona.necesitaAclaracion;
+  const tieneMordida = _tieneKeywordsMordida(textoCompleto);
+  const tieneVocabulario = tieneVocabularioReconocible(textoCompleto);
+  const esVago = !tieneMordida && !tieneVocabulario;
+
+  if (esVago && state.s_inicio_intentos >= 2) {
+    return "Para orientarte bien necesitamos hablar contigo más directamente. Escríbenos por WhatsApp al 622 922 173 y el equipo te atiende.";
+  }
+  if (esVago && state.s_inicio_intentos === 1) {
+    return "Cuéntanos un poco más: qué situación con tu perro os preocupa o queréis mejorar. Cuanto más detalle nos des, mejor podemos orientarte.";
   }
 
-  // Con zona → pedimos el nombre (s2). Siempre pasamos por s2/s3, así recogemos
-  // nombre + datos del perro antes de evaluar; eso garantiza que los casos de
-  // mordida/agresión tengan peso/PPP antes de la pregunta de gravedad (s5).
+  if (tieneMordida) {
+    const necesitaDatos = state.perro.edad_meses === null
+      || state.perro.peso_kg === null
+      || state.perro.raza === null;
+    if (necesitaDatos) {
+      state.current_step = "s3";
+      return "Entiendo, necesito más datos. ¿Qué edad tiene tu perro, qué raza es y cuánto pesa aproximadamente?";
+    }
+    return await _completarYEvaluar();
+  }
+
+  if (!tieneZona) {
+    state.current_step = "s1";
+    return "De acuerdo. ¿En qué zona de Mallorca estás?";
+  }
+
   state.current_step = "s2";
-  return "Gracias por contárnoslo. Para orientarte bien necesitamos un par de datos rápidos. Para empezar, ¿cómo se llama tu perro?";
+  return "De acuerdo. ¿Cómo se llama tu perro?";
 }
 
 async function _completarYEvaluar() {
@@ -1085,7 +1104,9 @@ async function _procesarGravedadMordida(texto) {
   const esGrave = [
     "grave", "muy grave",
     "lesión", "lesion",
-    "sangre", "sangró", "sangro",
+    "sangre", "sangró", "sangro", "sangrar", "sangrando",
+    "hizo sangrar", "me hizo sangrar", "le hizo sangrar",
+    "ha sangrado", "está sangrando",
     "puntos", "puntos de sutura", "sutura",
     "herida", "herida profunda",
     "urgencias", "médico", "medico", "hospital",
@@ -1814,8 +1835,8 @@ async function _iniciarAgenda() {
       state.slot_confirmando = true;
 
       state.slot_elegido = slotElegido;
-      state.current_step = "s8";
-      // ── ADICIÓN 9: tracking slot elegido ──
+      // El clic en "Reservar este horario (seña 45€)" ya es la confirmación.
+      // Saltamos directo a s9 (datos cliente) o s10 (pago) según token Vicky.
       _actualizarSesion({
         paso_actual:           "s8",
         paso_maximo_alcanzado: "s8",
@@ -1825,10 +1846,31 @@ async function _iniciarAgenda() {
       _mostrarTyping(true);
       setTimeout(() => {
         _mostrarTyping(false);
-        const msg = `Has elegido el ${slotElegido.label}. ¿Confirmamos este horario?`;
-        _registrarTurno("victoria", msg);
-        _mostrarVictoria(msg);
-        _actualizarProgreso();
+
+        // Flujo Vicky: datos ya están precargados del token → ir a pago directo
+        if (state.token_vicky) {
+          state.current_step = "s10";
+          const msg = `Perfecto, reservamos el ${slotElegido.label}. ` + _explicarPago();
+          _registrarTurno("victoria", msg);
+          _mostrarVictoria(msg);
+          _actualizarProgreso();
+          setTimeout(() => {
+            _mostrarTyping(true);
+            setTimeout(() => {
+              _mostrarTyping(false);
+              _iniciarPago();
+            }, 1000);
+          }, 3500);
+        } else {
+          // Flujo normal: ir a s9 (datos cliente)
+          state.current_step = "s9";
+          const msg = `Perfecto, el ${slotElegido.label} queda apartado para ti. ` +
+            "Vamos a tomar tus datos para confirmar la reserva. ¿Cuál es tu nombre completo y tu teléfono?";
+          _registrarTurno("victoria", msg);
+          _mostrarVictoria(msg);
+          _actualizarProgreso();
+        }
+
         state.slot_confirmando = false;
       }, 800);
     },
@@ -2848,8 +2890,7 @@ function _nombrePerro() {
  * en el futuro hay más plantillas que abren tras s2.
  */
 function _aperturaPostNombre() {
-  if (state.perro.nombre) return "¡Qué nombre más bonito!";
-  return "Vale, no te preocupes.";
+  return "Bien.";
 }
 
 function _insertarCierre() {

@@ -159,6 +159,18 @@ function _inputTieneVocabularioDeCuadro(textoNorm) {
   return filtrarHits(textoNorm, _VOCABULARIO_CUADROS).length > 0;
 }
 
+/**
+ * Wrapper público de _inputTieneVocabularioDeCuadro para que
+ * victoria.js pueda detectar si un texto del cliente contiene
+ * vocabulario canino reconocible. Usado en s_inicio para
+ * decidir si el texto es vago.
+ */
+export function tieneVocabularioReconocible(texto) {
+  if (!texto) return false;
+  const norm = normalizar(texto);
+  return _inputTieneVocabularioDeCuadro(norm);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ORQUESTADOR PRINCIPAL
 // ─────────────────────────────────────────────────────────────────────────────
