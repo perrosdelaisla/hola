@@ -56,14 +56,20 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
   });
 
   // Construir HTML — sin onclick inline, usaremos addEventListener
+  // El primer slot disponible (más próximo en el tiempo) recibe la
+  // clase 'slot-primero' que añade un badge visual "Próximo" para
+  // reducir parálisis de elección (patrón Calendly).
   let html = '';
+  let primerSlotMarcado = false;
   Object.entries(porFecha).forEach(([fecha, { label, horas }]) => {
     html += `<div class="agenda-dia">`;
     html += `<div class="agenda-dia-label">${label}</div>`;
     html += `<div class="sgrid">`;
     horas.forEach(hora => {
+      const claseExtra = !primerSlotMarcado ? ' slot-primero' : '';
+      if (!primerSlotMarcado) primerSlotMarcado = true;
       html += `
-        <button class="slot" data-fecha="${fecha}" data-hora="${hora}">
+        <button class="slot${claseExtra}" data-fecha="${fecha}" data-hora="${hora}">
           <div class="sday">${label}</div>
           <div class="stime">${hora}h</div>
         </button>`;

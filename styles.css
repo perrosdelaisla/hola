@@ -375,6 +375,7 @@ html, body {
   transition: all .12s;
   font-family: var(--fn);
   color: var(--t1);
+  position: relative;
 }
 .slot:hover, .slot.on {
   border-color: var(--verde);
@@ -385,6 +386,26 @@ html, body {
 .sday { font-size: 12px; font-weight: 500; }
 .stime { font-size: 11.5px; color: var(--t2); margin-top: 2px; }
 .slot.on .stime { color: var(--verde); opacity: .75; }
+
+/* Badge "Próximo" en el primer slot disponible */
+.slot-primero:not(:hover):not(.on) {
+  border-color: var(--rojo);
+}
+.slot-primero::before {
+  content: "Próximo";
+  position: absolute;
+  top: -6px;
+  right: 8px;
+  background: var(--rojo);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 8px;
+  font-family: var(--fn);
+}
 
 /* ── OPCIONES DE PAGO ── */
 .payopt {
