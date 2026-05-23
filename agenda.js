@@ -3,7 +3,7 @@
    agenda.js — Slots y selección de cita
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsDisponibles } from './supabase.js';
+import { obtenerSlotsDisponibles, obtenerSlotsConEstado } from './supabase.js';
 
 /* ── ESTADO SELECCIÓN ── */
 let slotSeleccionado = null;
@@ -29,7 +29,7 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
 
   let slots;
   try {
-    slots = await obtenerSlotsDisponibles();
+    slots = await obtenerSlotsConEstado();
   } catch (e) {
     contenedor.innerHTML = `
       <div class="warn">
@@ -48,28 +48,34 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
     return;
   }
 
-  // Agrupar por fecha
+  // Agrupar por fecha (ahora cada hora trae también su flag ocupado)
   const porFecha = {};
   slots.forEach(s => {
     if (!porFecha[s.fecha]) porFecha[s.fecha] = { label: s.label, horas: [] };
-    porFecha[s.fecha].horas.push(s.hora);
+    porFecha[s.fecha].horas.push({ hora: s.hora, ocupado: s.ocupado });
   });
 
   // Construir HTML — sin onclick inline, usaremos addEventListener
-  // El primer slot disponible (más próximo en el tiempo) recibe la
-  // clase 'slot-primero' que añade un badge visual "Próximo" para
-  // reducir parálisis de elección (patrón Calendly).
+  // El primer slot disponible (no ocupado) recibe la clase
+  // 'slot-primero' que añade un badge visual "Próximo" para reducir
+  // parálisis de elección (patrón Calendly). Los ocupados se
+  // renderizan con la clase 'lleno' (atenuados, no clickeables).
   let html = '';
   let primerSlotMarcado = false;
   Object.entries(porFecha).forEach(([fecha, { label, horas }]) => {
     html += `<div class="agenda-dia">`;
     html += `<div class="agenda-dia-label">${label}</div>`;
     html += `<div class="sgrid">`;
-    horas.forEach(hora => {
-      const claseExtra = !primerSlotMarcado ? ' slot-primero' : '';
-      if (!primerSlotMarcado) primerSlotMarcado = true;
+    horas.forEach(({ hora, ocupado }) => {
+      let claseExtra = '';
+      if (ocupado) {
+        claseExtra = ' lleno';
+      } else if (!primerSlotMarcado) {
+        claseExtra = ' slot-primero';
+        primerSlotMarcado = true;
+      }
       html += `
-        <button class="slot${claseExtra}" data-fecha="${fecha}" data-hora="${hora}">
+        <button class="slot${claseExtra}" data-fecha="${fecha}" data-hora="${hora}" ${ocupado ? 'disabled' : ''}>
           <div class="sday">${label}</div>
           <div class="stime">${hora}h</div>
         </button>`;
@@ -86,7 +92,7 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
   contenedor.innerHTML = html;
 
   // Fix D — Eventos con scroll automático al panel de confirmación
-  contenedor.querySelectorAll('.slot').forEach(btn => {
+  contenedor.querySelectorAll('.slot:not(.lleno)').forEach(btn => {
     btn.addEventListener('click', () => {
       contenedor.querySelectorAll('.slot').forEach(b => b.classList.remove('on'));
       btn.classList.add('on');

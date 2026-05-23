@@ -62,6 +62,48 @@ export async function obtenerSlotsDisponibles() {
   });
 }
 
+/**
+ * Devuelve TODOS los slots de la grilla en días con capacidad,
+ * con flag ocupado:true/false. Usada por agenda.js para renderizar
+ * ocupados atenuados (parálisis de elección + social proof).
+ *
+ * Los días al tope o totalmente bloqueados NO aparecen (igual que
+ * en get_available_slots). Solo cambia que dentro de días válidos,
+ * se ven los ocupados también, marcados.
+ */
+export async function obtenerSlotsConEstado() {
+  const hoy = new Date();
+  const desde = new Date(hoy);
+  const hasta = new Date(hoy);
+  hasta.setDate(hoy.getDate() + 25);
+
+  const desdeStr = desde.toISOString().split('T')[0];
+  const hastaStr = hasta.toISOString().split('T')[0];
+
+  const slots = await supa(
+    `rpc/get_slots_with_status`,
+    'POST',
+    {
+      p_desde: desdeStr,
+      p_hasta: hastaStr,
+      p_min_dias_antelacion: 3
+    }
+  );
+
+  // La RPC devuelve: { fecha, hora, dia_semana, ocupado }
+  // Transformamos al formato que espera agenda.js
+  return (slots || []).map(s => {
+    const fechaObj = new Date(s.fecha + 'T00:00:00');
+    return {
+      fecha: s.fecha,
+      hora: typeof s.hora === 'string' ? s.hora.substring(0, 5) : s.hora,
+      dia_semana: s.dia_semana,
+      ocupado: s.ocupado === true,
+      label: formatearFecha(fechaObj),
+    };
+  });
+}
+
 function formatearFecha(fecha) {
   const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
   const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun',
