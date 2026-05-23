@@ -252,6 +252,20 @@ function _construirSaludoBienvenida() {
       "Cuéntame un poco más: ¿qué está pasando con tu perro en el día a día? Te orientamos en un par de minutos.";
   }
 
+  // Personalización por origen (cuando no hay tema)
+  const origen = state.origen;
+  const introsOrigen = {
+    whatsapp:  "Veo que vienes desde WhatsApp, bienvenido. ",
+    instagram: "Veo que vienes desde Instagram, gracias por seguirnos. ",
+    mail:      "Gracias por escribirnos por mail. ",
+  };
+  if (origen && introsOrigen[origen]) {
+    return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. " +
+      introsOrigen[origen] +
+      "Llevamos 14 años en Mallorca acompañando a familias con su perro. " +
+      "Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
+  }
+
   // Saludo estándar (sin parámetro o con tema inválido)
   return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. Llevamos 14 años en Mallorca acompañando a familias con su perro. Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
 }
@@ -436,6 +450,10 @@ let _chatEl    = null;
 let _twEl      = null;   // typing indicator
 let _inputEl   = null;
 let _sendEl    = null;
+
+// Timer de rescate cuando el cliente abre agenda y no elige slot
+// en 45 segundos. Se cancela al elegir slot o al cambiar de paso.
+let _timerRescateAgenda = null;
 
 function _conectarUI() {
   _chatEl  = document.getElementById("chat");
@@ -1764,6 +1782,20 @@ async function _iniciarAgenda() {
   const msgIntroAgenda = `Aquí tienes los horarios disponibles para tu primera clase ${modalidadLabel}. Reservas con seña de 45€.`;
   _mostrarVictoria(msgIntroAgenda);
   _registrarTurno("victoria", msgIntroAgenda);
+
+  // Rescate por inactividad: si el cliente abre agenda y no elige
+  // slot en 45 segundos, mostramos burbuja con WhatsApp para no
+  // perder al cliente que duda.
+  if (_timerRescateAgenda) clearTimeout(_timerRescateAgenda);
+  _timerRescateAgenda = setTimeout(() => {
+    if (state.current_step === "s7" && !state.slot_elegido) {
+      const msgRescate = "¿No encuentras un horario que te encaje? Si quieres, escríbenos al 622 922 173 y te buscamos hueco.";
+      _mostrarVictoria(msgRescate);
+      _registrarTurno("victoria", msgRescate);
+    }
+    _timerRescateAgenda = null;
+  }, 45000);
+
   const contenedor = _insertarContenedorEnChat("victoria-agenda-slot", "agenda-widget");
   if (!contenedor) {
     return "Ahora te muestro los horarios disponibles — " +
@@ -1773,6 +1805,11 @@ async function _iniciarAgenda() {
   await renderAgenda(
     contenedor,
     (slotElegido) => {
+      // Cancelar rescate por inactividad: el cliente eligió slot
+      if (_timerRescateAgenda) {
+        clearTimeout(_timerRescateAgenda);
+        _timerRescateAgenda = null;
+      }
       if (state.slot_confirmando) return;
       state.slot_confirmando = true;
 
@@ -2493,8 +2530,8 @@ async function _notificarCarlos() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROGRESO_POR_PASO = {
-  s0: 0, s_inicio: 6, s1: 8, s2: 16, s3: 24, s4: 35, s5: 45,
-  s6: 55, s7: 65, s8: 72, s9: 80, s10: 88, s11: 94, s12: 100,
+  s0: 0, s_inicio: 30, s1: 35, s2: 45, s3: 55, s4: 65, s5: 70,
+  s6: 75, s7: 82, s8: 88, s9: 92, s10: 95, s11: 98, s12: 100,
 };
 
 function _actualizarProgreso() {
