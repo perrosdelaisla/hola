@@ -699,14 +699,14 @@ async function _procesarInicioProblema(texto) {
   // Sin zona válida en el prescan → la pedimos (enlaza al flujo s1).
   if (!state.zona || state.zona.necesitaAclaracion) {
     state.current_step = "s1";
-    return "Gracias por contármelo. Para orientarte bien necesito un par de datos rápidos. ¿En qué zona de Mallorca estás?";
+    return "Gracias por contárnoslo. Para orientarte bien necesitamos un par de datos rápidos. ¿En qué zona de Mallorca estás?";
   }
 
   // Con zona → pedimos el nombre (s2). Siempre pasamos por s2/s3, así recogemos
   // nombre + datos del perro antes de evaluar; eso garantiza que los casos de
   // mordida/agresión tengan peso/PPP antes de la pregunta de gravedad (s5).
   state.current_step = "s2";
-  return "Gracias por contármelo. Para orientarte bien necesito un par de datos rápidos. Para empezar, ¿cómo se llama tu perro?";
+  return "Gracias por contárnoslo. Para orientarte bien necesitamos un par de datos rápidos. Para empezar, ¿cómo se llama tu perro?";
 }
 
 async function _completarYEvaluar() {
@@ -2662,7 +2662,7 @@ function _tieneKeywordsMordida(texto) {
  * - Nombre del perro (ambiguo, mejor pedirlo siempre).
  */
 function _prescanPrimerMensaje(texto) {
-  if (!texto || texto.length < 60) return;
+  if (!texto) return;
 
   // Zona
   const zonaDetectada = detectarZona(texto);
