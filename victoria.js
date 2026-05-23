@@ -103,6 +103,7 @@ function _estadoInicial() {
 
     mensajes_diagnostico: [],  // solo s4+s5 — alimentan el matcher
     prescan_mensaje_inicial: null,  // texto del primer mensaje si tenía contenido
+    problema_texto: null,           // descripción del problema capturada en s_inicio
 
     cliente: { nombre: null, telefono: null, email: null },
 
@@ -224,7 +225,7 @@ export async function start() {
 
   _registrarTurno("victoria", bienvenida);
   _mostrarVictoria(bienvenida);
-  state.current_step = "s1";
+  state.current_step = "s_inicio";
   _actualizarProgreso();
   // ── ADICIÓN 2: crear sesión de tracking (async, no bloquea) ──
   _crearSesionTracking();
@@ -248,13 +249,12 @@ function _construirSaludoBienvenida() {
   if (tema && intros[tema]) {
     return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
       intros[tema] + " " +
-      "Para orientarte bien, cuéntame primero: ¿en qué zona de Mallorca estás?";
+      "Cuéntame un poco más: ¿qué está pasando con tu perro en el día a día?";
   }
 
   // Saludo estándar (sin parámetro o con tema inválido)
   return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
-    "Estoy aquí para ayudarte a encontrar el protocolo adecuado para tu perro. " +
-    "Para empezar, ¿en qué zona de Mallorca estás?";
+    "Cuéntame qué está pasando con tu perro: qué situación te preocupa o te gustaría mejorar. Descríbemelo con tus palabras y te oriento.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -658,6 +658,7 @@ async function _procesarTexto(texto) {
   }
 
   const procesadores = {
+    s_inicio: _procesarInicioProblema,
     s1:  _procesarS1_Zona,
     s2:  _procesarS2_NombrePerro,
     s3:  _procesarS3_DatosPerro,
@@ -683,6 +684,54 @@ async function _procesarTexto(texto) {
 // PROCESADORES DE PASOS s1–s12
 // ─────────────────────────────────────────────────────────────────────────────
 
+async function _procesarInicioProblema(texto) {
+  // Reorder: el primer mensaje es la descripción del problema. El prescan
+  // rescata zona/raza/edad/peso si vienen; el problema se guarda para evaluarlo
+  // una vez tengamos zona + datos del perro.
+  _prescanPrimerMensaje(texto);
+  state.problema_texto = texto;
+  if (!state.mensajes_diagnostico.includes(texto)) {
+    state.mensajes_diagnostico.push(texto);
+  }
+  state.prescan_mensaje_inicial = null;
+
+  _actualizarSesion({ paso_actual: "s_inicio", paso_maximo_alcanzado: "s_inicio" });
+
+  // Sin zona válida en el prescan → la pedimos (enlaza al flujo s1).
+  if (!state.zona || state.zona.necesitaAclaracion) {
+    state.current_step = "s1";
+    return "Gracias por contármelo. Para orientarte bien necesito un par de datos rápidos. ¿En qué zona de Mallorca estás?";
+  }
+
+  // Con zona → pedimos el nombre (s2). Siempre pasamos por s2/s3, así recogemos
+  // nombre + datos del perro antes de evaluar; eso garantiza que los casos de
+  // mordida/agresión tengan peso/PPP antes de la pregunta de gravedad (s5).
+  state.current_step = "s2";
+  return "Gracias por contármelo. Para orientarte bien necesito un par de datos rápidos. Para empezar, ¿cómo se llama tu perro?";
+}
+
+async function _completarYEvaluar() {
+  // Defaults del perro si algo quedó sin responder (mismo criterio que s3).
+  if (state.perro.peso_kg    === null) state.perro.peso_kg    = 15;
+  if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
+  if (state.perro.raza       === null) state.perro.raza       = "mestizo";
+
+  // Marcar paso s4 → mantiene el embudo de stats ("Dieron datos del perro").
+  state.current_step = "s4";
+  _actualizarSesion({
+    paso_actual:           "s4",
+    paso_maximo_alcanzado: "s4",
+    zona:                  state.zona?.zonaDetectada,
+    modalidad:             state.zona?.modalidad,
+    raza_perro:            state.perro.raza,
+    peso_kg:               state.perro.peso_kg,
+    edad_meses:            state.perro.edad_meses,
+  });
+
+  const problema = state.problema_texto || (state.mensajes_diagnostico[0] ?? "");
+  return await _evaluarYResponder(problema);
+}
+
 function _procesarS1_Zona(texto) {
   // Prescan del primer mensaje — si tiene contenido, extrae todo lo que pueda
   // (zona, raza, edad, peso, ppp, problema) para no re-preguntar después.
@@ -707,7 +756,7 @@ function _procesarS1_Zona(texto) {
   return "Perfecto. ¿Cómo se llama tu perro?";
 }
 
-function _procesarS2_NombrePerro(texto) {
+async function _procesarS2_NombrePerro(texto) {
   // 1. Stripping de prefix conversacional ("se llama", "mi perro es", etc.)
   let candidato = texto
     .replace(/^(se llama|mi perro (es|se llama))\s*/i, "")
@@ -752,9 +801,7 @@ function _procesarS2_NombrePerro(texto) {
 
   // Si el prescan ya llenó todos los datos, saltar s3 e ir directo a s4
   if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
-    state.current_step = "s4";
-    return `${_aperturaPostNombre()} Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
-      "Descríbeme la situación con tus propias palabras.";
+    return await _completarYEvaluar();
   }
 
   // Falta algún dato → construir pregunta pidiendo SOLO lo que falta
@@ -777,7 +824,7 @@ function _procesarS2_NombrePerro(texto) {
   return `${_aperturaPostNombre()} Una cosa más sobre ${_nombrePerro()}: ${textoPregunta}`;
 }
 
-function _procesarS3_DatosPerro(texto) {
+async function _procesarS3_DatosPerro(texto) {
   // Si el prescan ya llenó todos los datos, saltamos s3 completo y vamos a s4.
   // Esto pasa cuando el cliente escribe un mini-ensayo con raza+edad+peso en
   // el primer mensaje.
@@ -787,10 +834,7 @@ function _procesarS3_DatosPerro(texto) {
 
   if (yaTieneEdad && yaTienePeso && yaTieneRaza) {
     // Guardar este texto como parte del diagnóstico (puede describir el problema)
-    state.mensajes_diagnostico.push(texto);
-    state.current_step = "s4";
-    return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
-      "Descríbeme la situación con tus propias palabras.";
+    return await _completarYEvaluar();
   }
 
   // Flujo normal: extraer lo que se pueda del texto actual
@@ -827,9 +871,7 @@ function _procesarS3_DatosPerro(texto) {
   if (state.perro.edad_meses === null) state.perro.edad_meses = 24;
   if (state.perro.raza       === null) state.perro.raza       = "mestizo";
 
-  state.current_step = "s4";
-  return `Perfecto. Cuéntame, ¿qué te gustaría mejorar o trabajar con ${_nombrePerro()}? ` +
-    "Descríbeme la situación con tus propias palabras.";
+  return await _completarYEvaluar();
 }
 
 async function _procesarS4_Problema(texto) {
@@ -2447,7 +2489,7 @@ async function _notificarCarlos() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROGRESO_POR_PASO = {
-  s0: 0, s1: 8, s2: 16, s3: 24, s4: 35, s5: 45,
+  s0: 0, s_inicio: 6, s1: 8, s2: 16, s3: 24, s4: 35, s5: 45,
   s6: 55, s7: 65, s8: 72, s9: 80, s10: 88, s11: 94, s12: 100,
 };
 
@@ -3154,6 +3196,9 @@ async function _redispararPasoActual() {
   } else if (paso === "s9") {
     decir("¡Bienvenido de vuelta! Continuemos con tus datos.");
     // Sin widget — el cliente sigue tipeando datos, _procesarS9 maneja
+  } else if (paso === "s_inicio") {
+    // El cliente recién llegó y aún no escribió nada; el saludo ya se repintó
+    // con _repintarHistorial. No mostramos "bienvenido de vuelta".
   } else {
     decir("¡Bienvenido de vuelta! Continuemos donde quedamos.");
   }
