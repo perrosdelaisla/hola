@@ -249,12 +249,11 @@ function _construirSaludoBienvenida() {
   if (tema && intros[tema]) {
     return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
       intros[tema] + " " +
-      "Cuéntame un poco más: ¿qué está pasando con tu perro en el día a día?";
+      "Cuéntame un poco más: ¿qué está pasando con tu perro en el día a día? Te orientamos en un par de minutos.";
   }
 
   // Saludo estándar (sin parámetro o con tema inválido)
-  return "¡Hola! Soy Victoria, la coordinadora de Perros de la Isla. " +
-    "Cuéntame qué está pasando con tu perro: qué situación te preocupa o te gustaría mejorar. Descríbemelo con tus palabras y te oriento.";
+  return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. Llevamos 14 años en Mallorca acompañando a familias con su perro. Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1760,6 +1759,11 @@ async function _iniciarAgenda() {
     paso_maximo_alcanzado: "s7",
     abrio_agenda:          true,
   });
+  // Recordatorio de valor antes de mostrar el widget
+  const modalidadLabel = state.modalidad_final === "online" ? "online (75€)" : "presencial (90€)";
+  const msgIntroAgenda = `Aquí tienes los horarios disponibles para tu primera clase ${modalidadLabel}. Reservas con seña de 45€.`;
+  _mostrarVictoria(msgIntroAgenda);
+  _registrarTurno("victoria", msgIntroAgenda);
   const contenedor = _insertarContenedorEnChat("victoria-agenda-slot", "agenda-widget");
   if (!contenedor) {
     return "Ahora te muestro los horarios disponibles — " +
@@ -2090,15 +2094,11 @@ function _iniciarPago() {
 
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
-    return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que viva más tranquilo.
-
-El valor de la clase suelta online es de 75€, y el del pack de 4 clases, 240€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
+    return `Te cuento los detalles. El valor de la clase suelta online es de 75€, y el del pack de 4 clases, 240€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
 
 Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
   }
-  return `Te cuento los detalles. Trabajamos con un método cognitivo-emocional: no buscamos obediencia, sino mejorar la comunicación entre tu perro y vosotros, para que viva más tranquilo.
-
-El valor de la clase suelta presencial es de 90€, y el del pack de 4 clases, 300€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
+  return `Te cuento los detalles. El valor de la clase suelta presencial es de 90€, y el del pack de 4 clases, 300€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
 
 Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
 }
@@ -2162,8 +2162,12 @@ function _mostrarPrecioYBotonesAgenda() {
 }
 
 function _explicarPago() {
-  return "Perfecto, vamos a confirmar la cita. La seña es de 45€ por Bizum o transferencia " +
-    "y se descuenta del total. Ahora te paso las opciones de pago.";
+  const nombre = state.cliente.nombre || "";
+  const slot = state.slot_elegido?.label || "el horario elegido";
+  const total = state.modalidad_final === "online" ? "75€" : "90€";
+  return `Perfecto${nombre ? `, ${nombre}` : ""}. Tu clase queda apartada para ${slot}. ` +
+    `Solo falta la seña de 45€ por Bizum o transferencia para asegurar el horario ` +
+    `(se descuenta del total de ${total}). Ahora te paso las opciones de pago.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
