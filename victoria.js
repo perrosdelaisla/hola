@@ -20,32 +20,33 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=52";
-import { detectarZona }                      from "./victoria-zones.js?v=52";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=52";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=52";
+import { normalizar }                        from "./victoria-utils.js?v=53";
+import { detectarZona }                      from "./victoria-zones.js?v=53";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=53";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=53";
 import {
   obtenerFrase,
   FRASES_PRECIO,
   FRASES_PACK,
   FRASE_PRECIO_POR_PERRO,
+  FRASE_RECONOCIMIENTO_INICIAL,
   FRASE_MENSAJE_PRINCIPAL,
   FRASE_RAMIFICACION,
   FRASE_COMO_TRABAJAMOS_PRESENCIAL,
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=52";
-import { esPPP }                             from "./victoria-breeds.js?v=52";
-import { decidirRespuesta, tieneVocabularioReconocible } from "./victoria-matching.js?v=52";
-import { renderAgenda }                      from "./agenda.js?v=52";
-import { renderPago }                        from "./pagos.js?v=52";
+} from "./victoria-phrases.js?v=53";
+import { esPPP }                             from "./victoria-breeds.js?v=53";
+import { decidirRespuesta, tieneVocabularioReconocible } from "./victoria-matching.js?v=53";
+import { renderAgenda }                      from "./agenda.js?v=53";
+import { renderPago }                        from "./pagos.js?v=53";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=52";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=52";
+}                                            from "./supabase.js?v=53";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=53";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -737,13 +738,20 @@ async function _procesarInicioProblema(texto) {
     return await _completarYEvaluar();
   }
 
+  // Reconocimiento temprano: valida + transmite experiencia ANTES de
+  // pedir datos. Guarda anti-contradicción: si el mensaje es un servicio
+  // lateral (que se deriva en s4), NO afirmamos "lo trabajamos" — usamos
+  // una transición neutra. Las derivaciones siguen deterministas.
+  const esLateral = !!detectarLateral(textoCompleto);
+  const reconocimiento = esLateral ? "Entendido." : FRASE_RECONOCIMIENTO_INICIAL;
+
   if (!tieneZona) {
     state.current_step = "s1";
-    return "De acuerdo. ¿En qué zona de Mallorca estás?";
+    return `${reconocimiento} Para empezar, ¿en qué zona de Mallorca estás?`;
   }
 
   state.current_step = "s2";
-  return "De acuerdo. ¿Cómo se llama tu perro?";
+  return `${reconocimiento} Para empezar, ¿cómo se llama tu perro?`;
 }
 
 async function _completarYEvaluar() {
@@ -776,7 +784,7 @@ function _procesarS1_Zona(texto) {
   // Si el prescan ya detectó la zona, saltamos s1 directamente
   if (state.zona && !state.zona.necesitaAclaracion) {
     state.current_step = "s2";
-    return "Perfecto, gracias por el detalle. ¿Cómo se llama tu perro?";
+    return "Perfecto. ¿Cómo se llama tu perro?";
   }
 
   // Si no hay zona en prescan, seguir flujo normal: detectar en este texto
@@ -1898,7 +1906,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=52");
+  const { renderLlamada } = await import("./llamada.js?v=53");
 
   await renderLlamada(
     contenedor,

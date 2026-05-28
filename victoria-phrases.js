@@ -74,9 +74,9 @@ export const FRASES_APOYO = {
 
   zona_fuera_preguntar: `Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Como tu zona queda lejos para el desplazamiento habitual, te podemos proponer dos opciones: trabajarlo online por videollamada (cómodo, desde tu casa) o que vengas a un parque céntrico de Palma (presencial, te enviamos la ubicación al confirmar la cita). ¿Cuál te encaja mejor?`,
 
-  zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado.`,
+  zona_fuera_eligio_palma: `Genial. Entonces lo hacemos presencial en un parque céntrico de Palma — el adiestrador te envía la ubicación al confirmar la cita. La primera clase es justo para esto: el adiestrador conoce a {perro} y define el plan de trabajo a partir de ahí.`,
 
-  zona_fuera_eligio_online: `Genial. Entonces lo trabajamos online por Google Meet — el adiestrador conoce a {perro} en su contexto desde casa y elige y aplica el protocolo más adecuado.`,
+  zona_fuera_eligio_online: `Genial. Entonces lo trabajamos online por Google Meet — el adiestrador conoce a {perro} en su contexto desde casa y define el plan de trabajo a partir de ahí.`,
 
   zona_fuera_rechaza: `Sin problema. Si más adelante tienes alguna duda o quieres hablar con una persona, puedes escribirnos al 622 922 173. Mucha suerte con {perro}.`,
 
@@ -98,23 +98,17 @@ export const FRASES_APOYO = {
 // 5. FLUJO PRINCIPAL — mensaje principal y metodología
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const FRASE_RECONOCIMIENTO_INICIAL = `Lo que me cuentas lo trabajamos con frecuencia, así que estás en buenas manos. Tenemos experiencia acompañando a familias con situaciones como la tuya y sabemos cómo ayudarte.`;
+
 export const FRASE_MENSAJE_PRINCIPAL = [
-  `Entiendo. Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y la primera clase es justo para esto: el adiestrador conoce a {perro} en su entorno y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
-
-  `Vale, lo veo. Lo que describes lo trabajamos habitualmente, no os preocupéis. Cada perro es un mundo, por eso aplicamos un proceso de aprendizaje estructurado: la primera clase es la base de todo, el adiestrador conoce a {perro} en su contexto para elegir y aplicar el protocolo más adecuado para él.`,
-
-  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y la primera clase es donde el adiestrador le conoce de verdad y elige y aplica el protocolo más adecuado. Es lo que nos diferencia.`,
+  `La primera clase es la base de todo: el adiestrador conoce a {perro} en su entorno, ve cómo se comporta de verdad y define el plan de trabajo a partir de ahí. Cada paso que viene después se construye sobre eso.`,
 ];
 
 export const FRASE_MENSAJE_PRINCIPAL_ONLINE = [
-  `Entiendo. Lo que describes lo trabajamos a menudo con buenos resultados, así que podemos ayudarte. Contamos con protocolos específicos para abordar ese tipo de problema, y para tu zona lo hacemos online: la primera clase es justo para esto, el adiestrador conoce a {perro} y elige y aplica el protocolo más adecuado según lo que de verdad necesite.`,
-
-  `Vale, lo veo. Lo que describes lo trabajamos habitualmente, no os preocupéis. Trabajamos contigo online y, aunque sea por videollamada, aplicamos un proceso de aprendizaje estructurado: la primera clase es la base de todo, el adiestrador conoce a {perro} en su contexto para elegir y aplicar el protocolo más adecuado para él.`,
-
-  `Vale. Lo que cuentas entra dentro de nuestro trabajo, así que tranquilo. Tenemos protocolos específicos para casos como el de {perro}, y trabajamos contigo online. La primera clase es donde el adiestrador le conoce y elige y aplica el protocolo más adecuado. Es lo que nos diferencia.`,
+  `Para tu zona lo hacemos online, por videollamada. La primera clase es la base de todo: el adiestrador conoce a {perro} en su entorno desde casa, ve cómo se comporta y define el plan de trabajo a partir de ahí.`,
 ];
 
-export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase la información de precios directamente?`;
+export const FRASE_RAMIFICACION = `¿Quieres que te cuente un poco cómo son nuestras clases, o prefieres que te pase directamente el valor de las clases?`;
 
 export const FRASE_COMO_TRABAJAMOS_PRESENCIAL = `Las clases presenciales son {lugar}. Cada clase dura una hora, aunque puede extenderse un poco si hace falta — priorizamos que entiendas todo lo que vemos y puedas resolver todas tus dudas, no cerrar a toque de reloj.
 
@@ -128,9 +122,9 @@ Entre clases tienes consulta por WhatsApp con el adiestrador. Te enviamos videos
 
 Si quieres conocernos más o ver nuestra forma de trabajar, puedes echar un vistazo a nuestras redes y la web.`;
 
-export const FRASE_CIERRE_METODOLOGIA = `¿Quieres que te pase la información de precios y los horarios disponibles?`;
+export const FRASE_CIERRE_METODOLOGIA = `¿Quieres que te pase el valor de las clases y los horarios disponibles?`;
 
-export const FRASE_DURACION_UNIFICADA = `La duración depende del protocolo:
+export const FRASE_DURACION_UNIFICADA = `La duración depende del caso:
 
 • Educación básica: 4 clases (ampliables si quieres seguir avanzando tras terminar).
 • Cachorros: 4 clases (ampliables si más adelante quieres trabajar alguna cosa más o necesitas apoyo en algún área puntual).
