@@ -22,8 +22,8 @@
  *   4. Caso general → mensaje principal unificado
  */
 
-import { normalizar, filtrarHits } from "./victoria-utils.js?v=55";
-import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=55";
+import { normalizar, filtrarHits } from "./victoria-utils.js?v=56";
+import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=56";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KEYWORDS

@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=55";
-import { detectarZona }                      from "./victoria-zones.js?v=55";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=55";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=55";
+import { normalizar }                        from "./victoria-utils.js?v=56";
+import { detectarZona }                      from "./victoria-zones.js?v=56";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=56";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=56";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -36,17 +36,17 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=55";
-import { esPPP }                             from "./victoria-breeds.js?v=55";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=55";
-import { renderAgenda }                      from "./agenda.js?v=55";
-import { renderPago }                        from "./pagos.js?v=55";
+} from "./victoria-phrases.js?v=56";
+import { esPPP }                             from "./victoria-breeds.js?v=56";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=56";
+import { renderAgenda }                      from "./agenda.js?v=56";
+import { renderPago }                        from "./pagos.js?v=56";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=55";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=55";
+}                                            from "./supabase.js?v=56";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=56";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1920,7 +1920,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=55");
+  const { renderLlamada } = await import("./llamada.js?v=56");
 
   await renderLlamada(
     contenedor,
@@ -2519,7 +2519,6 @@ async function _notificarCarlos() {
     "",
     `📅 Día y hora: ${slotLabel}`,
     `🐕 Perro: ${perroTexto}`,
-    `🎯 Protocolo: ${protocoloHumano}`,
     `📍 Modalidad: ${modalidadTexto}`,
     "",
     "Cómo trabajamos:",
