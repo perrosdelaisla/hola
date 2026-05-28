@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=53";
-import { detectarZona }                      from "./victoria-zones.js?v=53";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=53";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=53";
+import { normalizar }                        from "./victoria-utils.js?v=54";
+import { detectarZona }                      from "./victoria-zones.js?v=54";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=54";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=54";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -36,17 +36,17 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=53";
-import { esPPP }                             from "./victoria-breeds.js?v=53";
-import { decidirRespuesta, tieneVocabularioReconocible } from "./victoria-matching.js?v=53";
-import { renderAgenda }                      from "./agenda.js?v=53";
-import { renderPago }                        from "./pagos.js?v=53";
+} from "./victoria-phrases.js?v=54";
+import { esPPP }                             from "./victoria-breeds.js?v=54";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=54";
+import { renderAgenda }                      from "./agenda.js?v=54";
+import { renderPago }                        from "./pagos.js?v=54";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=53";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=53";
+}                                            from "./supabase.js?v=54";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=54";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -717,8 +717,20 @@ async function _procesarInicioProblema(texto) {
   const textoCompleto = state.problema_texto;
   const tieneZona = state.zona && !state.zona.necesitaAclaracion;
   const tieneMordida = _tieneKeywordsMordida(textoCompleto);
+  const tieneAgresion = tieneKeywordsAgresion(textoCompleto);
   const tieneVocabulario = tieneVocabularioReconocible(textoCompleto);
-  const esVago = !tieneMordida && !tieneVocabulario;
+  const esVago = !tieneMordida && !tieneAgresion && !tieneVocabulario;
+
+  // Servicio lateral PURO (peluquería, guardería, adopciones, paseos
+  // grupales, veterinaria) sin problema de conducta de por medio:
+  // derivamos de inmediato con la frase correspondiente. Si hay
+  // vocabulario de cuadro, mordida o agresión, NO se trata como lateral
+  // — el problema de conducta manda (ej. "se pone agresivo en la peluquería").
+  const lateral = detectarLateral(textoCompleto);
+  if (lateral && !tieneVocabulario && !tieneMordida && !tieneAgresion) {
+    state.lateral_detectado = lateral;
+    return obtenerFrase({ tipo: "lateral", subtipo: lateral });
+  }
 
   if (esVago && state.s_inicio_intentos >= 2) {
     return "Para orientarte bien necesitamos hablar contigo más directamente. Escríbenos por WhatsApp al 622 922 173 y el equipo te atiende.";
@@ -727,7 +739,12 @@ async function _procesarInicioProblema(texto) {
     return "Cuéntanos un poco más: qué situación con tu perro os preocupa o queréis mejorar. Cuanto más detalle nos des, mejor podemos orientarte.";
   }
 
-  if (tieneMordida) {
+  // SEGURIDAD: cualquier señal de mordida O agresión NO recibe el
+  // reconocimiento "lo trabajamos". Pedimos los datos del perro para que
+  // el matcher (s4) decida con el peso y el tipo de perro si es un caso
+  // que trabajamos o que derivamos al etólogo (perro grande, PPP, víctima
+  // vulnerable). La seguridad y la no-contradicción mandan sobre el enganche.
+  if (tieneMordida || tieneAgresion) {
     const necesitaDatos = state.perro.edad_meses === null
       || state.perro.peso_kg === null
       || state.perro.raza === null;
@@ -738,20 +755,17 @@ async function _procesarInicioProblema(texto) {
     return await _completarYEvaluar();
   }
 
-  // Reconocimiento temprano: valida + transmite experiencia ANTES de
-  // pedir datos. Guarda anti-contradicción: si el mensaje es un servicio
-  // lateral (que se deriva en s4), NO afirmamos "lo trabajamos" — usamos
-  // una transición neutra. Las derivaciones siguen deterministas.
-  const esLateral = !!detectarLateral(textoCompleto);
-  const reconocimiento = esLateral ? "Entendido." : FRASE_RECONOCIMIENTO_INICIAL;
-
+  // Reconocimiento temprano. Si llegó hasta acá, hay vocabulario de cuadro
+  // reconocible y SIN señales de agresión/mordida (separación, miedos,
+  // reactividad sin agresión, tirones, ladridos): validamos y transmitimos
+  // experiencia antes de pedir datos.
   if (!tieneZona) {
     state.current_step = "s1";
-    return `${reconocimiento} Para empezar, ¿en qué zona de Mallorca estás?`;
+    return `${FRASE_RECONOCIMIENTO_INICIAL} Para empezar, ¿en qué zona de Mallorca estás?`;
   }
 
   state.current_step = "s2";
-  return `${reconocimiento} Para empezar, ¿cómo se llama tu perro?`;
+  return `${FRASE_RECONOCIMIENTO_INICIAL} Para empezar, ¿cómo se llama tu perro?`;
 }
 
 async function _completarYEvaluar() {
@@ -1906,7 +1920,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=53");
+  const { renderLlamada } = await import("./llamada.js?v=54");
 
   await renderLlamada(
     contenedor,

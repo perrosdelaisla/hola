@@ -22,8 +22,8 @@
  *   4. Caso general → mensaje principal unificado
  */
 
-import { normalizar, filtrarHits } from "./victoria-utils.js?v=53";
-import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=53";
+import { normalizar, filtrarHits } from "./victoria-utils.js?v=54";
+import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=54";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KEYWORDS
@@ -169,6 +169,12 @@ export function tieneVocabularioReconocible(texto) {
   if (!texto) return false;
   const norm = normalizar(texto);
   return _inputTieneVocabularioDeCuadro(norm);
+}
+
+export function tieneKeywordsAgresion(texto) {
+  if (!texto) return false;
+  const norm = normalizar(texto);
+  return KEYWORDS_AGRESION.some((kw) => norm.includes(normalizar(kw)));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
