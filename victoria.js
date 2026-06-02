@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=58";
-import { detectarZona }                      from "./victoria-zones.js?v=58";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=58";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=58";
+import { normalizar }                        from "./victoria-utils.js?v=59";
+import { detectarZona }                      from "./victoria-zones.js?v=59";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=59";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=59";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,17 +37,17 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=58";
-import { esPPP }                             from "./victoria-breeds.js?v=58";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=58";
-import { renderAgenda }                      from "./agenda.js?v=58";
-import { renderPago }                        from "./pagos.js?v=58";
+} from "./victoria-phrases.js?v=59";
+import { esPPP }                             from "./victoria-breeds.js?v=59";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=59";
+import { renderAgenda }                      from "./agenda.js?v=59";
+import { renderPago }                        from "./pagos.js?v=59";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=58";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=58";
+}                                            from "./supabase.js?v=59";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=59";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -265,12 +265,12 @@ function _construirSaludoBienvenida() {
   if (origen && introsOrigen[origen]) {
     return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. " +
       introsOrigen[origen] +
-      "Llevamos 14 años en Mallorca acompañando a familias con su perro. " +
+      "En Mallorca desde 2019, con más de 14 años de experiencia acompañando a familias con su perro. " +
       "Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
   }
 
   // Saludo estándar (sin parámetro o con tema inválido)
-  return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. Llevamos 14 años en Mallorca acompañando a familias con su perro. Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
+  return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. En Mallorca desde 2019, con más de 14 años de experiencia acompañando a familias con su perro. Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1924,7 +1924,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=58");
+  const { renderLlamada } = await import("./llamada.js?v=59");
 
   await renderLlamada(
     contenedor,

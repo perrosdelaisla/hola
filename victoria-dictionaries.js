@@ -5,7 +5,7 @@
  * Versión 1.0 · Abril 2026
  */
 
-import { normalizar, filtrarHits } from "./victoria-utils.js?v=58";
+import { normalizar, filtrarHits } from "./victoria-utils.js?v=59";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ESTRUCTURA DE CADA DICCIONARIO
