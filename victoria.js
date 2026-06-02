@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=61";
-import { detectarZona }                      from "./victoria-zones.js?v=61";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=61";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=61";
+import { normalizar }                        from "./victoria-utils.js?v=62";
+import { detectarZona }                      from "./victoria-zones.js?v=62";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=62";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=62";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=61";
-import { esPPP }                             from "./victoria-breeds.js?v=61";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=61";
-import { renderAgenda }                      from "./agenda.js?v=61";
+} from "./victoria-phrases.js?v=62";
+import { esPPP }                             from "./victoria-breeds.js?v=62";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=62";
+import { renderAgenda }                      from "./agenda.js?v=62";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=61";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=61";
+}                                            from "./supabase.js?v=62";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=62";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -227,6 +227,7 @@ export async function start() {
 
   _registrarTurno("victoria", bienvenida);
   _mostrarVictoria(bienvenida);
+  _mostrarChipsArranque();
   state.current_step = "s_inicio";
   _actualizarProgreso();
   // ── ADICIÓN 2: crear sesión de tracking (async, no bloquea) ──
@@ -1202,6 +1203,39 @@ function _ocultarOpciones() {
   if (prev) prev.remove();
 }
 
+function _mostrarChipsArranque() {
+  const chips = [
+    { label: "Ladra o tira de la correa",      ghost: false },
+    { label: "Tiene miedo o reactividad",       ghost: false },
+    { label: "Se queda solo y lo pasa mal",     ghost: false },
+    { label: "Otra cosa",                       ghost: true  },
+  ];
+  if (!_chatEl || !_twEl) return;
+  _ocultarOpciones();
+  const wrap = document.createElement("div");
+  wrap.className = "opts-inline";
+  wrap.id = "opts-inline-actual";
+  chips.forEach(({ label, ghost }) => {
+    const btn = document.createElement("button");
+    btn.className = ghost ? "opt-btn-inline is-ghost" : "opt-btn-inline";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      _ocultarOpciones();
+      if (ghost) {
+        _inputEl?.focus();
+        return;
+      }
+      if (_inputEl) {
+        _inputEl.value = label;
+        _enviarMensaje();
+      }
+    });
+    wrap.appendChild(btn);
+  });
+  _chatEl.insertBefore(wrap, _twEl);
+  _scrollAbajo();
+}
+
 const KEYWORDS_AFIRMATIVO = [
   "sí", "si", "ok", "okay", "vale", "perfecto", "adelante",
   "me interesa", "quiero", "me apunto", "venga", "dale",
@@ -1899,7 +1933,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=61");
+  const { renderLlamada } = await import("./llamada.js?v=62");
 
   await renderLlamada(
     contenedor,
