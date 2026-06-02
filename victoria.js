@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=63";
-import { detectarZona }                      from "./victoria-zones.js?v=63";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=63";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=63";
+import { normalizar }                        from "./victoria-utils.js?v=64";
+import { detectarZona }                      from "./victoria-zones.js?v=64";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=64";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=64";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=63";
-import { esPPP }                             from "./victoria-breeds.js?v=63";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=63";
-import { renderAgenda }                      from "./agenda.js?v=63";
+} from "./victoria-phrases.js?v=64";
+import { esPPP }                             from "./victoria-breeds.js?v=64";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=64";
+import { renderAgenda }                      from "./agenda.js?v=64";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=63";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=63";
+}                                            from "./supabase.js?v=64";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=64";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1888,7 +1888,7 @@ async function _iniciarAgenda() {
       state.slot_confirmando = true;
 
       state.slot_elegido = slotElegido;
-      // El clic en "Reservar este horario (seña 45€)" ya es la confirmación.
+      // El clic en "Reservar este horario" ya es la confirmación.
       // Saltamos directo a s9 (datos cliente) o s10 (pago) según token Vicky.
       _actualizarSesion({
         paso_actual:           "s8",
@@ -1941,7 +1941,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=63");
+  const { renderLlamada } = await import("./llamada.js?v=64");
 
   await renderLlamada(
     contenedor,

@@ -3,7 +3,7 @@
    agenda.js — Slots y selección de cita
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsDisponibles, obtenerSlotsConEstado } from './supabase.js?v=63';
+import { obtenerSlotsDisponibles, obtenerSlotsConEstado } from './supabase.js?v=64';
 
 /* ── ESTADO SELECCIÓN ── */
 let slotSeleccionado = null;
@@ -85,7 +85,7 @@ export async function renderAgenda(contenedor, onSeleccion, onVolver) {
 
   html += `
     <div id="agenda-confirmar" style="display:none;margin-top:8px">
-      <button class="bmain verde" id="btn-confirmar-slot">Reservar este horario (seña 45€)</button>
+      <button class="bmain verde" id="btn-confirmar-slot">Reservar este horario</button>
       <button class="bsec" id="btn-volver-slot">← Elegir otro horario</button>
     </div>`;
 
