@@ -100,6 +100,8 @@ export const FRASES_APOYO = {
 
 export const FRASE_RECONOCIMIENTO_INICIAL = `Lo que me cuentas lo trabajamos con frecuencia, así que estás en buenas manos. Tenemos experiencia acompañando a familias con situaciones como la tuya y sabemos cómo ayudarte.`;
 
+export const FRASE_RECONOCIMIENTO_INICIAL_SENSIBLE = `Entiendo la situación, y es de las que se viven con mucha angustia en casa. Es justo el tipo de caso que trabajamos a menudo, así que se puede mejorar y sabemos cómo ayudarte. Cuentas con nosotros.`;
+
 export const FRASE_MENSAJE_PRINCIPAL = [
   `La primera clase es la base de todo: el adiestrador conoce a {perro} en su entorno, ve cómo se comporta de verdad y define el plan de trabajo a partir de ahí. Cada paso que viene después se construye sobre eso.`,
 ];

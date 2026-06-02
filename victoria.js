@@ -20,33 +20,34 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=57";
-import { detectarZona }                      from "./victoria-zones.js?v=57";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=57";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=57";
+import { normalizar }                        from "./victoria-utils.js?v=58";
+import { detectarZona }                      from "./victoria-zones.js?v=58";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=58";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=58";
 import {
   obtenerFrase,
   FRASES_PRECIO,
   FRASES_PACK,
   FRASE_PRECIO_POR_PERRO,
   FRASE_RECONOCIMIENTO_INICIAL,
+  FRASE_RECONOCIMIENTO_INICIAL_SENSIBLE,
   FRASE_MENSAJE_PRINCIPAL,
   FRASE_RAMIFICACION,
   FRASE_COMO_TRABAJAMOS_PRESENCIAL,
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=57";
-import { esPPP }                             from "./victoria-breeds.js?v=57";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=57";
-import { renderAgenda }                      from "./agenda.js?v=57";
-import { renderPago }                        from "./pagos.js?v=57";
+} from "./victoria-phrases.js?v=58";
+import { esPPP }                             from "./victoria-breeds.js?v=58";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=58";
+import { renderAgenda }                      from "./agenda.js?v=58";
+import { renderPago }                        from "./pagos.js?v=58";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=57";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=57";
+}                                            from "./supabase.js?v=58";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=58";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -759,13 +760,16 @@ async function _procesarInicioProblema(texto) {
   // reconocible y SIN señales de agresión/mordida (separación, miedos,
   // reactividad sin agresión, tirones, ladridos): validamos y transmitimos
   // experiencia antes de pedir datos.
+  const _fraseReconoc = _tieneMarcadoresSobrepasado(textoCompleto)
+    ? FRASE_RECONOCIMIENTO_INICIAL_SENSIBLE
+    : FRASE_RECONOCIMIENTO_INICIAL;
   if (!tieneZona) {
     state.current_step = "s1";
-    return `${FRASE_RECONOCIMIENTO_INICIAL} Para empezar, ¿en qué zona de Mallorca estás?`;
+    return `${_fraseReconoc} Para empezar, ¿en qué zona de Mallorca estás?`;
   }
 
   state.current_step = "s2";
-  return `${FRASE_RECONOCIMIENTO_INICIAL} Para empezar, ¿cómo se llama tu perro?`;
+  return `${_fraseReconoc} Para empezar, ¿cómo se llama tu perro?`;
 }
 
 async function _completarYEvaluar() {
@@ -1920,7 +1924,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=57");
+  const { renderLlamada } = await import("./llamada.js?v=58");
 
   await renderLlamada(
     contenedor,
@@ -2737,6 +2741,22 @@ function _tieneKeywordsMordida(texto) {
     "se tira a morder", "mordida", "amago"];
   const norm = normalizar(texto);
   return MORDIDA.some((kw) => norm.includes(normalizar(kw)));
+}
+
+const MARCADORES_TUTOR_SOBREPASADO = [
+  "insostenible",
+  "no puedo mas", "ya no puedo", "no doy mas",
+  "no se que hacer",
+  "no aguanto",
+  "ultima opcion", "ultimo recurso",
+  "nuevo hogar", "darlo en adopcion", "regalarlo", "deshacerme",
+  "desesperad",
+  "estoy harto", "estoy harta", "harto de", "harta de",
+];
+
+function _tieneMarcadoresSobrepasado(texto) {
+  const norm = normalizar(texto);
+  return MARCADORES_TUTOR_SOBREPASADO.some((m) => norm.includes(normalizar(m)));
 }
 
 /**
