@@ -23,7 +23,6 @@ const FILES = [
   'victoria.js',
   'agenda.js',
   'llamada.js',
-  'pagos.js',
   'supabase.js',
   'victoria-utils.js',
   'victoria-zones.js',

@@ -17,13 +17,13 @@
  *   s1  zona · s2  nombre perro · s3  edad+raza+peso
  *   s4  descripción problema · s5  afinado/filtro mordida
  *   s6  propuesta protocolo · s7  agenda · s8  confirmación slot
- *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
+ *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=60";
-import { detectarZona }                      from "./victoria-zones.js?v=60";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=60";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=60";
+import { normalizar }                        from "./victoria-utils.js?v=61";
+import { detectarZona }                      from "./victoria-zones.js?v=61";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=61";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=61";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,17 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=60";
-import { esPPP }                             from "./victoria-breeds.js?v=60";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=60";
-import { renderAgenda }                      from "./agenda.js?v=60";
-import { renderPago }                        from "./pagos.js?v=60";
+} from "./victoria-phrases.js?v=61";
+import { esPPP }                             from "./victoria-breeds.js?v=61";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=61";
+import { renderAgenda }                      from "./agenda.js?v=61";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=60";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=60";
+}                                            from "./supabase.js?v=61";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=61";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1674,9 +1673,8 @@ function _procesarS8_ConfirmacionSlot(_texto) {
   }
 
   // Flujo Vicky: nombre/teléfono/email ya vienen precargados del token, así
-  // que NO pasamos por s9 (pedir datos) — saltamos directo a s10 (pago).
-  // Replica el cierre de _procesarS9_DatosCliente: programa el widget de
-  // pago tras el mensaje explicativo y devuelve el texto de _explicarPago.
+  // que NO pasamos por s9 (pedir datos) — confirmamos la reserva directo
+  // (la seña queda pendiente y el adiestrador la coordina por Bizum).
   if (state.token_vicky) {
     state.current_step = "s12";
     setTimeout(() => { _confirmarCitaSinPago(); }, 800);
@@ -1725,7 +1723,9 @@ function _procesarS10_Pago(_texto) {
 }
 
 function _procesarS11_Captura(_texto) {
-  return "Cuando hayas subido la captura y confirmado el pago, lo proceso enseguida.";
+  // Paso heredado del flujo con pago. Ya no se alcanza en el flujo nuevo;
+  // se conserva por seguridad al restaurar sesiones antiguas persistidas.
+  return "Un momento que confirmo tu reserva…";
 }
 
 async function _procesarS12_Confirmacion(_texto) {
@@ -1899,7 +1899,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=60");
+  const { renderLlamada } = await import("./llamada.js?v=61");
 
   await renderLlamada(
     contenedor,
@@ -2145,53 +2145,6 @@ async function _confirmarCitaSinPago() {
   return null;
 }
 
-function _iniciarPago() {
-  // ── ADICIÓN 10: tracking pago ──
-  _actualizarSesion({
-    paso_actual:           "s10",
-    paso_maximo_alcanzado: "s10",
-    llego_a_pago:          true,
-  });
-  const contenedor = _insertarContenedorEnChat("victoria-pago-slot", "pago-widget");
-  if (!contenedor) return _explicarPago();
-
-  renderPago(
-    contenedor,
-    {
-      nombre: state.cliente.nombre,
-      telefono: state.cliente.telefono,
-      slot: state.slot_elegido,
-      modalidad: state.modalidad_final,
-      precio: 45,
-      citaId: state.cita_id,
-    },
-    async ({ metodo, signedUrl, pendienteVerificar }) => {
-      state.metodo_pago                = metodo;
-      state.comprobante_url            = signedUrl ?? null;
-      state.pago_pendiente_verificar   = !!pendienteVerificar;
-      state.current_step               = "s12";
-
-      _mostrarTyping(true);
-      const respuesta = await _procesarS12_Confirmacion("");
-      _mostrarTyping(false);
-
-      if (respuesta) {
-        _registrarTurno("victoria", respuesta);
-        _mostrarVictoria(respuesta);
-      }
-      _actualizarProgreso();
-    },
-    () => {
-      state.current_step = "s9";
-      const msg = "Sin problema. ¿Quieres cambiar algo de los datos antes de pagar?";
-      _registrarTurno("victoria", msg);
-      _mostrarVictoria(msg);
-    }
-  );
-
-  return null;
-}
-
 function _mensajePrecio() {
   if (state.modalidad_final === "online") {
     return `Te cuento los detalles. El valor de la clase suelta online es de 75€, y el del pack de 4 clases, 240€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
@@ -2259,15 +2212,6 @@ function _mostrarPrecioYBotonesAgenda() {
       }, 200);
     }, 1500);
   }, 800);
-}
-
-function _explicarPago() {
-  const nombre = state.cliente.nombre || "";
-  const slot = state.slot_elegido?.label || "el horario elegido";
-  const total = state.modalidad_final === "online" ? "75€" : "90€";
-  return `Perfecto${nombre ? `, ${nombre}` : ""}. Tu clase queda apartada para ${slot}. ` +
-    `Para asegurar el horario se deja una seña de 45€ que el adiestrador te coordina por Bizum, ` +
-    `y se descuenta del valor total.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
