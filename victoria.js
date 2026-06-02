@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=59";
-import { detectarZona }                      from "./victoria-zones.js?v=59";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=59";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=59";
+import { normalizar }                        from "./victoria-utils.js?v=60";
+import { detectarZona }                      from "./victoria-zones.js?v=60";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=60";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=60";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,17 +37,17 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=59";
-import { esPPP }                             from "./victoria-breeds.js?v=59";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=59";
-import { renderAgenda }                      from "./agenda.js?v=59";
-import { renderPago }                        from "./pagos.js?v=59";
+} from "./victoria-phrases.js?v=60";
+import { esPPP }                             from "./victoria-breeds.js?v=60";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=60";
+import { renderAgenda }                      from "./agenda.js?v=60";
+import { renderPago }                        from "./pagos.js?v=60";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=59";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=59";
+}                                            from "./supabase.js?v=60";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=60";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1678,15 +1678,9 @@ function _procesarS8_ConfirmacionSlot(_texto) {
   // Replica el cierre de _procesarS9_DatosCliente: programa el widget de
   // pago tras el mensaje explicativo y devuelve el texto de _explicarPago.
   if (state.token_vicky) {
-    state.current_step = "s10";
-    setTimeout(() => {
-      _mostrarTyping(true);
-      setTimeout(() => {
-        _mostrarTyping(false);
-        _iniciarPago();
-      }, 1000);
-    }, 3500);
-    return `Perfecto, reservamos el ${state.slot_elegido.label}. ` + _explicarPago();
+    state.current_step = "s12";
+    setTimeout(() => { _confirmarCitaSinPago(); }, 800);
+    return `Perfecto, reservamos el ${state.slot_elegido.label}.`;
   }
 
   state.current_step = "s9";
@@ -1719,24 +1713,15 @@ function _procesarS9_DatosCliente(texto) {
   const email = _extraerEmail(texto);
   if (email) state.cliente.email = email;
 
-  state.current_step = "s10";
-  // Programar el widget de pago para que aparezca DESPUÉS del mensaje explicativo.
-  // Secuencia: mensaje Victoria → pausa con typing → widget de pago.
-  // El delay de 4500ms asegura que el mensaje se ha pintado completamente
-  // antes de empezar a mostrar el typing indicator del widget.
-  setTimeout(() => {
-    _mostrarTyping(true);
-    setTimeout(() => {
-      _mostrarTyping(false);
-      _iniciarPago();
-    }, 1000);
-  }, 3500);
-  return _explicarPago();
+  state.current_step = "s12";
+  setTimeout(() => { _confirmarCitaSinPago(); }, 800);
+  return "¡Perfecto! Un momento que confirmo tu reserva…";
 }
 
 function _procesarS10_Pago(_texto) {
-  state.current_step = "s11";
-  return _iniciarPago();
+  // Ya no hay widget de pago; si el cliente cae aquí, confirmamos directo.
+  state.current_step = "s12";
+  return _confirmarCitaSinPago();
 }
 
 function _procesarS11_Captura(_texto) {
@@ -1802,10 +1787,10 @@ async function _procesarS12_Confirmacion(_texto) {
         ? "presencial en un parque de Palma"
         : "en tu domicilio";
 
-    return `¡Todo confirmado! 🐾 El equipo de Perros de la Isla se pondrá en contacto contigo para preparar la primera clase. ` +
-      `Quedamos el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
-      `Si necesitas cambiar algo, escríbenos directamente al 622 922 173. ` +
-      `¡Mucho ánimo con ${perro}!`;
+    return `¡Listo! Tu cita queda confirmada para el ${slot?.label ?? "día acordado"}, ${modalidad}. ` +
+      `El adiestrador se va a comunicar contigo y te pedirá una seña de 45€ por Bizum para asegurar el horario. ` +
+      `Es por única vez y se descuenta del valor total de las clases. ` +
+      `Si necesitas cambiar algo, escríbenos al 622 922 173. ¡Mucho ánimo con ${perro}!`;
   } catch (err) {
     console.error("Error al confirmar cita:", err);
     return "Ha habido un problema técnico al confirmar la cita. " +
@@ -1873,20 +1858,10 @@ async function _iniciarAgenda() {
       setTimeout(() => {
         _mostrarTyping(false);
 
-        // Flujo Vicky: datos ya están precargados del token → ir a pago directo
         if (state.token_vicky) {
-          state.current_step = "s10";
-          const msg = `Perfecto, reservamos el ${slotElegido.label}. ` + _explicarPago();
-          _registrarTurno("victoria", msg);
-          _mostrarVictoria(msg);
-          _actualizarProgreso();
-          setTimeout(() => {
-            _mostrarTyping(true);
-            setTimeout(() => {
-              _mostrarTyping(false);
-              _iniciarPago();
-            }, 1000);
-          }, 3500);
+          // Flujo Vicky: datos precargados → confirmar directo, sin pago
+          state.current_step = "s12";
+          _confirmarCitaSinPago();
         } else {
           // Flujo normal: ir a s9 (datos cliente)
           state.current_step = "s9";
@@ -1924,7 +1899,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=59");
+  const { renderLlamada } = await import("./llamada.js?v=60");
 
   await renderLlamada(
     contenedor,
@@ -2150,6 +2125,26 @@ async function _notificarLlamada({
 // PAGO — se inserta dinámicamente en el chat
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Confirma la cita SIN cobrar en el momento: seña queda pendiente y el
+// adiestrador la coordina por Bizum. Reemplaza al widget de pago.
+async function _confirmarCitaSinPago() {
+  state.metodo_pago              = null;
+  state.comprobante_url          = null;
+  state.pago_pendiente_verificar = true;   // ← cita nace con seña PENDIENTE
+  state.current_step             = "s12";
+
+  _mostrarTyping(true);
+  const respuesta = await _procesarS12_Confirmacion("");
+  _mostrarTyping(false);
+
+  if (respuesta) {
+    _registrarTurno("victoria", respuesta);
+    _mostrarVictoria(respuesta);
+  }
+  _actualizarProgreso();
+  return null;
+}
+
 function _iniciarPago() {
   // ── ADICIÓN 10: tracking pago ──
   _actualizarSesion({
@@ -2271,8 +2266,8 @@ function _explicarPago() {
   const slot = state.slot_elegido?.label || "el horario elegido";
   const total = state.modalidad_final === "online" ? "75€" : "90€";
   return `Perfecto${nombre ? `, ${nombre}` : ""}. Tu clase queda apartada para ${slot}. ` +
-    `Solo falta la seña de 45€ por Bizum o transferencia para asegurar el horario ` +
-    `(se descuenta del total de ${total}). Ahora te paso las opciones de pago.`;
+    `Para asegurar el horario se deja una seña de 45€ que el adiestrador te coordina por Bizum, ` +
+    `y se descuenta del valor total.`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2519,7 +2514,9 @@ async function _notificarCarlos() {
   const mensajeCliente = [
     `¡Hola ${primerNombre}! 🐾`,
     "",
-    "Soy Carlos, de Perros de la Isla. Te confirmo que hemos recibido la seña de 45€ y tu cita está reservada.",
+    "Soy Carlos, de Perros de la Isla. Tu cita está reservada.",
+    "",
+    "Para asegurar el horario te pido una seña de 45€ por Bizum al 653 591 301 (concepto: tu nombre). Es por única vez y se descuenta del valor total de las clases.",
     "",
     `📅 Día y hora: ${slotLabel}`,
     `🐕 Perro: ${perroTexto}`,
@@ -2562,7 +2559,7 @@ async function _notificarCarlos() {
     `   "${reportadoTexto}"`,
     "",
     `📅 Slot: ${slot?.label ?? "—"}`,
-    `💰 Seña: 45€ ${state.pago_pendiente_verificar ? "PENDIENTE DE VERIFICAR" : "confirmada"}`,
+    `💰 Seña: 45€ — ⚠️ PENDIENTE — pedir por Bizum al cliente`,
     state.comprobante_url ? `📎 Comprobante: ${state.comprobante_url}` : "📎 Comprobante: no subido",
     "",
     `[Paso ${d?.log?.paso ?? "?"} | ${d?.log?.notas ?? ""}]`,
@@ -3258,8 +3255,8 @@ function _repintarHistorial() {
 /**
  * Re-dispara el widget o mensaje correspondiente al paso actual tras
  * restaurar. Lógica diferenciada por paso para no confundir al cliente:
- *  - s10 (pago): validar slot. Si libre → _iniciarPago(). Si tomado →
- *    mensaje + _iniciarAgenda().
+ *  - s10 (confirmación): validar slot. Si libre → _confirmarCitaSinPago().
+ *    Si tomado → mensaje + _iniciarAgenda().
  *  - s7 (eligiendo slot, agenda abierta sin elegir): _iniciarAgenda().
  *  - s8 (slot elegido, esperando confirmación): mensaje específico
  *    "¿Confirmamos tu cita del [slot]?" SIN agenda (el cliente responde
@@ -3298,15 +3295,15 @@ async function _redispararPasoActual() {
         s => s.fecha === slot.fecha && s.hora === slot.hora
       );
       if (sigueLibre) {
-        decir(`¡Bienvenido de vuelta! Continuemos con tu pago para confirmar la cita del ${slot.label}.`);
-        _iniciarPago();
+        decir(`¡Bienvenido de vuelta! Confirmo tu cita del ${slot.label}.`);
+        await _confirmarCitaSinPago();
       } else {
         decir(`¡Bienvenido de vuelta! El horario que habías elegido (${slot.label}) ya no está disponible. Te muestro las opciones que quedan libres.`);
         await _iniciarAgenda();
       }
     } catch (err) {
       console.warn("Error validando slot al restaurar:", err);
-      _iniciarPago();
+      await _confirmarCitaSinPago();
     }
   } else if (paso === "s7") {
     decir("¡Bienvenido de vuelta! Sigamos eligiendo el horario.");
