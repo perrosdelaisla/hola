@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=62";
-import { detectarZona }                      from "./victoria-zones.js?v=62";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=62";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=62";
+import { normalizar }                        from "./victoria-utils.js?v=63";
+import { detectarZona }                      from "./victoria-zones.js?v=63";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=63";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=63";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=62";
-import { esPPP }                             from "./victoria-breeds.js?v=62";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=62";
-import { renderAgenda }                      from "./agenda.js?v=62";
+} from "./victoria-phrases.js?v=63";
+import { esPPP }                             from "./victoria-breeds.js?v=63";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=63";
+import { renderAgenda }                      from "./agenda.js?v=63";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=62";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=62";
+}                                            from "./supabase.js?v=63";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=63";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1205,30 +1205,38 @@ function _ocultarOpciones() {
 
 function _mostrarChipsArranque() {
   const chips = [
-    { label: "Ladra o tira de la correa",      ghost: false },
-    { label: "Tiene miedo o reactividad",       ghost: false },
-    { label: "Se queda solo y lo pasa mal",     ghost: false },
-    { label: "Otra cosa",                       ghost: true  },
+    { label: "Ladra o tira de la correa",  envio: "tira de la correa",   ghost: false },
+    { label: "Tiene miedo o reactividad",   envio: "tiene miedo",         ghost: false },
+    { label: "Se queda solo y lo pasa mal", envio: "no puede estar solo", ghost: false },
+    { label: "Otra cosa",                    envio: null,                 ghost: true  },
   ];
   if (!_chatEl || !_twEl) return;
   _ocultarOpciones();
   const wrap = document.createElement("div");
   wrap.className = "opts-inline";
   wrap.id = "opts-inline-actual";
-  chips.forEach(({ label, ghost }) => {
+  chips.forEach(({ label, envio, ghost }) => {
     const btn = document.createElement("button");
     btn.className = ghost ? "opt-btn-inline is-ghost" : "opt-btn-inline";
     btn.textContent = label;
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       _ocultarOpciones();
       if (ghost) {
         _inputEl?.focus();
         return;
       }
-      if (_inputEl) {
-        _inputEl.value = label;
-        _enviarMensaje();
+      // Muestra el texto lindo del chip en la burbuja del cliente...
+      _mostrarCliente(label);
+      _registrarTurno("cliente", label);
+      // ...pero al flujo le llega el texto canónico que matchea el diccionario.
+      _mostrarTyping(true);
+      const respuesta = await _procesarTexto(envio);
+      _mostrarTyping(false);
+      if (respuesta) {
+        _registrarTurno("victoria", respuesta);
+        _mostrarVictoria(respuesta);
       }
+      _actualizarProgreso();
     });
     wrap.appendChild(btn);
   });
@@ -1933,7 +1941,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=62");
+  const { renderLlamada } = await import("./llamada.js?v=63");
 
   await renderLlamada(
     contenedor,
