@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10 pago · s11 captura · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=56";
-import { detectarZona }                      from "./victoria-zones.js?v=56";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=56";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=56";
+import { normalizar }                        from "./victoria-utils.js?v=57";
+import { detectarZona }                      from "./victoria-zones.js?v=57";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=57";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=57";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -36,17 +36,17 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=56";
-import { esPPP }                             from "./victoria-breeds.js?v=56";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=56";
-import { renderAgenda }                      from "./agenda.js?v=56";
-import { renderPago }                        from "./pagos.js?v=56";
+} from "./victoria-phrases.js?v=57";
+import { esPPP }                             from "./victoria-breeds.js?v=57";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=57";
+import { renderAgenda }                      from "./agenda.js?v=57";
+import { renderPago }                        from "./pagos.js?v=57";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=56";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=56";
+}                                            from "./supabase.js?v=57";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=57";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1920,7 +1920,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=56");
+  const { renderLlamada } = await import("./llamada.js?v=57");
 
   await renderLlamada(
     contenedor,
@@ -2627,16 +2627,16 @@ function _normalizarNumeros(texto) {
 function _extraerEdad(texto) {
   const t = _normalizarNumeros(texto);
 
-  const compuesto = t.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?/i);
+  const compuesto = t.match(/(\d+)\s*años?\s*y\s*(\d+)\s*meses?\b/i);
   if (compuesto) return parseInt(compuesto[1]) * 12 + parseInt(compuesto[2]);
 
-  const semanas = t.match(/(\d+)\s*semanas?/i);
+  const semanas = t.match(/(\d+)\s*semanas?\b/i);
   if (semanas) return Math.round(parseInt(semanas[1]) / 4.3);
 
-  const meses = t.match(/(\d+)\s*(meses?|mes)/i);
+  const meses = t.match(/(\d+)\s*meses?\b/i);
   if (meses) return parseInt(meses[1]);
 
-  const anos = t.match(/(\d+)\s*(años?|ano)/i);
+  const anos = t.match(/(\d+)\s*(?:años?|ano)\b/i);
   if (anos) return parseInt(anos[1]) * 12;
 
   return null;
