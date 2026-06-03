@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=68";
-import { detectarZona }                      from "./victoria-zones.js?v=68";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=68";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=68";
+import { normalizar }                        from "./victoria-utils.js?v=69";
+import { detectarZona }                      from "./victoria-zones.js?v=69";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=69";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=69";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=68";
-import { esPPP }                             from "./victoria-breeds.js?v=68";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=68";
-import { renderAgenda }                      from "./agenda.js?v=68";
+} from "./victoria-phrases.js?v=69";
+import { esPPP }                             from "./victoria-breeds.js?v=69";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=69";
+import { renderAgenda }                      from "./agenda.js?v=69";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=68";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=68";
+}                                            from "./supabase.js?v=69";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=69";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1994,7 +1994,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=68");
+  const { renderLlamada } = await import("./llamada.js?v=69");
 
   await renderLlamada(
     contenedor,
@@ -2394,6 +2394,12 @@ async function _evaluarYResponder(textoActual) {
 function _construirContexto(textoActual) {
   const mensajeCompleto = state.mensajes_diagnostico.join(" ");
 
+  // Si en este turno reaparece señal de mordida, el descarte previo deja
+  // de valer: una mordida declarada tras una negación debe volver a contar.
+  if (state.mordida_descartada === true && _tieneKeywordsMordida(textoActual)) {
+    state.mordida_descartada = false;
+  }
+
   return {
     perro:    { ...state.perro },
     zona:     state.zona,
@@ -2401,7 +2407,7 @@ function _construirContexto(textoActual) {
     mensaje:  mensajeCompleto,
     pending:  state.pending,
     respuesta_pendiente: state.pending ? textoActual : null,
-    keywords_mordida:    state.mordida_descartada === true
+    keywords_mordida:    (state.mordida_descartada === true && !_tieneKeywordsMordida(textoActual))
       ? false
       : state.keywords_mordida_confirmada === true
         ? true
