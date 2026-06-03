@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=69";
-import { detectarZona }                      from "./victoria-zones.js?v=69";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=69";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=69";
+import { normalizar }                        from "./victoria-utils.js?v=70";
+import { detectarZona }                      from "./victoria-zones.js?v=70";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=70";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=70";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=69";
-import { esPPP }                             from "./victoria-breeds.js?v=69";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=69";
-import { renderAgenda }                      from "./agenda.js?v=69";
+} from "./victoria-phrases.js?v=70";
+import { esPPP }                             from "./victoria-breeds.js?v=70";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=70";
+import { renderAgenda }                      from "./agenda.js?v=70";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=69";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=69";
+}                                            from "./supabase.js?v=70";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=70";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1994,7 +1994,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=69");
+  const { renderLlamada } = await import("./llamada.js?v=70");
 
   await renderLlamada(
     contenedor,
@@ -2394,12 +2394,6 @@ async function _evaluarYResponder(textoActual) {
 function _construirContexto(textoActual) {
   const mensajeCompleto = state.mensajes_diagnostico.join(" ");
 
-  // Si en este turno reaparece señal de mordida, el descarte previo deja
-  // de valer: una mordida declarada tras una negación debe volver a contar.
-  if (state.mordida_descartada === true && _tieneKeywordsMordida(textoActual)) {
-    state.mordida_descartada = false;
-  }
-
   return {
     perro:    { ...state.perro },
     zona:     state.zona,
@@ -2407,7 +2401,7 @@ function _construirContexto(textoActual) {
     mensaje:  mensajeCompleto,
     pending:  state.pending,
     respuesta_pendiente: state.pending ? textoActual : null,
-    keywords_mordida:    (state.mordida_descartada === true && !_tieneKeywordsMordida(textoActual))
+    keywords_mordida:    state.mordida_descartada === true
       ? false
       : state.keywords_mordida_confirmada === true
         ? true
@@ -2857,9 +2851,22 @@ function _extraerEmail(texto) {
 }
 
 function _tieneKeywordsMordida(texto) {
+  const norm = normalizar(texto);
+
+  // Si el texto NIEGA la mordida, no cuenta como keyword de mordida, aunque
+  // contenga el verbo ("nunca mordió", "no muerde", "no ha mordido", etc.).
+  const NEGACION_MORDIDA = [
+    "no muerde", "no mordio", "no ha mordido", "no ha llegado a morder",
+    "nunca muerde", "nunca mordio", "nunca ha mordido", "jamas ha mordido",
+    "jamas mordio", "no llega a morder", "no llego a morder",
+    "no es mordida", "no hay mordida", "sin morder", "sin llegar a morder",
+  ];
+  if (NEGACION_MORDIDA.some(kw => norm.includes(normalizar(kw)))) {
+    return false;
+  }
+
   const MORDIDA = ["muerde", "mordió", "ha mordido", "llegó a morder",
     "se tira a morder", "mordida", "amago"];
-  const norm = normalizar(texto);
   return MORDIDA.some((kw) => norm.includes(normalizar(kw)));
 }
 
