@@ -713,11 +713,16 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 }
 
 /* ═══════════════════════════════════════════
-   WIDGET DE PAGO — v1.0
-   Estilos para pagos.js (renderPago)
+   WIDGET DE PAGO — INERTE (pagos.js eliminado)
+   Todo el CSS de pago de aquí abajo (clases pago-, pay-,
+   upload-) ya no se usa: el flujo quedó sin pago en el chat.
+   PENDIENTE DE LIMPIEZA: extraer primero la utilidad
+   .hidden (de más abajo) a una sección de utilidades
+   —la comparte vicky/vicky.js— y recién entonces borrar
+   el resto del bloque.
    ═══════════════════════════════════════════ */
 
-/* Utilidad crítica que faltaba */
+/* Utilidad crítica — EN USO (compartida con vicky/vicky.js). NO borrar al limpiar el bloque de pago. */
 .hidden { display: none !important; }
 
 /* Contenedor principal */

@@ -10,8 +10,8 @@ let slotSeleccionado = null;
 
 /**
  * Renderiza el selector de slots dentro del contenedor dado.
- * Mismo contrato que pagos.js — escribe en contenedor.innerHTML,
- * no devuelve nada, no usa globals de window.
+ * Escribe en contenedor.innerHTML, no devuelve nada, no usa
+ * globals de window.
  *
  * @param {HTMLElement} contenedor — div en el que renderizar
  * @param {Function} onSeleccion  — callback({ fecha, hora, label }) al confirmar
