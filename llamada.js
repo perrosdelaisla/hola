@@ -3,7 +3,7 @@
    llamada.js — Mini-widget de reserva de llamada
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=67';
+import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=68';
 
 /* ── ESTADO ── */
 let slotSeleccionado = null;

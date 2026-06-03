@@ -57,7 +57,7 @@ El UI público es un chat de un solo "viewport": splash de bienvenida → barra 
 - **[admin/manifest.json](admin/manifest.json)** + **[admin/sw.js](admin/sw.js)** · permiten instalar el panel como app en Android/iOS. El service worker es deliberadamente network-only — los cambios se ven al instante sin invalidar caché.
 
 ### Otros
-- **[index.html](index.html)** · estructura del splash + chat + input fijo. Importa `./victoria.js?v=67` (la query `?v=` se incrementa para invalidar caché en clientes).
+- **[index.html](index.html)** · estructura del splash + chat + input fijo. Importa `./victoria.js?v=68` (la query `?v=` se incrementa para invalidar caché en clientes).
 - **[styles.css](styles.css)** · estilos del chat público.
 
 ---
@@ -155,7 +155,7 @@ VictorIA tiene respuestas hardcoded en `FRASES_LATERALES` ([victoria-phrases.js]
 
 - **Consultar antes de cambios importantes**: refactors, ediciones que tocan varios archivos, eliminación de funcionalidad. Charly revisa antes de confirmar.
 - **Mantener el estilo de código existente**. NO introducir TypeScript, NO introducir frameworks (React, Vue, etc.), NO introducir bundlers (Vite, webpack). El proyecto es vanilla ES6 modules y se sirve tal cual desde GitHub Pages.
-- **Versionado de caché**: cuando edites HTML/CSS/JS que cargan los clientes, gestionar versiones para evitar caché viejo. El patrón actual es `import { start } from './victoria.js?v=67';` en [index.html](index.html) — incrementar el `?v=` cuando haya cambios sustanciales que el cliente deba refrescar inmediatamente. El service worker del admin es network-only por diseño y no necesita esto.
+- **Versionado de caché**: cuando edites HTML/CSS/JS que cargan los clientes, gestionar versiones para evitar caché viejo. El patrón actual es `import { start } from './victoria.js?v=68';` en [index.html](index.html) — incrementar el `?v=` cuando haya cambios sustanciales que el cliente deba refrescar inmediatamente. El service worker del admin es network-only por diseño y no necesita esto.
 - **Imports relativos** con `./...js` (módulos ES6 nativos en navegador — la extensión `.js` es obligatoria).
 - **No añadir dependencias** sin pedirlo. Si algo se puede hacer con la plataforma web (fetch, Canvas API, IntersectionObserver…), se hace así.
 - **Comentarios**: el código actual tiene comentarios extensos en cabeceras de fichero y secciones — respetar ese estilo cuando edites archivos existentes. En código nuevo, solo comentar el "por qué" cuando no sea obvio.
@@ -215,8 +215,8 @@ node bump-version.js <nueva-version>
 Ejemplo: `node bump-version.js 52`
 
 Esto actualiza todas las refs `?v=N` en cadena:
-- `index.html` → carga `victoria.js?v=67`
-- `victoria.js` → importa `agenda.js?v=67`, `supabase.js?v=67`, etc.
+- `index.html` → carga `victoria.js?v=68`
+- `victoria.js` → importa `agenda.js?v=68`, `supabase.js?v=68`, etc.
 - Archivos hijos (`agenda.js`, `llamada.js`, `victoria-matching.js`,
   `victoria-breeds.js`, `victoria-dictionaries.js`) → sus imports
   internos también pasan a `?v=52`.
