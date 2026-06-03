@@ -22,8 +22,8 @@
  *   4. Caso general → mensaje principal unificado
  */
 
-import { normalizar, filtrarHits } from "./victoria-utils.js?v=65";
-import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=65";
+import { normalizar, filtrarHits } from "./victoria-utils.js?v=66";
+import { TODOS_LOS_DICCIONARIOS } from "./victoria-dictionaries.js?v=66";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // KEYWORDS
@@ -188,7 +188,7 @@ export function tieneKeywordsAgresion(texto) {
  * @returns {Object} Decision
  */
 export function decidirRespuesta(contexto) {
-  const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida, modalidad_zona_fuera_elegida } = contexto;
+  const { perro, zona, lateral_detectado, keywords_mordida, gravedad_mordida, modalidad_zona_fuera_elegida, mordida_descartada } = contexto;
   const textoNorm = normalizar(contexto.mensaje ?? "");
 
   // ── REGLA DE CONTINUIDAD IA ──────────────────────────────────────────────
@@ -293,10 +293,43 @@ export function decidirRespuesta(contexto) {
     // en la primera clase. Decisión clínica deliberada de Charly.
     const esCachorro = (perro?.edad_meses ?? 999) < 9;
 
+    // ── CASO 2 (criterio B): agresión a PERSONAS + perro grande/PPP, SIN
+    // mordida confirmada → etólogo directo. No preguntamos gravedad ni
+    // confirmamos mordida: el caso no se asume sin valoración previa.
+    // Cachorro queda excluido (regla EDUCAN).
+    if (!esCachorro && !keywords_mordida && hayAgresion && hayVictimaPersona && (esGrande || esPPP)) {
+      return _decision({
+        accion: "derivar",
+        frase_params: { tipo: "etologo", subtipo: "agresion_personas_sin_mordida" },
+        pending_next: null,
+        cuadro_ganador: null,
+        log: _log(1, `agresion a personas sin mordida + grande/ppp (peso:${perro?.peso_kg} ppp:${esPPP}) → etologo directo`),
+      });
+    }
+
+    // Cliente YA aclaró que no hubo mordida y no es caso de derivación
+    // directa (CASO 2 ya se evaluó arriba). No reciclamos la pregunta ni
+    // saltamos a gravedad: es conducta sin contacto de dientes → flujo normal.
+    if (mordida_descartada && !keywords_mordida) {
+      // cae al caso general (no return): sigue a FILTRO 2 y siguientes
+    }
+    // ── CASO 3: hay señal de seguridad pero NO mordida confirmada y NO
+    // entra en CASO 2 → antes de hablar de gravedad, CONFIRMAR si hubo
+    // mordida real. Evita preguntar por sangre ante un simple gruñido.
+    else if (!keywords_mordida && !gravedad_mordida) {
+      return _decision({
+        accion: "preguntar",
+        frase_params: { tipo: "apoyo", subtipo: "confirmar_mordida" },
+        pending_next: "confirmar_mordida",
+        cuadro_ganador: null,
+        log: _log(1, `seguridad sin mordida confirmada → confirmar mordida antes de gravedad`),
+      });
+    }
+
     // Gravedad aún no definida → preguntar (también en cachorros,
     // la pregunta misma es útil porque hace que el cliente
     // dimensione realmente la conducta).
-    if (!gravedad_mordida) {
+    else if (!gravedad_mordida) {
       return _decision({
         accion: "preguntar",
         frase_params: { tipo: "apoyo", subtipo: "filtro_mordida" },

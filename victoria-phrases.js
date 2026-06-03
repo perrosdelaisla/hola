@@ -28,6 +28,8 @@ export const FRASES_ETOLOGO = {
   complementaria: `En Mallorca hay varios profesionales. El más conocido es Tomás Camps, aunque te recomendaríamos mirar también qué perfil te queda más cerca de zona y con quién te sientes cómodo — es una decisión personal y es importante que el encaje sea bueno.`,
 
   mordida_personas: `Por lo que me cuentas, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento — cuando hay mordida a personas, es imprescindible una evaluación clínica para garantizar la seguridad de todos, incluido tu perro. En Perros de la Isla no aceptamos casos así sin esa valoración previa, es un criterio firme que mantenemos por responsabilidad profesional. Te recomendamos buscar un etólogo veterinario colegiado en tu zona. Si en un futuro, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
+
+  agresion_personas_sin_mordida: `Por lo que me cuentas, este caso necesita la valoración previa de un etólogo veterinario antes de empezar cualquier trabajo de adiestramiento. Cuando un perro de cierto porte muestra agresividad hacia las personas, es importante una evaluación clínica que descarte cualquier componente médico y que garantice la seguridad de todos, incluido tu perro. En Perros de la Isla preferimos no asumir un caso así sin esa valoración previa; es un criterio que mantenemos por responsabilidad profesional. Te recomendamos buscar un etólogo veterinario colegiado en tu zona. Si más adelante, una vez hecha esa evaluación, queréis plantear un acompañamiento desde el adiestramiento, podéis escribirnos y lo valoramos. Mucho ánimo con el proceso.`,
 };
 
 
@@ -69,6 +71,8 @@ export const FRASES_APOYO = {
   pedir_especificacion: `Cuéntanos algo más del día a día con tu perro — qué situaciones te gustaría mejorar, qué has notado que te preocupa, cómo es la convivencia. Con eso podemos orientarte mejor.`,
 
   filtro_mordida: `Para orientarte bien, ¿con quién o con qué pasa? ¿Con personas, con otros perros, o con cosas (muebles, ropa, cordones)? Cuéntanos cómo es el último episodio que recuerdes.`,
+
+  confirmar_mordida: `Para orientarte bien necesito entender un poco mejor la situación: ¿tu perro ha llegado a morder a alguien, con contacto real de los dientes, o por ahora se queda en gruñidos, gestos o avisos sin llegar a morder?`,
 
   filtro_mordida_repregunta: `Para poder orientarte bien, cuéntanos con un poco más de detalle: ¿hubo contacto real de los dientes, y de haberlo, quedó alguna marca (enrojecimiento, hematoma, sangre)?`,
 

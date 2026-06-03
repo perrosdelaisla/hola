@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=65";
-import { detectarZona }                      from "./victoria-zones.js?v=65";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=65";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=65";
+import { normalizar }                        from "./victoria-utils.js?v=66";
+import { detectarZona }                      from "./victoria-zones.js?v=66";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=66";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=66";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=65";
-import { esPPP }                             from "./victoria-breeds.js?v=65";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=65";
-import { renderAgenda }                      from "./agenda.js?v=65";
+} from "./victoria-phrases.js?v=66";
+import { esPPP }                             from "./victoria-breeds.js?v=66";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=66";
+import { renderAgenda }                      from "./agenda.js?v=66";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=65";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=65";
+}                                            from "./supabase.js?v=66";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=66";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -80,6 +80,8 @@ function _estadoInicial() {
     pending: null,
     cuadro_pendiente_mordida: null,
     gravedad_mordida: null,
+    keywords_mordida_confirmada: false,
+    mordida_descartada: false,
     lateral_detectado: null,
     decision_actual: null,
     bandera_edad_temprana: false,
@@ -683,6 +685,7 @@ async function _procesarTexto(texto) {
     s2:  _procesarS2_NombrePerro,
     s3:  _procesarS3_DatosPerro,
     s4:  _procesarS4_Problema,
+    s4b: _procesarConfirmacionMordida,
     s5:  _procesarGravedadMordida,
     s6:  _procesarS6_Protocolo,
     s7:  _procesarS7_Slot,
@@ -1090,6 +1093,47 @@ function _deshabilitarInput() {
     inputWrap.style.opacity = "0.4";
     inputWrap.style.pointerEvents = "none";
   }
+}
+
+async function _procesarConfirmacionMordida(texto) {
+  state.mensajes_diagnostico.push(texto);
+  const norm = normalizar(texto);
+
+  // NEGÓ mordida → conducta sin contacto de dientes. Limpiamos las banderas
+  // de seguridad y mandamos al flujo normal (reactividad/manejo en clase).
+  const niega = [
+    "no", "no muerde", "no ha mordido", "nunca muerde", "nunca ha mordido",
+    "no llega a morder", "no llegó a morder", "no llego a morder",
+    "solo gruñe", "solo gruñido", "solo ladra", "solo amaga", "solo avisa",
+    "solo amenaza", "gruñidos", "gestos", "avisos", "sin morder",
+    "sin contacto", "no hay mordida", "no es mordida", "amaga", "amenaza",
+  ].some(kw => norm.includes(normalizar(kw)));
+
+  // CONFIRMÓ mordida → activamos la rama de mordida real y reevaluamos:
+  // a partir de acá entra el circuito de gravedad existente.
+  const confirma = [
+    "si", "sí", "muerde", "ha mordido", "mordió", "mordio", "me mordió",
+    "me ha mordido", "llegó a morder", "llego a morder", "con los dientes",
+    "clavó los dientes", "clavo los dientes", "sí ha mordido", "si muerde",
+    "una vez mordió", "ya mordió", "ya ha mordido", "mordida",
+  ].some(kw => norm.includes(normalizar(kw)));
+
+  if (niega && !confirma) {
+    // Limpiar banderas de seguridad → flujo normal sin pregunta de sangre.
+    state.mordida_descartada       = true;   // ← nueva: apaga el escalón de seguridad
+    state.cuadro_pendiente_mordida = null;
+    state.gravedad_mordida         = null;
+    state.pending                  = null;
+    state.current_step             = "s4";
+    return await _evaluarYResponder(texto);
+  }
+
+  // Confirma mordida (o ambiguo: por precaución tratamos como mordida y el
+  // circuito de gravedad de s5 decidirá leve/grave con repregunta si hace falta).
+  state.keywords_mordida_confirmada = true;
+  state.pending                     = null;
+  state.current_step                = "s4";
+  return await _evaluarYResponder(texto);
 }
 
 async function _procesarGravedadMordida(texto) {
@@ -1942,7 +1986,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=65");
+  const { renderLlamada } = await import("./llamada.js?v=66");
 
   await renderLlamada(
     contenedor,
@@ -2323,6 +2367,8 @@ async function _evaluarYResponder(textoActual) {
       // Routear al procesador correcto según qué se está preguntando
       if (decision.pending_next === "modalidad_zona_fuera") {
         state.current_step = "s_zona_fuera";
+      } else if (decision.pending_next === "confirmar_mordida") {
+        state.current_step = "s4b";
       } else {
         state.current_step = "s5";  // mordida (legacy: única pregunta hasta v25)
       }
@@ -2347,7 +2393,10 @@ function _construirContexto(textoActual) {
     mensaje:  mensajeCompleto,
     pending:  state.pending,
     respuesta_pendiente: state.pending ? textoActual : null,
-    keywords_mordida:    _tieneKeywordsMordida(textoActual),
+    keywords_mordida:    state.keywords_mordida_confirmada === true
+      ? true
+      : _tieneKeywordsMordida(textoActual),
+    mordida_descartada:  state.mordida_descartada === true,
     lateral_detectado:   state.lateral_detectado,
     gravedad_mordida:    state.gravedad_mordida,
     cuadro_pendiente_mordida: state.cuadro_pendiente_mordida,
