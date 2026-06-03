@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=66";
-import { detectarZona }                      from "./victoria-zones.js?v=66";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=66";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=66";
+import { normalizar }                        from "./victoria-utils.js?v=67";
+import { detectarZona }                      from "./victoria-zones.js?v=67";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=67";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=67";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=66";
-import { esPPP }                             from "./victoria-breeds.js?v=66";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=66";
-import { renderAgenda }                      from "./agenda.js?v=66";
+} from "./victoria-phrases.js?v=67";
+import { esPPP }                             from "./victoria-breeds.js?v=67";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=67";
+import { renderAgenda }                      from "./agenda.js?v=67";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=66";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=66";
+}                                            from "./supabase.js?v=67";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=67";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1099,28 +1099,36 @@ async function _procesarConfirmacionMordida(texto) {
   state.mensajes_diagnostico.push(texto);
   const norm = normalizar(texto);
 
-  // NEGÓ mordida → conducta sin contacto de dientes. Limpiamos las banderas
-  // de seguridad y mandamos al flujo normal (reactividad/manejo en clase).
+  // NEGACIÓN primero y con prioridad (mismo criterio que LEVE en
+  // _procesarGravedadMordida): si el cliente niega la mordida, gana aunque
+  // la frase contenga la subcadena "mordió" (p.ej. "nunca mordió"). Por eso
+  // las entradas son negaciones COMPLETAS, no el verbo suelto.
   const niega = [
-    "no", "no muerde", "no ha mordido", "nunca muerde", "nunca ha mordido",
-    "no llega a morder", "no llegó a morder", "no llego a morder",
-    "solo gruñe", "solo gruñido", "solo ladra", "solo amaga", "solo avisa",
-    "solo amenaza", "gruñidos", "gestos", "avisos", "sin morder",
-    "sin contacto", "no hay mordida", "no es mordida", "amaga", "amenaza",
+    "no muerde", "no mordio", "no ha mordido", "nunca muerde", "nunca mordio",
+    "nunca ha mordido", "jamas ha mordido", "no llega a morder",
+    "no llego a morder", "no ha llegado a morder", "no es mordida",
+    "no hay mordida", "sin morder", "sin contacto",
+    "solo gruñe", "solo gruñido", "solo gruñidos", "solo ladra", "solo amaga",
+    "solo avisa", "solo amenaza", "solo enseña los dientes", "solo marca",
+    "gruñidos", "gestos", "avisos", "amaga", "amenaza", "para nada", "que va",
   ].some(kw => norm.includes(normalizar(kw)));
 
-  // CONFIRMÓ mordida → activamos la rama de mordida real y reevaluamos:
-  // a partir de acá entra el circuito de gravedad existente.
+  // Respuesta breve negativa de arranque ("no", "nada", "qué va").
+  const empiezaNegacion = /^(no|nop|nope|nada|que va|para nada|jamas)\b/.test(norm.trim());
+
+  // CONFIRMACIÓN inequívoca (frases afirmativas, no el verbo suelto que
+  // aparecería dentro de una negación). Solo se mira si NO negó.
   const confirma = [
-    "si", "sí", "muerde", "ha mordido", "mordió", "mordio", "me mordió",
-    "me ha mordido", "llegó a morder", "llego a morder", "con los dientes",
-    "clavó los dientes", "clavo los dientes", "sí ha mordido", "si muerde",
-    "una vez mordió", "ya mordió", "ya ha mordido", "mordida",
+    "si muerde", "sí muerde", "si mordio", "sí mordió", "si ha mordido",
+    "me mordio", "me ha mordido", "le mordio", "le ha mordido",
+    "mordio a", "ha mordido a", "una vez mordio", "ya mordio", "ya ha mordido",
+    "alguna vez mordio", "clavo los dientes", "clavó los dientes",
+    "con los dientes",
   ].some(kw => norm.includes(normalizar(kw)));
 
-  if (niega && !confirma) {
-    // Limpiar banderas de seguridad → flujo normal sin pregunta de sangre.
-    state.mordida_descartada       = true;   // ← nueva: apaga el escalón de seguridad
+  // Negación clara → descartar mordida y volver al flujo normal.
+  if (niega || (empiezaNegacion && !confirma)) {
+    state.mordida_descartada       = true;
     state.cuadro_pendiente_mordida = null;
     state.gravedad_mordida         = null;
     state.pending                  = null;
@@ -1128,8 +1136,8 @@ async function _procesarConfirmacionMordida(texto) {
     return await _evaluarYResponder(texto);
   }
 
-  // Confirma mordida (o ambiguo: por precaución tratamos como mordida y el
-  // circuito de gravedad de s5 decidirá leve/grave con repregunta si hace falta).
+  // Confirmación clara, o ambiguo: por seguridad tratamos como mordida y el
+  // circuito de gravedad (s5) hará la repregunta si hace falta.
   state.keywords_mordida_confirmada = true;
   state.pending                     = null;
   state.current_step                = "s4";
@@ -1986,7 +1994,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=66");
+  const { renderLlamada } = await import("./llamada.js?v=67");
 
   await renderLlamada(
     contenedor,
