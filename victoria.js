@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=64";
-import { detectarZona }                      from "./victoria-zones.js?v=64";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=64";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=64";
+import { normalizar }                        from "./victoria-utils.js?v=65";
+import { detectarZona }                      from "./victoria-zones.js?v=65";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=65";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=65";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=64";
-import { esPPP }                             from "./victoria-breeds.js?v=64";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=64";
-import { renderAgenda }                      from "./agenda.js?v=64";
+} from "./victoria-phrases.js?v=65";
+import { esPPP }                             from "./victoria-breeds.js?v=65";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=65";
+import { renderAgenda }                      from "./agenda.js?v=65";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=64";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=64";
+}                                            from "./supabase.js?v=65";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=65";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1753,6 +1753,7 @@ function _procesarS9_DatosCliente(texto) {
   const email = _extraerEmail(texto);
   if (email) state.cliente.email = email;
 
+  _notificarRescate();   // push de rescate (lead caído) antes de confirmar
   state.current_step = "s12";
   setTimeout(() => { _confirmarCitaSinPago(); }, 800);
   return "¡Perfecto! Un momento que confirmo tu reserva…";
@@ -1941,7 +1942,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=64");
+  const { renderLlamada } = await import("./llamada.js?v=65");
 
   await renderLlamada(
     contenedor,
@@ -2574,6 +2575,77 @@ async function _notificarCarlos() {
     },
     body: mensajeCliente,
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+// NOTIFICACIÓN DE RESCATE (ntfy.sh) — lead que dejó datos en s9
+// pero todavía no confirmó. Se dispara ANTES de la confirmación
+// para no perder el contacto si la persona abandona. El de cita
+// confirmada (_notificarCarlos) llega además al panel admin vía
+// trigger DB; éste no toca citas → solo push. Esa es la señal
+// que los distingue. Try/catch interno: un fallo de ntfy nunca
+// rompe el flujo hacia la confirmación.
+// ─────────────────────────────────────────────────────────────
+async function _notificarRescate() {
+  if (state.prueba) return;                 // nunca en modo prueba
+  if (state.rescate_notificado) return;     // idempotencia (s9 puede reprocesarse)
+  state.rescate_notificado = true;
+
+  try {
+    const d       = state.decision_actual;
+    const cuadros = d?.cuadros_originales ??
+      (d?.cuadro_ganador ? [d.cuadro_ganador] : ["no detectado"]);
+    const slot = state.slot_elegido;
+    const p    = state.perro;
+    const c    = state.cliente;
+
+    const edadTexto = (p.edad_meses ?? 0) < 12
+      ? `${p.edad_meses} meses`
+      : `${Math.round((p.edad_meses ?? 24) / 12)} años`;
+
+    const cuadroPrincipal = cuadros[0] ?? null;
+    const protocoloHumano = cuadroPrincipal && PROTOCOLO_HUMANO[cuadroPrincipal]
+      ? PROTOCOLO_HUMANO[cuadroPrincipal]
+      : "No identificado";
+
+    const reportadoTexto = (state.mensajes_diagnostico ?? [])
+      .slice(0, 2).join(" · ").slice(0, 400) || "Sin texto del cliente";
+
+    const modalidadTexto = state.modalidad_final === "online"
+      ? "online por Google Meet"
+      : state.modalidad_zona_fuera_elegida === "palma"
+        ? "presencial · parque de Palma"
+        : "presencial · en tu domicilio";
+
+    const primerNombre = (c.nombre ?? "").split(" ")[0] || "lead";
+
+    const mensajeRescate = [
+      "⚠️ DEJÓ DATOS — SIN CONFIRMAR",
+      "Si no te entra el aviso de cita, llamar para recuperar.",
+      "━━━━━━━━━━━━━━━━━━━━━━━",
+      `📞  ${c.telefono ?? "—"}`,
+      `👤  ${c.nombre ?? "—"}`,
+      "━━━━━━━━━━━━━━━━━━━━━━━",
+      `🐕 ${p.nombre ?? "—"} · ${p.raza ?? "—"} · ${edadTexto} · ${p.peso_kg ?? "—"}kg`,
+      `📍 ${state.zona?.zonaDetectada ?? "—"} · ${modalidadTexto}`,
+      `🧠 Tema: ${protocoloHumano}`,
+      `📝 Reportó: "${reportadoTexto}"`,
+      `📅 Horario elegido: ${slot?.label ?? "—"}`,
+    ].join("\n");
+
+    await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Title": `Sin confirmar - llamar si no entra cita - ${primerNombre}`,
+        "Priority": "high",
+        "Tags": "warning,telephone_receiver",
+      },
+      body: mensajeRescate,
+    });
+  } catch (err) {
+    console.warn("Error notificando rescate por ntfy (no rompe el flujo):", err);
+  }
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // BARRA DE PROGRESO
