@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=70";
-import { detectarZona }                      from "./victoria-zones.js?v=70";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=70";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=70";
+import { normalizar }                        from "./victoria-utils.js?v=71";
+import { detectarZona }                      from "./victoria-zones.js?v=71";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=71";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=71";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=70";
-import { esPPP }                             from "./victoria-breeds.js?v=70";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=70";
-import { renderAgenda }                      from "./agenda.js?v=70";
+} from "./victoria-phrases.js?v=71";
+import { esPPP }                             from "./victoria-breeds.js?v=71";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=71";
+import { renderAgenda }                      from "./agenda.js?v=71";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=70";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=70";
+}                                            from "./supabase.js?v=71";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=71";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1559,10 +1559,10 @@ function _mostrarBotonesRamificacion() {
         },
       },
       {
-        label: "Ver precios",
+        label: "Ver el valor de las clases",
         onClick: () => {
-          _mostrarCliente("Ver precios");
-          _registrarTurno("cliente", "Ver precios");
+          _mostrarCliente("Ver el valor de las clases");
+          _registrarTurno("cliente", "Ver el valor de las clases");
           _mostrarPrecioYBotonesAgenda();
         },
       },
@@ -1599,10 +1599,10 @@ function _mostrarMetodologiaCompleta() {
         setTimeout(() => {
           _mostrarOpciones([
             {
-              label: "Sí, ver precios y horarios",
+              label: "Sí, ver el valor y los horarios",
               onClick: () => {
-                _mostrarCliente("Sí, ver precios y horarios");
-                _registrarTurno("cliente", "Sí, ver precios y horarios");
+                _mostrarCliente("Sí, ver el valor y los horarios");
+                _registrarTurno("cliente", "Sí, ver el valor y los horarios");
                 _mostrarPrecioYBotonesAgenda();
               },
             },
@@ -1994,7 +1994,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=70");
+  const { renderLlamada } = await import("./llamada.js?v=71");
 
   await renderLlamada(
     contenedor,
