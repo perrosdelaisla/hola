@@ -1,19 +1,56 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="robots" content="noindex, nofollow">
-    <meta http-equiv="refresh" content="0; url=/clases/admin/">
-    <title>Redirigiendo… — Perros de la Isla</title>
-    <style>
-        html, body { margin: 0; padding: 0; background: #0a0a0a; color: #f5efe0; height: 100%; }
-        body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; display: flex; align-items: center; justify-content: center; }
-        p { font-size: 14px; opacity: 0.7; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="canonical" href="https://perrosdelaisla.github.io/clases/admin/">
+  <title>El panel se ha mudado — Perros de la Isla</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #0a0a0a; color: #f5efe0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    body { display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+    p { font-size: 15px; opacity: 0.85; }
+    a { color: #e8320a; }
+  </style>
 </head>
 <body>
-    <p>Redirigiendo al nuevo admin…</p>
-    <script>location.replace('/clases/admin/');</script>
+  <p>El panel se ha mudado. <a href="https://perrosdelaisla.github.io/clases/admin/">Ir al nuevo panel</a></p>
+
+  <!-- Shim de decomiso del admin viejo: desregistra todo SW del scope, borra sus
+       caches y recién entonces redirige al panel nuevo. Sin JS, el enlace de
+       arriba es el respaldo manual. Autocontenido: sin CSS/JS externos. -->
+  <script>
+    (function () {
+      var destino = "https://perrosdelaisla.github.io/clases/admin/";
+      var yaFui = false;
+      function irse() {
+        if (yaFui) return;
+        yaFui = true;
+        location.replace(destino);
+      }
+      async function limpiar() {
+        try {
+          if ("serviceWorker" in navigator) {
+            var regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(function (r) {
+              return r.unregister().catch(function () {});
+            }));
+          }
+        } catch (e) {}
+        try {
+          if (window.caches && caches.keys) {
+            var claves = await caches.keys();
+            await Promise.all(claves.map(function (k) {
+              return caches.delete(k).catch(function () {});
+            }));
+          }
+        } catch (e) {}
+      }
+      // Red de seguridad: pase lo que pase con la limpieza, redirige igual.
+      setTimeout(irse, 1500);
+      limpiar().then(irse).catch(irse);
+    })();
+  </script>
 </body>
 </html>
