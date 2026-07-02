@@ -147,13 +147,16 @@ En la primera clase el adiestrador te dice el rango concreto para {perro} tras e
 export const FRASES_PRECIO = {
   presencial:
     "El valor de la clase presencial es de 90€. También tenemos un pack de 4 clases por 300€ (ahorras 60€). " +
-    "La seña para reservar es de 45€ y se descuenta del total.",
+    "La seña para reservar es de 45€ y se descuenta del total. " +
+    "Incluye el acompañamiento del equipo entre clases y acceso a tu app para seguir el progreso de tu perro.",
   online:
     "El valor de la clase online es de 75€. También tenemos un pack de 4 clases por 240€ (ahorras 60€). " +
-    "La seña para reservar es de 45€ y se descuenta del total.",
+    "La seña para reservar es de 45€ y se descuenta del total. " +
+    "Incluye el acompañamiento del equipo entre clases y acceso a tu app para seguir el progreso de tu perro.",
   sin_modalidad:
     "Las clases presenciales son a 90€ y las online a 75€. Tenemos pack de 4 clases con 60€ de ahorro " +
     "(300€ presencial, 240€ online). La seña para reservar es de 45€ y se descuenta del total. " +
+    "En todos los casos incluye el acompañamiento del equipo entre clases y acceso a tu app para seguir el progreso de tu perro. " +
     "Si seguimos, ahora mismo miramos cuál de las dos modalidades encaja mejor con el caso de tu perro.",
 };
 

@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=72";
-import { detectarZona }                      from "./victoria-zones.js?v=72";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=72";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=72";
+import { normalizar }                        from "./victoria-utils.js?v=73";
+import { detectarZona }                      from "./victoria-zones.js?v=73";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=73";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=73";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=72";
-import { esPPP }                             from "./victoria-breeds.js?v=72";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=72";
-import { renderAgenda }                      from "./agenda.js?v=72";
+} from "./victoria-phrases.js?v=73";
+import { esPPP }                             from "./victoria-breeds.js?v=73";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=73";
+import { renderAgenda }                      from "./agenda.js?v=73";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=72";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=72";
+}                                            from "./supabase.js?v=73";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=73";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -229,7 +229,7 @@ export async function start() {
 
   _registrarTurno("victoria", bienvenida);
   _mostrarVictoria(bienvenida);
-  _mostrarChipsArranque();
+  _mostrarBotonesArranque();
   state.current_step = "s_inicio";
   _actualizarProgreso();
   // ── ADICIÓN 2: crear sesión de tracking (async, no bloquea) ──
@@ -271,8 +271,10 @@ function _construirSaludoBienvenida() {
       "Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
   }
 
-  // Saludo estándar (sin parámetro o con tema inválido)
-  return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. En Mallorca desde 2019, con más de 14 años de experiencia acompañando a familias con su perro. Cuéntanos qué está pasando con tu perro — qué situación os preocupa o queréis mejorar — y te orientamos en un par de minutos.";
+  // Saludo estándar (sin parámetro o con tema inválido) — corto, con botones de
+  // acción debajo (ver _mostrarBotonesArranque). Las variantes personalizadas por
+  // tema/origen (arriba) conservan su párrafo largo.
+  return "¡Hola! Soy Victoria, del equipo de Perros de la Isla. ¿Cómo te podemos ayudar?";
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1255,6 +1257,63 @@ function _ocultarOpciones() {
   if (prev) prev.remove();
 }
 
+/**
+ * Botones de acción del arranque estándar (debajo del saludo corto). Dos
+ * caminos, mismo patrón visual que _mostrarChipsArranque (opts-inline):
+ *   A) "Cuéntanos qué pasa con tu perro" → chips de conducta + texto libre
+ *      (el árbol existente, sin cambios).
+ *   B) "Reservar una llamada con el equipo" → flujo de llamada existente.
+ * Registra en Stats qué botón eligió el lead (columna sesiones.arranque_boton).
+ */
+function _mostrarBotonesArranque() {
+  const botones = [
+    {
+      label: "Cuéntanos qué pasa con tu perro",
+      onClick: () => {
+        _mostrarCliente("Cuéntanos qué pasa con tu perro");
+        _registrarTurno("cliente", "Cuéntanos qué pasa con tu perro");
+        _actualizarSesion({ arranque_boton: "caso" });
+        const msg = "Perfecto. Cuéntanos qué situación con tu perro os preocupa o queréis mejorar — o elige una de estas para empezar:";
+        _mostrarVictoria(msg);
+        _registrarTurno("victoria", msg);
+        _mostrarChipsArranque();   // árbol de conducta existente, sin cambios
+        _inputEl?.focus();
+      },
+    },
+    {
+      label: "Reservar una llamada con el equipo",
+      onClick: async () => {
+        _mostrarCliente("Reservar una llamada con el equipo");
+        _registrarTurno("cliente", "Reservar una llamada con el equipo");
+        _actualizarSesion({ arranque_boton: "llamada" });
+        _mostrarTyping(true);
+        setTimeout(async () => {
+          _mostrarTyping(false);
+          await _iniciarLlamada();   // flujo de llamada existente (llamada.js)
+          _actualizarProgreso();
+        }, TYPING_DELAY);
+      },
+    },
+  ];
+  if (!_chatEl || !_twEl) return;
+  _ocultarOpciones();
+  const wrap = document.createElement("div");
+  wrap.className = "opts-inline";
+  wrap.id = "opts-inline-actual";
+  botones.forEach(({ label, onClick }) => {
+    const btn = document.createElement("button");
+    btn.className = "opt-btn-inline";
+    btn.textContent = label;
+    btn.addEventListener("click", () => {
+      _ocultarOpciones();
+      onClick();
+    });
+    wrap.appendChild(btn);
+  });
+  _chatEl.insertBefore(wrap, _twEl);
+  _scrollAbajo();
+}
+
 function _mostrarChipsArranque() {
   const chips = [
     { label: "Ladra o tira de la correa",  envio: "tira de la correa",   ghost: false },
@@ -1485,12 +1544,14 @@ async function _procesarS6_Protocolo(texto) {
     return FRASES_PACK[modalidad];
   }
 
-  // 3. Precio / valor
+  // 3. Precio / valor → respuesta transparente + bifurcación de 2 chips
+  //    (Ver mi caso / Hablar con el equipo). Ver spec REGLA DE PRECIO.
   if (match(KEYWORDS_PRECIO)) {
     let clave = "sin_modalidad";
     if (state.modalidad_final === "online")          clave = "online";
     else if (state.modalidad_final === "presencial") clave = "presencial";
-    _mostrarBotonesAgendaTrasPausa();
+    _actualizarSesion({ vio_precio: true });
+    _mostrarBifurcacionPrecio();
     return FRASES_PRECIO[clave];
   }
 
@@ -1708,6 +1769,51 @@ function _mostrarBotonPedirWhatsApp() {
       _mostrarVictoria(msg);
       _registrarTurno("victoria", msg);
     });
+  }, 4500);
+}
+
+/**
+ * Bifurcación de 2 chips que sigue a toda respuesta de precio/valor. Garantiza
+ * que ninguna rama muera en callejón sin salida (spec REGLA DE PRECIO):
+ *   - "Ver mi caso"        → sigue el árbol normal hacia la agenda (cita calificada).
+ *   - "Hablar con el equipo" → flujo de llamada existente (llamada agendada).
+ * (El input de texto libre sigue disponible como tercera salida natural.)
+ */
+function _opcionesBifurcacionPrecio() {
+  return [
+    {
+      label: "Ver mi caso",
+      onClick: async () => {
+        _mostrarCliente("Ver mi caso");
+        _registrarTurno("cliente", "Ver mi caso");
+        state.current_step = "s7";
+        _mostrarTyping(true);
+        setTimeout(async () => {
+          _mostrarTyping(false);
+          await _iniciarAgenda();
+          _actualizarProgreso();
+        }, TYPING_DELAY);
+      },
+    },
+    {
+      label: "Hablar con el equipo",
+      onClick: async () => {
+        _mostrarCliente("Hablar con el equipo");
+        _registrarTurno("cliente", "Hablar con el equipo");
+        _mostrarTyping(true);
+        setTimeout(async () => {
+          _mostrarTyping(false);
+          await _iniciarLlamada();
+          _actualizarProgreso();
+        }, TYPING_DELAY);
+      },
+    },
+  ];
+}
+
+function _mostrarBifurcacionPrecio() {
+  setTimeout(() => {
+    _mostrarOpciones(_opcionesBifurcacionPrecio());
   }, 4500);
 }
 
@@ -1994,7 +2100,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=72");
+  const { renderLlamada } = await import("./llamada.js?v=73");
 
   await renderLlamada(
     contenedor,
@@ -2244,9 +2350,13 @@ function _mensajePrecio() {
   if (state.modalidad_final === "online") {
     return `Te cuento los detalles. El valor de la clase suelta online es de 75€, y el del pack de 4 clases, 240€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
 
+Todas las clases incluyen el acompañamiento del equipo entre clases y acceso a tu app para seguir el progreso de tu perro.
+
 Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
   }
   return `Te cuento los detalles. El valor de la clase suelta presencial es de 90€, y el del pack de 4 clases, 300€ (ahorras 60€). No hace falta que elijas ahora: reservas con una seña de 45€ (por Bizum o transferencia, que se descuenta del total) y en la primera clase, cuando ya conozcas al adiestrador, decides si haces el pack o solo esa clase, sin compromiso.
+
+Todas las clases incluyen el acompañamiento del equipo entre clases y acceso a tu app para seguir el progreso de tu perro.
 
 Puedes cancelar o cambiar la cita sin cargo avisando con al menos 48h de antelación; con menos de 48h, la seña no se devuelve.`;
 }
@@ -2264,46 +2374,8 @@ function _mostrarPrecioYBotonesAgenda() {
       _registrarTurno("victoria", msgPrecio);
 
       setTimeout(() => {
-        _mostrarOpciones([
-          {
-            label: "Sí, ver horarios disponibles",
-            onClick: async () => {
-              _mostrarCliente("Sí, ver horarios");
-              _registrarTurno("cliente", "Sí, ver horarios");
-              state.current_step = "s7";
-              _mostrarTyping(true);
-              setTimeout(async () => {
-                _mostrarTyping(false);
-                await _iniciarAgenda();
-                _actualizarProgreso();
-              }, TYPING_DELAY);
-            },
-          },
-          {
-            label: "📞 Agendar llamada gratuita",
-            onClick: async () => {
-              _mostrarCliente("📞 Agendar llamada gratuita");
-              _registrarTurno("cliente", "Agendar llamada gratuita");
-              state.current_step = "s6";  // NO avanzamos a s7 — la llamada es rescate, no agenda
-              _mostrarTyping(true);
-              setTimeout(async () => {
-                _mostrarTyping(false);
-                await _iniciarLlamada();
-                _actualizarProgreso();
-              }, TYPING_DELAY);
-            },
-          },
-          {
-            label: "Prefiero preguntar algo más",
-            onClick: () => {
-              _mostrarCliente("Tengo una pregunta");
-              _registrarTurno("cliente", "Tengo una pregunta");
-              const msg = "Claro, cuéntame — estoy aquí.";
-              _mostrarVictoria(msg);
-              _registrarTurno("victoria", msg);
-            },
-          },
-        ]);
+        // Bifurcación de 2 chips tras el valor (Ver mi caso / Hablar con el equipo).
+        _mostrarOpciones(_opcionesBifurcacionPrecio());
       }, 200);
     }, 1500);
   }, 800);

@@ -8,7 +8,7 @@
  * Actualizar esta lista si cambia la normativa — es el único archivo que hay que tocar.
  */
 
-import { normalizar } from "./victoria-utils.js?v=72";
+import { normalizar } from "./victoria-utils.js?v=73";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTA DE RAZAS PPP OFICIALES
