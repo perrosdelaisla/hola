@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=73";
-import { detectarZona }                      from "./victoria-zones.js?v=73";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=73";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=73";
+import { normalizar }                        from "./victoria-utils.js?v=74";
+import { detectarZona }                      from "./victoria-zones.js?v=74";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=74";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=74";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=73";
-import { esPPP }                             from "./victoria-breeds.js?v=73";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=73";
-import { renderAgenda }                      from "./agenda.js?v=73";
+} from "./victoria-phrases.js?v=74";
+import { esPPP }                             from "./victoria-breeds.js?v=74";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=74";
+import { renderAgenda }                      from "./agenda.js?v=74";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=73";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=73";
+}                                            from "./supabase.js?v=74";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=74";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -679,6 +679,17 @@ async function _procesarTexto(texto) {
     setTimeout(() => { _insertarCierrePostDerivacion(); }, 3500);
     return "Gracias a ti por confiar en nosotros. Cualquier duda que te surja en el proceso, " +
       "en Perros de la Isla estamos a tu disposición. Mucho ánimo con tu perro.";
+  }
+
+  // ── INTERCEPTOR GLOBAL: pregunta de valor fuera del s6 ──
+  // La detección de valor vivía solo dentro de _procesarS6_Protocolo, así que
+  // una pregunta de precio en el arranque, en texto libre o en un paso
+  // intermedio (zona, datos…) caía al fallback o se leía como respuesta del
+  // paso. Aquí, en el único punto por donde pasa TODO texto libre, la
+  // interceptamos antes de procesar el paso. En s6 NO tocamos nada: se mantiene
+  // el orden de matching existente.
+  if (state.current_step !== "s6" && _esPreguntaValor(texto)) {
+    return _responderValorInterceptado();
   }
 
   const procesadores = {
@@ -1817,6 +1828,83 @@ function _mostrarBifurcacionPrecio() {
   }, 4500);
 }
 
+/**
+ * ¿El texto libre es una pregunta de valor? Reusa las MISMAS listas y el mismo
+ * normalizador que el s6 (KEYWORDS_PRECIO / KEYWORDS_PACK /
+ * KEYWORDS_PRECIO_POR_PERRO). No se crean listas nuevas.
+ */
+function _esPreguntaValor(texto) {
+  const norm = normalizar(texto);
+  const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
+  return match(KEYWORDS_PRECIO) || match(KEYWORDS_PACK) || match(KEYWORDS_PRECIO_POR_PERRO);
+}
+
+/**
+ * Respuesta del interceptor global de valor (fuera del s6): muestra el valor con
+ * el mensaje existente + la bifurcación de 2 chips, sin perder el paso en curso.
+ * Si el lead estaba en medio de un paso y elige "Ver mi caso", se retoma ese
+ * paso repitiendo su pregunta (capturada del historial de turnos).
+ */
+function _responderValorInterceptado() {
+  // Modalidad: la elegida si existe; presencial por defecto (spec REGLA DE PRECIO).
+  const clave = state.modalidad_final === "online" ? "online" : "presencial";
+
+  // Tracking igual que hoy.
+  _actualizarSesion({ vio_precio: true });
+
+  // Capturar el paso pendiente y su pregunta ANTES de emitir nada nuevo. La
+  // última burbuja de Victoria es la pregunta del paso en curso (el turno del
+  // cliente con la pregunta de valor ya está registrado por _enviarMensaje).
+  const pasoPendiente = state.current_step;
+  const ultimaVictoria = [...state.historial_turnos].reverse().find((t) => t.rol === "victoria");
+  const preguntaPendiente = ultimaVictoria ? ultimaVictoria.texto : null;
+
+  _mostrarBifurcacionPrecioInterceptor(pasoPendiente, preguntaPendiente);
+  return FRASES_PRECIO[clave];
+}
+
+/**
+ * Bifurcación del interceptor. Igual que _opcionesBifurcacionPrecio pero
+ * "Ver mi caso" RETOMA el paso pendiente (repite su pregunta) en vez de saltar
+ * a la agenda — porque fuera del s6 el caso aún no está validado (zona,
+ * modalidad…). "Hablar con el equipo" entra al flujo de llamada.
+ */
+function _mostrarBifurcacionPrecioInterceptor(pasoPendiente, preguntaPendiente) {
+  setTimeout(() => {
+    _mostrarOpciones([
+      {
+        label: "Ver mi caso",
+        onClick: () => {
+          _mostrarCliente("Ver mi caso");
+          _registrarTurno("cliente", "Ver mi caso");
+          state.current_step = pasoPendiente;   // el estado del árbol NO se pierde
+          if (!preguntaPendiente) return;
+          _mostrarTyping(true);
+          setTimeout(() => {
+            _mostrarTyping(false);
+            _mostrarVictoria(preguntaPendiente);
+            _registrarTurno("victoria", preguntaPendiente);
+            _actualizarProgreso();
+          }, TYPING_DELAY);
+        },
+      },
+      {
+        label: "Hablar con el equipo",
+        onClick: async () => {
+          _mostrarCliente("Hablar con el equipo");
+          _registrarTurno("cliente", "Hablar con el equipo");
+          _mostrarTyping(true);
+          setTimeout(async () => {
+            _mostrarTyping(false);
+            await _iniciarLlamada();
+            _actualizarProgreso();
+          }, TYPING_DELAY);
+        },
+      },
+    ]);
+  }, 4500);
+}
+
 function _mostrarBotonesAgendaTrasPausa() {
   setTimeout(() => {
     _mostrarOpciones([
@@ -2100,7 +2188,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=73");
+  const { renderLlamada } = await import("./llamada.js?v=74");
 
   await renderLlamada(
     contenedor,
