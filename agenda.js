@@ -3,7 +3,7 @@
    agenda.js — Slots y selección de cita
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsDisponibles, obtenerSlotsConEstado } from './supabase.js?v=74';
+import { obtenerSlotsDisponibles, obtenerSlotsConEstado } from './supabase.js?v=75';
 
 /* ── ESTADO SELECCIÓN ── */
 let slotSeleccionado = null;

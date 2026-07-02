@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=74";
-import { detectarZona }                      from "./victoria-zones.js?v=74";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=74";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=74";
+import { normalizar }                        from "./victoria-utils.js?v=75";
+import { detectarZona }                      from "./victoria-zones.js?v=75";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=75";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=75";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=74";
-import { esPPP }                             from "./victoria-breeds.js?v=74";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=74";
-import { renderAgenda }                      from "./agenda.js?v=74";
+} from "./victoria-phrases.js?v=75";
+import { esPPP }                             from "./victoria-breeds.js?v=75";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=75";
+import { renderAgenda }                      from "./agenda.js?v=75";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=74";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=74";
+}                                            from "./supabase.js?v=75";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=75";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1828,15 +1828,26 @@ function _mostrarBifurcacionPrecio() {
   }, 4500);
 }
 
+// Subconjunto de KEYWORDS_PRECIO_POR_PERRO que SÍ pregunta dinero explícitamente.
+// Solo se usa en el interceptor global (_esPreguntaValor): fuera del s6 las frases
+// meramente DESCRIPTIVAS ("tengo dos perros", "cada perro"…) no deben disparar la
+// respuesta de valor cuando el lead solo describe a sus perros. Dentro del s6 se
+// sigue usando la lista completa (KEYWORDS_PRECIO_POR_PERRO), sin cambios.
+const KEYWORDS_PRECIO_POR_PERRO_EXPLICITO = [
+  "precio por perro", "valor por perro",
+  "cobran por perro", "cobras por perro", "cobrais por perro",
+  "es por perro",
+];
+
 /**
- * ¿El texto libre es una pregunta de valor? Reusa las MISMAS listas y el mismo
- * normalizador que el s6 (KEYWORDS_PRECIO / KEYWORDS_PACK /
- * KEYWORDS_PRECIO_POR_PERRO). No se crean listas nuevas.
+ * ¿El texto libre es una pregunta de valor? Reusa el mismo normalizador y las
+ * listas del s6 (KEYWORDS_PRECIO / KEYWORDS_PACK enteras); para "por perro" usa
+ * solo el subconjunto explícito de dinero (arriba), no las frases descriptivas.
  */
 function _esPreguntaValor(texto) {
   const norm = normalizar(texto);
   const match = (lista) => lista.some((kw) => norm.includes(normalizar(kw)));
-  return match(KEYWORDS_PRECIO) || match(KEYWORDS_PACK) || match(KEYWORDS_PRECIO_POR_PERRO);
+  return match(KEYWORDS_PRECIO) || match(KEYWORDS_PACK) || match(KEYWORDS_PRECIO_POR_PERRO_EXPLICITO);
 }
 
 /**
@@ -2188,7 +2199,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=74");
+  const { renderLlamada } = await import("./llamada.js?v=75");
 
   await renderLlamada(
     contenedor,
