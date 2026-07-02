@@ -208,7 +208,7 @@ document.getElementById('form-lead').addEventListener('submit', async (e) => {
     }
 
     // Éxito
-    const link = `https://perrosdelaisla.github.io/hola/?token=${json.token}`;
+    const link = `https://hablemos.perrosdelaisla.es/?token=${json.token}`;
     document.getElementById('link-generado').value = link;
     mostrarPantalla('pantalla-link');
 

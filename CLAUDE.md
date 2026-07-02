@@ -2,7 +2,7 @@
 
 VictorIA es el chatbot virtual que responde los WhatsApp del negocio **Perros de la Isla** (adiestramiento canino en Mallorca). Convierte consultas en clientes: escucha el problema del dueño con su perro, identifica el protocolo correcto y reserva la primera clase **en el momento, sin cobrar en el chat**. La cita nace con seña PENDIENTE (`pago_pendiente_verificar=true`); la seña de 45€ por Bizum la coordina Carlos después, fuera del bot.
 
-Está alojada en **perrosdelaisla.github.io/hola** (GitHub Pages, repo `victoria`). El propietario es Carlos Acevedo (Charly), instructor canino profesional.
+Está alojada en **hablemos.perrosdelaisla.es** (GitHub Pages con dominio propio, repo `victoria`). El propietario es Carlos Acevedo (Charly), instructor canino profesional.
 
 Es el "hermano" del proyecto Paseos Seguros (perrosdelaisla.github.io). Comparte identidad de marca, tono y reglas de lenguaje, pero la app es completamente distinta: aquí no hay pestañas — es un embudo conversacional lineal.
 
@@ -19,7 +19,7 @@ Es el "hermano" del proyecto Paseos Seguros (perrosdelaisla.github.io). Comparte
 - **PWA admin**: el panel en `admin/` es instalable como app (manifest.json + service worker que NO cachea — estrategia network-only).
 - **Charts**: el panel admin usa Chart.js 4.4.1 desde CDN (solo en la pestaña Estadísticas).
 - **Tipografías**: Bebas Neue + DM Sans desde Google Fonts.
-- **Hosting**: GitHub Pages bajo `/hola/`. La app pública vive en la raíz del repo, el panel privado en `admin/`.
+- **Hosting**: GitHub Pages con dominio propio `hablemos.perrosdelaisla.es` (servido desde la raíz del dominio; el CNAME vive en la raíz del repo). La app pública vive en la raíz del repo, el panel privado en `admin/`.
 
 Tablas Supabase usadas: `clientes`, `perros`, `citas`, `conversaciones`, `sesiones`, `slots`, `bloqueos`. Bucket de Storage: `pagos` (existe pero ya no se sube nada desde que se quitó el pago del chat).
 
@@ -169,7 +169,7 @@ VictorIA tiene respuestas hardcoded en `FRASES_LATERALES` ([victoria-phrases.js]
 ### Despliegue
 
 - Push a `main` → GitHub Pages publica automáticamente. No hay CI, no hay pasos de build. Lo que está en el repo es lo que se sirve.
-- El panel admin se sirve bajo `perrosdelaisla.github.io/hola/admin/`.
+- El panel admin se sirve bajo `hablemos.perrosdelaisla.es/admin/`.
 
 ### Testing
 
@@ -183,7 +183,7 @@ VictorIA tiene respuestas hardcoded en `FRASES_LATERALES` ([victoria-phrases.js]
 - **Negocio**: Perros de la Isla — Adiestramiento canino · Mallorca
 - **Adiestrador / Propietario**: Carlos Acevedo (a.k.a. Charly), Instructor canino profesional
 - **Web**: [perrosdelaisla.com](https://www.perrosdelaisla.com/)
-- **Hola (este chatbot)**: [perrosdelaisla.github.io/hola](https://perrosdelaisla.github.io/hola/)
+- **Hola (este chatbot)**: [hablemos.perrosdelaisla.es](https://hablemos.perrosdelaisla.es/)
 - **Instagram**: [@perrosdelaisla](https://www.instagram.com/perrosdelaisla/)
 - **Línea PÚBLICA del negocio**: **`622 922 173`** — el número que VictorIA usa en TODO mensaje conversacional: captación, fallbacks, derivaciones, errores técnicos, confirmación final de la cita. Es el único número que sale por boca del bot.
 - **Línea PRIVADA de Carlos**: **`653 591 301`** — el número personal del adiestrador. VictorIA NUNCA lo pone en una burbuja de chat: solo aparece dentro del mensaje listo-para-WhatsApp de la notificación ntfy (`_notificarCarlos`, [victoria.js](victoria.js):2506), que Carlos copia/pega para coordinar el Bizum de la seña de 45€ con el cliente. Carlos también lo usa para conversar manualmente con clientes activos — ese traspaso lo ejecuta él desde su móvil, no es función del bot.
