@@ -6,7 +6,7 @@
    ═══════════════════════════════════════════ */
 
 :root {
-  --pdli-rojo: #C8102E;
+  --pdli-rojo: #D91B1D;
   --pdli-rojo-hover: #a30c25;
   --pdli-crema: #F5EFE0;
   --pdli-negro: #1A1A1A;
@@ -156,7 +156,7 @@ body {
 .vicky-label select:focus,
 .vicky-label textarea:focus {
   border-color: var(--pdli-rojo);
-  box-shadow: 0 0 0 2px rgba(200, 16, 46, 0.15);
+  box-shadow: 0 0 0 2px rgba(217, 27, 29, 0.15);
 }
 
 .vicky-label textarea {
@@ -206,7 +206,7 @@ body {
 }
 
 .vicky-btn--secondary:hover {
-  background: rgba(200, 16, 46, 0.06);
+  background: rgba(217, 27, 29, 0.06);
 }
 
 .vicky-error {
@@ -214,7 +214,7 @@ body {
   font-size: 13px;
   margin: 0;
   padding: 10px 12px;
-  background: rgba(200, 16, 46, 0.08);
+  background: rgba(217, 27, 29, 0.08);
   border-radius: 4px;
   border-left: 3px solid var(--pdli-rojo);
 }

@@ -7,9 +7,9 @@
 
 /* ── VARIABLES ── */
 :root {
-  --rojo:       #E8320A;
+  --rojo:       #D91B1D;
   --rojo-dk:    #bf2608;
-  --rojo-xs:    rgba(232, 50, 10, 0.08);
+  --rojo-xs:    rgba(217, 27, 29, 0.08);
   --verde:      #9cb64b;
   --verde-dk:   #7a9438;
   --verde-xs:   rgba(156, 182, 75, 0.10);
@@ -867,13 +867,13 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
   gap: 8px;
   padding: 16px 18px;
   margin-top: 8px;
-  background: #C8102E;
+  background: #D91B1D;
   border: 0;
   border-radius: var(--r12);
   cursor: pointer;
   transition: background .12s, transform .08s;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(200, 16, 46, 0.25);
+  box-shadow: 0 2px 6px rgba(217, 27, 29, 0.25);
 }
 
 .upload-label:hover {
@@ -952,8 +952,8 @@ textarea.fin { resize: none; height: 88px; line-height: 1.55; }
 
 /* Mensaje de error */
 .pay-error {
-  background: rgba(232, 50, 10, 0.08);
-  border: 1px solid rgba(232, 50, 10, 0.25);
+  background: rgba(217, 27, 29, 0.08);
+  border: 1px solid rgba(217, 27, 29, 0.25);
   border-radius: var(--r8);
   padding: 10px 12px;
   font-size: 13px;
@@ -1006,7 +1006,7 @@ body {
   top: 0;
   z-index: 100;
   background: #1f2c34;
-  border-bottom: 2px solid #C8102E;
+  border-bottom: 2px solid #D91B1D;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1266,7 +1266,7 @@ body {
 }
 
 .input-wrap button.sb {
-  background: #C8102E !important;
+  background: #D91B1D !important;
   color: #ffffff !important;
 }
 .input-wrap button.sb:hover {
@@ -1302,7 +1302,7 @@ body {
 /* Avatar de Victoria — tono cálido sobre fondo oscuro WA */
 .msg.bot .av,
 #tw .av {
-  border-color: #C8102E !important;
+  border-color: #D91B1D !important;
 }
 
 /* ═══════════════════════════════════════════
@@ -1317,7 +1317,7 @@ body {
   height: 40px;
   border-radius: 50%;
   background: #1A1A1A;
-  border: 2px solid var(--pdli-rojo, #C8102E);
+  border: 2px solid var(--pdli-rojo, #D91B1D);
   box-sizing: border-box;
   display: flex;
   align-items: center;

@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=75";
-import { detectarZona }                      from "./victoria-zones.js?v=75";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=75";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=75";
+import { normalizar }                        from "./victoria-utils.js?v=76";
+import { detectarZona }                      from "./victoria-zones.js?v=76";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=76";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=76";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=75";
-import { esPPP }                             from "./victoria-breeds.js?v=75";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=75";
-import { renderAgenda }                      from "./agenda.js?v=75";
+} from "./victoria-phrases.js?v=76";
+import { esPPP }                             from "./victoria-breeds.js?v=76";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=76";
+import { renderAgenda }                      from "./agenda.js?v=76";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=75";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=75";
+}                                            from "./supabase.js?v=76";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=76";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -1712,8 +1712,8 @@ function _mostrarBotonPedirWhatsApp() {
         padding:12px 16px;
         margin-bottom:8px;
         background:transparent;
-        color:#C8102E;
-        border:1.5px solid #C8102E;
+        color:#D91B1D;
+        border:1.5px solid #D91B1D;
         border-radius:6px;
         font-family:inherit;
         font-size:14px;
@@ -2199,7 +2199,7 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=75");
+  const { renderLlamada } = await import("./llamada.js?v=76");
 
   await renderLlamada(
     contenedor,

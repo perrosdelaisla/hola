@@ -3,7 +3,7 @@
    llamada.js — Mini-widget de reserva de llamada
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=75';
+import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=76';
 
 /* ── ESTADO ── */
 let slotSeleccionado = null;
@@ -163,7 +163,7 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
         outline:none;
       }
       #victoria-llamada-slot .llamada-form-input:focus {
-        border-bottom-color:#C8102E;
+        border-bottom-color:#D91B1D;
       }
       #victoria-llamada-slot .llamada-form-input::placeholder {
         color:rgba(245,239,224,0.35);
@@ -190,7 +190,7 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
         <small style="color:rgba(245,239,224,0.5);font-size:12px"><span id="llamada-mensaje-counter">0</span> / 200</small>
       </label>
 
-      <div id="llamada-form-error" style="display:none;color:#C8102E;font-size:13px;padding:8px 0"></div>
+      <div id="llamada-form-error" style="display:none;color:#D91B1D;font-size:13px;padding:8px 0"></div>
 
       <button id="btn-confirmar-reserva" style="
         display:block;
@@ -198,8 +198,8 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
         padding:12px 16px;
         margin-bottom:8px;
         background:transparent;
-        color:#C8102E;
-        border:1.5px solid #C8102E;
+        color:#D91B1D;
+        border:1.5px solid #D91B1D;
         border-radius:6px;
         font-family:inherit;
         font-size:14px;
