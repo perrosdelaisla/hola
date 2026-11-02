@@ -20,10 +20,10 @@
  *   s9  datos cliente · s10/s11 confirmación reserva · s12 confirmación final
  */
 
-import { normalizar }                        from "./victoria-utils.js?v=76";
-import { detectarZona }                      from "./victoria-zones.js?v=76";
-import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=76";
-import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=76";
+import { normalizar }                        from "./victoria-utils.js?v=77";
+import { detectarZona }                      from "./victoria-zones.js?v=77";
+import { detectarCuadros, detectarLateral }  from "./victoria-dictionaries.js?v=77";
+import { DICT_BASICA }                       from "./victoria-dictionaries.js?v=77";
 import {
   obtenerFrase,
   FRASES_PRECIO,
@@ -37,16 +37,16 @@ import {
   FRASE_COMO_TRABAJAMOS_ONLINE,
   FRASE_CIERRE_METODOLOGIA,
   FRASE_DURACION_UNIFICADA,
-} from "./victoria-phrases.js?v=76";
-import { esPPP }                             from "./victoria-breeds.js?v=76";
-import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=76";
-import { renderAgenda }                      from "./agenda.js?v=76";
+} from "./victoria-phrases.js?v=77";
+import { esPPP }                             from "./victoria-breeds.js?v=77";
+import { decidirRespuesta, tieneVocabularioReconocible, tieneKeywordsAgresion } from "./victoria-matching.js?v=77";
+import { renderAgenda }                      from "./agenda.js?v=77";
 import {
   buscarOCrearClientePorTelefono,
   reservarLlamada,
   obtenerSlotsDisponibles,
-}                                            from "./supabase.js?v=76";
-import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=76";
+}                                            from "./supabase.js?v=77";
+import { IA_FALLBACK_CONFIG }                from "./victoria-ai-config.js?v=77";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURACIÓN
@@ -2199,14 +2199,17 @@ async function _iniciarLlamada() {
 
   // Import dinámico: el bundle de llamada.js solo se carga si el lead
   // efectivamente entra al flujo de catch-all y pulsa el CTA.
-  const { renderLlamada } = await import("./llamada.js?v=76");
+  const { renderLlamada } = await import("./llamada.js?v=77");
 
   await renderLlamada(
     contenedor,
     async (datos) => await _finalizarReservaLlamada(datos),
     () => {
       // onVolver — reservado, espejo del contrato de agenda.js
-    }
+    },
+    // Si el lead no contó nada en el chat (botón directo de la pantalla
+    // inicial), el form pide perro y qué le pasa (Charly, 02/11/2026).
+    { pedirPerro: !state.perro?.nombre && !(state.mensajes_diagnostico?.length) }
   );
 
   return null;
@@ -2228,7 +2231,13 @@ async function _iniciarLlamada() {
  * queda creado huérfano. Asumido como menos malo que mostrar error sin
  * guardar — el 622 recupera al lead por WhatsApp.
  */
-async function _finalizarReservaLlamada({ fecha, hora, nombre, telefono, mensaje_adicional }) {
+async function _finalizarReservaLlamada({ fecha, hora, nombre, telefono, mensaje_adicional, perro_nombre: perroForm, problema }) {
+  // Lo que viene del chat manda; si no hay, lo que puso en el form de llamada.
+  const perroNombreFinal = state.perro?.nombre ?? perroForm ?? null;
+  const diagnosticoFinal = state.mensajes_diagnostico?.length
+    ? state.mensajes_diagnostico
+    : (problema ? [problema] : null);
+
   // Modo prueba — espejo del s12 (línea ~1330)
   if (state.prueba) {
     _actualizarSesion({ agendo_llamada: true });
@@ -2254,13 +2263,11 @@ async function _finalizarReservaLlamada({ fecha, hora, nombre, telefono, mensaje
       telefono_cliente:     telefono,
       mensaje_adicional:    mensaje_adicional || null,
       zona:                 state.zona?.zonaDetectada ?? null,
-      perro_nombre:         state.perro?.nombre        ?? null,
+      perro_nombre:         perroNombreFinal,
       perro_raza:           state.perro?.raza          ?? null,
       perro_edad_meses:     state.perro?.edad_meses    ?? null,
       perro_peso_kg:        state.perro?.peso_kg       ?? null,
-      mensajes_diagnostico: state.mensajes_diagnostico?.length
-                             ? state.mensajes_diagnostico
-                             : null,
+      mensajes_diagnostico: diagnosticoFinal,
     });
 
     // 3) ntfy — definida en Sub-bloque 5
@@ -2272,11 +2279,11 @@ async function _finalizarReservaLlamada({ fecha, hora, nombre, telefono, mensaje
       hora,
       mensaje_adicional,
       zona:                 state.zona?.zonaDetectada,
-      perro_nombre:         state.perro?.nombre,
+      perro_nombre:         perroNombreFinal,
       perro_raza:           state.perro?.raza,
       perro_edad_meses:     state.perro?.edad_meses,
       perro_peso_kg:        state.perro?.peso_kg,
-      mensajes_diagnostico: state.mensajes_diagnostico,
+      mensajes_diagnostico: diagnosticoFinal,
     });
 
     // 4) Tracking — flag de rescate de lead

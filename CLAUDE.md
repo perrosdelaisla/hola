@@ -16,6 +16,7 @@ Es el "hermano" del proyecto Paseos Seguros (perrosdelaisla.github.io). Comparte
 - **Notificaciones push: [ntfy.sh](https://ntfy.sh/)** topic `perrosdelaisla-citas-2026` (constante `NTFY_TOPIC` en [victoria.js](victoria.js):57) — Charly lo recibe en el móvil. Hay **dos** disparadores:
   - **Cita confirmada** → `_notificarCarlos` (s12): manda un push interno (resumen + teléfono) y otro con el mensaje listo-para-WhatsApp. Además, al insertarse la fila en `citas`, se dispara el **aviso del panel admin vía trigger DB** (`app.trg_citas_insert_aviso`).
   - **Rescate de lead** → `_notificarRescate` (s9): cuando el lead dejó nombre+teléfono pero **aún no confirmó**. Solo push, **NUNCA toca la tabla `citas`** → no genera aviso de panel. Esa ausencia de aviso de panel es la señal que distingue un rescate de una cita confirmada.
+  - **Llamada agendada** → `_notificarLlamada` (front, a este topic, para Charly) **y además** el trigger de base `app.trg_llamadas_insert_aviso` (topic de Vicky, `vickyatentiatenti`, con botón de WhatsApp). Vicky es quien hace la llamada: su aviso trae todo lo que dio el lead (perro, zona, lo que contó en el chat). Desde el 02/11/2026, si el lead reserva la llamada sin haber contado nada en el chat (botón directo de la pantalla inicial), el form de `llamada.js` pide además el nombre del perro (opcional) y qué le pasa (obligatorio); eso se guarda en `perro_nombre` y `mensajes_diagnostico` de `llamadas_solicitadas`. Si el lead ya pasó por el chat, el form es el de siempre.
 - **PWA admin**: el panel en `admin/` es instalable como app (manifest.json + service worker que NO cachea — estrategia network-only).
 - **Charts**: el panel admin usa Chart.js 4.4.1 desde CDN (solo en la pestaña Estadísticas).
 - **Tipografías**: Bebas Neue + DM Sans desde Google Fonts.
@@ -57,7 +58,7 @@ El UI público es un chat de un solo "viewport": splash de bienvenida → barra 
 - **[admin/manifest.json](admin/manifest.json)** + **[admin/sw.js](admin/sw.js)** · permiten instalar el panel como app en Android/iOS. El service worker es deliberadamente network-only — los cambios se ven al instante sin invalidar caché.
 
 ### Otros
-- **[index.html](index.html)** · estructura del splash + chat + input fijo. Importa `./victoria.js?v=76` (la query `?v=` se incrementa para invalidar caché en clientes).
+- **[index.html](index.html)** · estructura del splash + chat + input fijo. Importa `./victoria.js?v=77` (la query `?v=` se incrementa para invalidar caché en clientes).
 - **[styles.css](styles.css)** · estilos del chat público.
 
 ---
@@ -155,7 +156,7 @@ VictorIA tiene respuestas hardcoded en `FRASES_LATERALES` ([victoria-phrases.js]
 
 - **Consultar antes de cambios importantes**: refactors, ediciones que tocan varios archivos, eliminación de funcionalidad. Charly revisa antes de confirmar.
 - **Mantener el estilo de código existente**. NO introducir TypeScript, NO introducir frameworks (React, Vue, etc.), NO introducir bundlers (Vite, webpack). El proyecto es vanilla ES6 modules y se sirve tal cual desde GitHub Pages.
-- **Versionado de caché**: cuando edites HTML/CSS/JS que cargan los clientes, gestionar versiones para evitar caché viejo. El patrón actual es `import { start } from './victoria.js?v=76';` en [index.html](index.html) — incrementar el `?v=` cuando haya cambios sustanciales que el cliente deba refrescar inmediatamente. El service worker del admin es network-only por diseño y no necesita esto.
+- **Versionado de caché**: cuando edites HTML/CSS/JS que cargan los clientes, gestionar versiones para evitar caché viejo. El patrón actual es `import { start } from './victoria.js?v=77';` en [index.html](index.html) — incrementar el `?v=` cuando haya cambios sustanciales que el cliente deba refrescar inmediatamente. El service worker del admin es network-only por diseño y no necesita esto.
 - **Imports relativos** con `./...js` (módulos ES6 nativos en navegador — la extensión `.js` es obligatoria).
 - **No añadir dependencias** sin pedirlo. Si algo se puede hacer con la plataforma web (fetch, Canvas API, IntersectionObserver…), se hace así.
 - **Comentarios**: el código actual tiene comentarios extensos en cabeceras de fichero y secciones — respetar ese estilo cuando edites archivos existentes. En código nuevo, solo comentar el "por qué" cuando no sea obvio.
@@ -215,8 +216,8 @@ node bump-version.js <nueva-version>
 Ejemplo: `node bump-version.js 52`
 
 Esto actualiza todas las refs `?v=N` en cadena:
-- `index.html` → carga `victoria.js?v=76`
-- `victoria.js` → importa `agenda.js?v=76`, `supabase.js?v=76`, etc.
+- `index.html` → carga `victoria.js?v=77`
+- `victoria.js` → importa `agenda.js?v=77`, `supabase.js?v=77`, etc.
 - Archivos hijos (`agenda.js`, `llamada.js`, `victoria-matching.js`,
   `victoria-breeds.js`, `victoria-dictionaries.js`) → sus imports
   internos también pasan a `?v=52`.

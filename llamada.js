@@ -3,11 +3,17 @@
    llamada.js — Mini-widget de reserva de llamada
    ═══════════════════════════════════════════ */
 
-import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=76';
+import { obtenerSlotsLlamadasDisponibles } from './supabase.js?v=77';
 
 /* ── ESTADO ── */
 let slotSeleccionado = null;
 let slotsCache = null;
+// true cuando el lead llega al form sin haber contado nada en el chat
+// (p. ej. botón "Agendar llamada" de la pantalla inicial): el form pide
+// además el nombre del perro y qué le pasa, para que Vicky llame sabiendo
+// de qué va (Charly, 02/11/2026). Si el lead ya pasó por el chat, el form
+// queda exactamente igual que antes.
+let pedirPerro = false;
 
 /**
  * Renderiza el widget de reserva de llamada en 2 pantallas:
@@ -22,10 +28,15 @@ let slotsCache = null;
  * @param {Function}    onConfirmacion — callback({ fecha, hora, nombre, telefono, mensaje_adicional })
  * @param {Function}    onVolver       — callback al pulsar Volver desde la grid (vestigial,
  *                                       espejo del contrato de agenda.js; no se invoca hoy)
+ * @param {Object}      [opciones]     — { pedirPerro: boolean }. Si true, el form pide
+ *                                       también nombre del perro (opcional) y qué le pasa
+ *                                       (obligatorio), y el callback recibe además
+ *                                       { perro_nombre, problema }.
  */
-export async function renderLlamada(contenedor, onConfirmacion, onVolver) {
+export async function renderLlamada(contenedor, onConfirmacion, onVolver, opciones = {}) {
   slotSeleccionado = null;
   slotsCache = null;
+  pedirPerro = !!(opciones && opciones.pedirPerro);
 
   // Estado: cargando
   contenedor.innerHTML = `
@@ -184,6 +195,18 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
         <input class="llamada-form-input" type="tel" id="llamada-telefono" maxlength="40" inputmode="tel" autocomplete="tel" required placeholder="+34 612 345 678">
       </label>
 
+      ${pedirPerro ? `
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">¿Cómo se llama tu perro?</span>
+        <input class="llamada-form-input" type="text" id="llamada-perro" maxlength="60" autocomplete="off">
+      </label>
+
+      <label style="display:block;margin-bottom:14px">
+        <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">¿Qué le pasa o qué te gustaría mejorar? *</span>
+        <textarea class="llamada-form-input" id="llamada-problema" maxlength="500" rows="3" style="resize:vertical" placeholder="Por ejemplo: tira mucho de la correa y ladra a otros perros"></textarea>
+      </label>
+      ` : ''}
+
       <label style="display:block;margin-bottom:14px">
         <span style="display:block;margin-bottom:4px;color:rgba(245,239,224,0.7);font-size:13px;font-weight:500;letter-spacing:0.3px">¿Algo más que quieras que sepamos antes de la llamada?</span>
         <textarea class="llamada-form-input" id="llamada-mensaje" maxlength="200" rows="3" style="resize:vertical"></textarea>
@@ -270,6 +293,22 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
       return;
     }
 
+    // Datos del perro — solo si el form los pidió (lead sin chat previo)
+    let extraPerro = {};
+    if (pedirPerro) {
+      const perroEl    = contenedor.querySelector('#llamada-perro');
+      const problemaEl = contenedor.querySelector('#llamada-problema');
+      const perroNom   = (perroEl?.value || '').trim().slice(0, 60);
+      const problema   = (problemaEl?.value || '').trim().slice(0, 500);
+      if (problema.length < 3) {
+        errBox.textContent = 'Cuéntanos en una frase qué le pasa a tu perro, así te llamamos sabiendo de qué va.';
+        errBox.style.display = 'block';
+        problemaEl?.focus();
+        return;
+      }
+      extraPerro = { perro_nombre: perroNom || null, problema };
+    }
+
     // Bloqueo de doble-tap mientras el orquestador hace su trabajo
     const btn = contenedor.querySelector('#btn-confirmar-reserva');
     const btnVolver = contenedor.querySelector('#btn-volver-form');
@@ -284,6 +323,7 @@ function _renderForm(contenedor, onConfirmacion, onVolver) {
         nombre,
         telefono:          tel,
         mensaje_adicional: mensaje || null,
+        ...extraPerro,
       });
     } catch (err) {
       // El orquestador suele renderizar su propio mensaje de error en chat.
